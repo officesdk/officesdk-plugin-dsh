@@ -1,0 +1,20 @@
+node_modules
+artifacts/
+.DS_Store
+
+# Local planning and acceptance evidence can contain personal file paths.
+/plan.md
+/validation/
+
+# office-kit's editor bundle, host fonts and kit-manifest.json: not part of this repository. tooling/kit/vendor.mjs
+# fetches them from the pinned sources named in components/office-kit.json and checks every file's sha256.
+/components/vendor/
+/components/kit-manifest.json
+/.vendor-cache/
+
+# office-kit downloads of tooling/suite/pack-universal.mjs (offline Kits and editor resources)
+/.office-kit-cache/
+# pack-universal's work directory next to --out (removed when it finishes; left only by a killed run)
+.pack-universal-*/
+/scripts/npm-gate-internal.local.json
+__pycache__/

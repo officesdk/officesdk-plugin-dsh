@@ -1,0 +1,14 @@
+{
+  "acceptance.docx": {
+    "bytes": 20908,
+    "sha256": "a0c8fb078b753bfda27a31f6c893405fd3495f9b079e164d03704509a82d6a56"
+  },
+  "acceptance.pptx": {
+    "bytes": 30439,
+    "sha256": "e81721118c3547754785bab7e609f61c49f2f9ebfa528a4d668198fab250b996"
+  },
+  "acceptance.xlsx": {
+    "bytes": 8836,
+    "sha256": "4ccb06d0fda0e18558d6fc5a44b9760a71fa5adf7b76da175236786198daa5e0"
+  }
+}

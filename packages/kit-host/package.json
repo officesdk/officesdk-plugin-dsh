@@ -1,0 +1,11 @@
+{
+  "name": "@officesdk/kit-host",
+  "version": "0.0.12-alpha.1",
+  "description": "Host side of the office-kit Kit runtime: process supervision, command frames and the side stream",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "exports": { ".": "./src/index.mjs" },
+  "engines": { "node": ">=22.19.0" },
+  "scripts": { "test": "node --test test/*.test.mjs" }
+}

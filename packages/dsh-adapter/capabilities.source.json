@@ -1,0 +1,74 @@
+{
+  "$comment": "Hand-written data for capabilities.json (schema: docs/capabilities.md). Edit this file when a capability changes, then run node scripts/whats-new.mjs. When Windows leaves test (CI WIN32_RELEASE=release), change its status and tag here too. Versions, DSH range, office-kit, skills and style packs are read from their own files, not written here.",
+  "plugin": {
+    "id": "@officesdk/officesdk-plugin-dsh",
+    "name": { "zh": "OfficeSDK", "en": "OfficeSDK" }
+  },
+  "platforms": [
+    { "name": "darwin-arm64", "status": "stable" },
+    { "name": "win32-x64", "status": "test" }
+  ],
+  "common": [
+    { "id": "save", "supported": true, "summary": "保存回原文件；工作区外的文件先确认授权，授权后自动保存" },
+    { "id": "save-as", "supported": true, "summary": "另存为副本（原格式；桌面版可选文件夹）" },
+    { "id": "export", "supported": true, "summary": "编辑器不可用、退回只读预览时可下载文件" },
+    { "id": "edit-view-mode", "supported": true, "summary": "编辑模式 / 阅读模式切换" },
+    { "id": "disk-change", "supported": true, "summary": "文件被其他程序改写时自动重载或询问用磁盘版本还是保留修改" },
+    { "id": "plugin-update", "supported": true, "summary": "插件内检查并一键更新到 dist 最新版本" },
+    { "id": "whats-new", "supported": true, "summary": "更新后第一次打开文档时提示本次更新要点" }
+  ],
+  "products": [
+    {
+      "id": "presentation",
+      "name": { "zh": "PPT", "en": "Presentation" },
+      "extensions": ["pptx"],
+      "capabilities": [
+        { "id": "preview", "supported": true, "summary": "右侧标签页打开预览" },
+        { "id": "manual-edit", "supported": true, "summary": "离线 PPT 编辑器手动编辑，可插入图片、视频、附件" },
+        { "id": "ai-create", "supported": true, "summary": "AI 新建并在编辑器里实时逐页生成" },
+        { "id": "ai-edit", "supported": true, "summary": "AI 修改已打开的 PPT，修改前在标签页确认" },
+        { "id": "ai-animation", "supported": true, "summary": "AI 写入时显示 Agent 框、光标与打字效果" },
+        { "id": "ai-selection-rewrite", "supported": false, "summary": "选中文字 AI 改写暂不支持 PPT" },
+        { "id": "ai-undo", "supported": true, "summary": "撤销 AI 修改（整批回滚）" },
+        { "id": "style-packs", "supported": true, "summary": "内置蓝色品牌风格（default）" },
+        { "id": "ai-tables-charts", "supported": false, "summary": "实时方式暂不插入表格、图表" },
+        { "id": "print", "supported": false, "summary": "暂不提供打印" }
+      ],
+      "aiTools": ["presentation_create", "presentation_suggest_styles", "presentation_read", "presentation_edit", "presentation_undo", "presentation_save"]
+    },
+    {
+      "id": "document",
+      "name": { "zh": "Word", "en": "Word" },
+      "extensions": ["docx"],
+      "capabilities": [
+        { "id": "preview", "supported": true, "summary": "右侧标签页打开预览，带修订的文档原样显示修订" },
+        { "id": "manual-edit", "supported": true, "summary": "离线 Writer 编辑器手动编辑，可插入图片" },
+        { "id": "ai-create", "supported": true, "summary": "AI 按模板新建并实时逐段写入" },
+        { "id": "ai-edit", "supported": true, "summary": "AI 修改已打开的文档，修改前确认" },
+        { "id": "ai-animation", "supported": true, "summary": "AI 写入时显示 Agent 框与步骤；新段落和整段改写的文字分几次长出" },
+        { "id": "ai-selection-rewrite", "supported": true, "summary": "选中文字后点「AI 改写」写要求，AI 只改选中部分，改完可保留或撤回" },
+        { "id": "ai-undo", "supported": false, "summary": "AI 修改不能自动撤销，出错或停止时保留已完成步骤" },
+        { "id": "ai-tables", "supported": false, "summary": "实时方式暂不插入表格，需要表格时用离线脚本" },
+        { "id": "print", "supported": true, "summary": "打开系统打印对话框" }
+      ],
+      "aiTools": ["document_create", "document_read", "document_edit", "document_save", "selection_rewrite"]
+    },
+    {
+      "id": "spreadsheet",
+      "name": { "zh": "表格", "en": "Spreadsheet" },
+      "extensions": ["xlsx"],
+      "capabilities": [
+        { "id": "preview", "supported": true, "summary": "右侧标签页打开预览" },
+        { "id": "manual-edit", "supported": true, "summary": "离线表格编辑器手动编辑，可插入图片" },
+        { "id": "ai-create", "supported": true, "summary": "AI 新建工作簿并实时填数据、公式、格式" },
+        { "id": "ai-edit", "supported": true, "summary": "AI 修改已打开的表格，修改前确认" },
+        { "id": "ai-animation", "supported": true, "summary": "AI 写入时选中区域并显示 Agent 框；不超过 48 格逐格填入并高亮当前格，更大的区域逐行写入" },
+        { "id": "ai-selection-rewrite", "supported": true, "summary": "选中一块连续单元格（最多 200 格）后点「AI 改写」，AI 只改这些格子，改完可保留或撤回" },
+        { "id": "ai-charts", "supported": true, "summary": "按数据区域生成簇状柱形图" },
+        { "id": "ai-undo", "supported": false, "summary": "AI 修改不能自动撤销，出错或停止时保留已完成步骤" },
+        { "id": "print", "supported": false, "summary": "暂不提供打印" }
+      ],
+      "aiTools": ["spreadsheet_create", "spreadsheet_read", "spreadsheet_edit", "spreadsheet_save", "selection_rewrite"]
+    }
+  ]
+}

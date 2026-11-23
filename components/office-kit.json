@@ -1,0 +1,30 @@
+{
+  "v": 2,
+  "officeKit": {
+    "version": "0.3.0-rc.1",
+    "platforms": ["darwin-arm64", "darwin-x64", "win32-arm64", "win32-x64"]
+  },
+  "sources": {
+    "core-release": {
+      "url": "https://github.com/officesdk/officesdk-core/releases/download/v0.3.0-rc.1/",
+      "sums": "SHA256SUMS"
+    },
+    "core-editor": {
+      "registry": "https://registry.npmjs.org/",
+      "package": "@officesdk/officesdk-core-editor",
+      "version": "0.3.0-rc.1",
+      "integrity": "sha512-OMtVneK2FzKlT1VXAgVcRkOp3vzB6lstvs+RGJZ06EKhJFKebe1sDYUTyxqL8aaFpm46X6o9YOkQbUKT22UCqQ=="
+    },
+    "plugin-alpha3": {
+      "registry": "https://registry.npmjs.org/",
+      "package": "@officesdk/officesdk-plugin-dsh",
+      "version": "0.0.0-alpha.3",
+      "integrity": "sha512-AAxS3MM+QYenTRgkjKIE1DkYN95814avuscyqmfel+fUdzHXdV3JKfMb/3QN9LZWDCuLhPEUsPkCykNKaLOi/Q=="
+    }
+  },
+  "files": {
+    "kit-manifest.json": { "from": "core-release", "path": "kit-manifest.json", "to": "components/kit-manifest.json", "sha256": "48ce6786446b8772ec15f6d17a221cf82714fea73fd4ae10a472fee41f43c2a5" },
+    "offline-editor.js": { "from": "core-editor", "path": "dist/bundle/offline-editor.js", "to": "components/vendor/editor/bundle/offline-editor.js", "sha256": "ce10f56dbca8acf0b33e6bd0a58595d9fce8cdc1640a31578958edf8efdc5de7" },
+    "sheet-host-fonts.css": { "from": "plugin-alpha3", "path": "resources/host-fonts/sheet-host-fonts.css", "to": "components/vendor/host-fonts/sheet-host-fonts.css", "sha256": "64fc6211e61c68c5eaf8b42acc26ebee476a70dbaf13ed16e841e5b38de3b231" }
+  }
+}

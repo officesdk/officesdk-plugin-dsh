@@ -1,0 +1,262 @@
+{
+  "version": 1,
+  "deck": {
+    "first": "cover",
+    "last": "closing",
+    "warnings": {
+      "first": "第 1 页不是 cover：本风格默认封面开场。",
+      "last": "最后一页不是 closing：本风格默认 THANKS 结束页与封面配对。"
+    }
+  },
+  "offline": {
+    "canvas": {"width": 960, "height": 540, "unit": "px"},
+    "order": ["cover", "overview", "statement", "columns", "composition", "image-statement", "numbered", "metrics", "chart", "risks", "table", "closing"],
+    "layouts": {
+      "cover": {
+        "title": "封面",
+        "description": "封面：主色底，左下两行大标题，右上副标题，细横线，箭头与年份，横向 Logo。字段 title, subtitle, year?",
+        "background": "primary",
+        "vars": {"closing": false},
+        "fields": {"title": {"type": "text"}, "subtitle": {"type": "text"}, "year": {"type": "text"}},
+        "let": {
+          "sub": "d.get('subtitle', deck.get('subtitle', ''))",
+          "title": "d.get('title') or ('THANKS' if closing else deck.get('title', ''))"
+        },
+        "objects": [
+          {"type": "logo", "dark": true, "x": 50, "y": 118, "w": 108, "max_h": 26},
+          {"type": "text", "when": "sub", "text": "sub", "x": 518, "y": 122, "w": 412, "size": 28, "color": "onPrimary", "weight": 300, "lh": 1.13, "wrap": false},
+          {"type": "hline", "x": 0, "y": 221, "w": 960, "color": "lineOnPrimary"},
+          {"type": "text", "text": "title", "x": 50, "y": "362 if closing or len(lines(title)) == 1 else 249", "w": 787, "size": "fit(title, 110, 700)", "color": "onPrimary", "weight": 300, "lh": 0.96, "wrap": false},
+          {"type": "arrow", "x": 790, "y": 349, "size": 70, "color": "onPrimary"},
+          {"type": "text", "text": "str(d.get('year') or year())", "x": 763, "y": 426, "w": 176, "size": 40, "color": "onPrimary", "weight": 300, "wrap": false, "name": "year"}
+        ]
+      },
+      "closing": {
+        "extends": "cover",
+        "title": "结束页",
+        "description": "结束页：与封面配对，大字 THANKS。字段 title?(默认 THANKS), subtitle?, year?",
+        "vars": {"closing": true}
+      },
+      "overview": {
+        "title": "总览",
+        "description": "总览：左侧两行高亮标题与导语，竖线，右侧导语、标签和 5 项横线列表。字段 title, lead, intro, tag?, items[≤5]",
+        "background": "paper",
+        "fields": {"title": {"type": "text", "required": true}, "lead": {"type": "text"}, "intro": {"type": "text"}, "tag": {"type": "text"}, "items": {"type": "list", "max": 5}},
+        "let": {"tag": "d.get('tag', '阅读重点')"},
+        "objects": [
+          {"type": "header", "left": 52, "right": 918},
+          {"type": "highlight", "text": "d['title']", "x": 52, "y": 246, "size": 60, "fill": "primary", "color": "onPrimary"},
+          {"type": "text", "when": "d.get('lead')", "text": "d['lead']", "x": 52, "y": 424, "w": 394, "size": 24, "color": "ink", "max_h": 82},
+          {"type": "vline", "x": 463, "y": 103, "h": 370, "color": "primary"},
+          {"type": "text", "when": "d.get('intro')", "text": "d['intro']", "x": 518, "y": 103, "w": 400, "size": 18, "color": "ink", "max_h": 85},
+          {"type": "group", "when": "tag", "let": {"w": "tw(tag, 14) + 46"}, "objects": [
+            {"type": "rect", "x": 518, "y": 203, "w": "w", "h": 24, "fill": null, "outline": "primary"},
+            {"type": "text", "text": "tag", "x": 527, "y": 205, "w": "w", "size": 14, "color": "ink", "wrap": false},
+            {"type": "arrow", "x": "518 + w - 22", "y": 205, "size": 14, "color": "ink"}
+          ]},
+          {"type": "repeat", "items": "d.get('items')", "max": 5, "label": "items", "objects": [
+            {"type": "text", "text": "item", "x": 518, "y": "255 + i * 45.5", "w": 400, "size": 20, "color": "ink", "max_h": 36},
+            {"type": "hline", "x": 518, "y": "255 + i * 45.5 + 36", "w": 400, "color": "lineOnPaper"}
+          ]}
+        ]
+      },
+      "statement": {
+        "title": "主色底陈述",
+        "description": "主色底陈述：左竖图，右大标题，两组箭头小标题+说明，右栏清单。字段 title, items[{heading,text}≤2], side{heading,items[]}, image?, image2?, image3?",
+        "background": "primary",
+        "fields": {"title": {"type": "text", "required": true}, "items": {"type": "list", "max": 2}, "side": {"type": "object"},
+                   "image": {"type": "image"}, "image2": {"type": "image"}, "image3": {"type": "image"}},
+        "let": {"title_w": "165 if d.get('image2') else 545"},
+        "objects": [
+          {"type": "header", "left": 42, "right": 910, "dark": true},
+          {"type": "image", "slot": "image", "x": 42, "y": 79, "w": 306, "h": 416, "panel": "secondary"},
+          {"type": "text", "text": "d['title']", "x": 388, "y": 77, "w": "title_w", "size": "fit(d['title'], 66, title_w)", "color": "onPrimary", "weight": 300, "lh": 0.94, "wrap": false},
+          {"type": "group", "when": "d.get('image2')", "objects": [
+            {"type": "image", "slot": "image2", "x": 558, "y": 79, "w": 120, "h": 120, "panel": "secondary"},
+            {"type": "image", "slot": "image3", "when": "d.get('image3')", "x": 678, "y": 79, "w": 232, "h": 120, "panel": "secondary"}
+          ]},
+          {"type": "repeat", "items": "d.get('items')", "max": 2, "label": "items", "let": {"hy": "[258, 403][i]", "ty": "[300, 454][i]"}, "objects": [
+            {"type": "arrow", "x": 388, "y": "hy + 2", "size": 17, "color": "onPrimary"},
+            {"type": "text", "text": "item.get('heading', '')", "x": 418, "y": "hy", "w": 260, "size": 22, "color": "onPrimary", "wrap": false},
+            {"type": "text", "text": "item.get('text', '')", "x": 388, "y": "ty", "w": 285, "size": 18, "color": "onPrimary", "lh": 1.25, "max_h": 82}
+          ]},
+          {"type": "group", "when": "d.get('side')", "let": {"side": "d.get('side')"}, "objects": [
+            {"type": "vline", "x": 684, "y": 258, "h": 231, "color": "lineOnPrimary"},
+            {"type": "text", "text": "side.get('heading', '')", "x": 715, "y": 258, "w": 218, "size": 22, "color": "onPrimary", "wrap": false},
+            {"type": "text", "text": "side.get('items', [])", "x": 715, "y": 350, "w": 218, "size": 20, "color": "onPrimary", "lh": 1.5, "max_h": 190}
+          ]}
+        ]
+      },
+      "columns": {
+        "title": "分栏",
+        "description": "分栏：全宽标题、副标题、横线，下方 2–4 栏（标签色块+说明）。字段 title, subtitle, columns[{label,text}]",
+        "background": "paper",
+        "fields": {"title": {"type": "text", "required": true}, "subtitle": {"type": "text"}, "columns": {"type": "list", "max": 4}},
+        "objects": [
+          {"type": "header", "left": 52, "right": 920},
+          {"type": "text", "text": "d['title']", "x": 52, "y": 88, "w": 881, "size": "fit(d['title'], 64, 868)", "color": "ink", "weight": 400, "wrap": false},
+          {"type": "text", "when": "d.get('subtitle')", "text": "d['subtitle']", "x": 52, "y": 185, "w": 878, "size": 25, "color": "ink", "wrap": false},
+          {"type": "hline", "x": 52, "y": 243, "w": 868, "color": "lineOnPaper"},
+          {"type": "repeat", "items": "d.get('columns')", "max": 4, "label": "columns", "let": {"step": "868 / n if n < 4 else 225", "x": "52 + i * step"}, "objects": [
+            {"type": "tag", "text": "item.get('label', '')", "x": "x", "y": 306, "size": 17, "fill": "primary", "color": "onPrimary", "h": 22},
+            {"type": "text", "text": "item.get('text', '')", "x": "x", "y": 352, "w": "step - 28", "size": 19, "color": "ink", "lh": 1.16, "max_h": 167}
+          ]}
+        ]
+      },
+      "composition": {
+        "title": "组成结构",
+        "description": "组成结构：左说明，中原生环图+图例，右主色指标栏 3 项。字段 title, text, note?, chart{title,categories,values,unit?}, panel{heading,metrics[{label,value}]≤3}",
+        "background": "paper",
+        "fields": {"title": {"type": "text", "required": true}, "text": {"type": "text"}, "note": {"type": "text"},
+                   "chart": {"type": "chart", "required": true}, "panel": {"type": "object"}},
+        "let": {"panel": "d.get('panel') or {}"},
+        "objects": [
+          {"type": "header", "left": 52, "right": 954},
+          {"type": "text", "text": "d['title']", "x": 52, "y": 74, "w": 303, "size": "fit(d['title'], 64, 300)", "color": "ink", "weight": 300, "lh": 0.96, "wrap": false},
+          {"type": "text", "when": "d.get('text')", "text": "d['text']", "x": 52, "y": 258, "w": 309, "size": 23, "color": "ink", "max_h": 150},
+          {"type": "text", "when": "d.get('note')", "text": "d['note']", "x": 52, "y": 442, "w": 303, "size": 16, "color": "ink", "max_h": 79},
+          {"type": "vline", "x": 382, "y": 85, "h": 394, "color": "primary"},
+          {"type": "text", "when": "d['chart'].get('title')", "text": "d['chart']['title']", "x": 424, "y": 75, "w": 233, "size": 17, "color": "ink", "wrap": false},
+          {"type": "chart", "chart": "{'type': 'doughnut', 'categories': d['chart']['categories'], 'values': d['chart']['values']}", "x": 412, "y": 112, "w": 239, "h": 250, "bg": "paper"},
+          {"type": "legend", "chart": "d['chart']", "x": 424, "y": 370, "w": 233, "label_x": 448, "label_w": 209, "size": 13, "swatch": 12, "step": 30.5},
+          {"type": "rect", "x": 663, "y": 76, "w": 291, "h": 419, "fill": "primary"},
+          {"type": "text", "when": "panel.get('heading')", "text": "panel['heading']", "x": 694, "y": 97, "w": 242, "size": 15, "color": "onPrimary", "wrap": false},
+          {"type": "repeat", "items": "panel.get('metrics')", "max": 3, "label": "panel.metrics", "let": {"y": "155 + i * 121", "v": "str(item.get('value', ''))"}, "objects": [
+            {"type": "text", "text": "item.get('label', '')", "x": 694, "y": "y", "w": 239, "size": 13, "color": "onPrimary", "wrap": false},
+            {"type": "text", "text": "v", "x": 694, "y": "y + 33", "w": 239, "size": "fit(v, 45, 235)", "color": "onPrimary", "wrap": false},
+            {"type": "hline", "when": "i < 2", "x": 694, "y": "y + 109", "w": 230, "color": "dividerOnPrimary|lineOnPrimary"}
+          ]}
+        ]
+      },
+      "image-statement": {
+        "title": "图像陈述",
+        "description": "图像陈述：全幅图+独立蒙版，左标题（第二行主色高亮），右短说明。字段 image, title(两行), text",
+        "background": "primary",
+        "fields": {"image": {"type": "image", "needed": true}, "title": {"type": "text", "required": true}, "text": {"type": "text"}},
+        "let": {"ls": "lines(d['title'])", "size": "fit(ls, 66, 640)", "sub": "size * 60 / 66", "pad": "sub * 23 / 120"},
+        "objects": [
+          {"type": "header", "left": 55, "right": 918, "dark": true},
+          {"type": "image", "slot": "image", "x": 0, "y": 64, "w": 960, "h": 476, "panel": "secondary", "mask": "style['mask_opacity']['image-statement']"},
+          {"type": "text", "text": "ls[0]", "x": 55, "y": 97, "w": 848, "size": "size", "color": "onPrimary", "weight": 300, "lh": 1.05, "wrap": false},
+          {"type": "group", "when": "len(ls) > 1", "objects": [
+            {"type": "rect", "x": 55, "y": 179, "w": "tw(ls[1], sub) + pad * 2", "h": "78 * sub / 60", "fill": "primary"},
+            {"type": "text", "text": "ls[1]", "x": "55 + pad", "y": 184, "w": 700, "size": "sub", "color": "onPrimary", "weight": 300, "lh": 1.05, "wrap": false}
+          ]},
+          {"type": "text", "when": "d.get('text')", "text": "d['text']", "x": 700, "y": 178, "w": 230, "size": 19, "color": "onPrimary", "lh": 1.05, "max_h": 150},
+          {"type": "arrow", "x": 875, "y": 86, "size": 46, "color": "onPrimary"}
+        ]
+      },
+      "numbered": {
+        "title": "编号清单",
+        "description": "编号清单：左导语+高亮标签、图、大标题，右 01–05 清单。字段 lead, tag, title, image?, items[≤5]",
+        "background": "paper",
+        "fields": {"lead": {"type": "text"}, "tag": {"type": "text"}, "title": {"type": "text", "required": true}, "image": {"type": "image"}, "items": {"type": "list", "max": 5}},
+        "objects": [
+          {"type": "header", "left": 48, "right": 924},
+          {"type": "image", "slot": "image", "when": "d.get('image')", "x": 182, "y": 124, "w": 221, "h": 222, "panel": "secondary"},
+          {"type": "text", "when": "d.get('lead')", "text": "d['lead']", "x": 48, "y": 81, "w": 351, "size": 24, "color": "ink", "lh": 1.05, "wrap": false},
+          {"type": "tag", "when": "d.get('tag')", "text": "d['tag']", "x": 48, "y": 106, "size": 24, "fill": "primary", "color": "onPrimary", "h": 33},
+          {"type": "text", "text": "d['title']", "x": 48, "y": 355, "w": 394, "size": "fit(d['title'], 66, 390)", "color": "ink", "weight": 300, "lh": 1.05, "wrap": false},
+          {"type": "arrow", "x": 360, "y": 453, "size": 46, "color": "ink"},
+          {"type": "repeat", "items": "d.get('items')", "max": 5, "label": "items", "let": {"y": "82 + i * 82"}, "objects": [
+            {"type": "text", "text": "pad2(i + 1)", "x": 482, "y": "y", "w": 106, "size": 51.5, "color": "ink", "weight": 300, "wrap": false},
+            {"type": "text", "text": "item", "x": 600, "y": "y + 6", "w": 324, "size": 20, "color": "ink", "max_h": 70},
+            {"type": "hline", "x": 482, "y": "y + 82", "w": 442, "color": "lineOnPaper"}
+          ]}
+        ]
+      },
+      "metrics": {
+        "title": "重点指标",
+        "description": "重点指标：背景图+蒙版，左高亮标题、说明、2 个指标，右主色竖栏 3 个指标。字段 title, text, metrics[{value,label}]×2, panel[{value,label}]×3, image?",
+        "background": "secondary",
+        "fields": {"title": {"type": "text", "required": true}, "text": {"type": "text"}, "metrics": {"type": "list", "max": 2}, "panel": {"type": "list", "max": 3}, "image": {"type": "image"}},
+        "objects": [
+          {"type": "image", "slot": "image", "when": "d.get('image')", "x": 0, "y": 0, "w": 960, "h": 540, "panel": "secondary", "mask": "style['mask_opacity']['metrics']"},
+          {"type": "header", "left": 52, "right": 884, "dark": true},
+          {"type": "highlight", "text": "d['title']", "x": 52, "y": 100, "size": 60, "fill": "primary", "color": "onPrimary", "row_h": [70, 73]},
+          {"type": "text", "when": "d.get('text')", "text": "d['text']", "x": 52, "y": 285, "w": 500, "size": 18, "color": "#FFFFFF", "max_h": 88},
+          {"type": "repeat", "items": "d.get('metrics')", "max": 2, "label": "metrics", "let": {"x": "[52, 318][i]", "v": "str(item.get('value', ''))"}, "objects": [
+            {"type": "text", "text": "v", "x": "x", "y": 409, "w": 260, "size": "fit(v, 50, 250)", "color": "#FFFFFF", "wrap": false},
+            {"type": "text", "text": "item.get('label', '')", "x": "x", "y": 497, "w": 257, "size": 14, "color": "#FFFFFF", "wrap": false}
+          ]},
+          {"type": "rect", "x": 584, "y": 76, "w": 300, "h": 464, "fill": "primary"},
+          {"type": "repeat", "items": "d.get('panel')", "max": 3, "label": "panel", "let": {"vy": "[118, 261, 403][i]", "ly": "[194, 337, 479][i]", "v": "str(item.get('value', ''))"}, "objects": [
+            {"type": "text", "text": "v", "x": 636, "y": "vy", "w": 240, "size": "fit(v, 48, 236)", "color": "onPrimary", "wrap": false},
+            {"type": "text", "text": "item.get('label', '')", "x": 636, "y": "ly", "w": 240, "size": 17, "color": "onPrimary", "wrap": false}
+          ]}
+        ]
+      },
+      "chart": {
+        "title": "趋势/数据",
+        "description": "趋势/数据：左原生图表（column/bar/line），右大标题与解释。字段 chart{type,categories,series[{name,values}],unit}, title, text, tag?, note?",
+        "background": "paper",
+        "fields": {"chart": {"type": "chart", "required": true}, "title": {"type": "text", "required": true}, "text": {"type": "text"}, "tag": {"type": "text"}, "note": {"type": "text"}},
+        "objects": [
+          {"type": "header", "left": 48, "right": 918},
+          {"type": "text", "when": "d['chart'].get('unit')", "text": "d['chart']['unit']", "x": 60, "y": 73, "w": 400, "size": 18, "color": "ink", "lh": 1.1, "wrap": false},
+          {"type": "chart", "chart": "d['chart']", "x": 48, "y": 105, "w": 440, "h": 380, "bg": "paper"},
+          {"type": "text", "text": "d['title']", "x": 533, "y": 71, "w": 406, "size": "fit(d['title'], 62, 400)", "color": "ink", "weight": 300, "lh": 0.96, "wrap": false},
+          {"type": "text", "when": "d.get('text')", "text": "d['text']", "x": 533, "y": 264, "w": 400, "size": 24, "color": "ink", "max_h": 110},
+          {"type": "group", "when": "d.get('tag')", "objects": [
+            {"type": "text", "text": "d['tag']", "x": 533, "y": 410, "w": 260, "size": 16, "color": "ink", "wrap": false},
+            {"type": "arrow", "x": 781, "y": 409, "size": 17, "color": "ink"}
+          ]},
+          {"type": "text", "when": "d.get('note')", "text": "d['note']", "x": 533, "y": 458, "w": 403, "size": 17, "color": "ink", "max_h": 70}
+        ]
+      },
+      "risks": {
+        "title": "问题/风险",
+        "description": "问题/风险：左高亮标题、导语与箭头，中竖图，右说明+标签+清单。字段 title, lead, intro, tag, items[], image?",
+        "background": "paper",
+        "fields": {"title": {"type": "text", "required": true}, "lead": {"type": "text"}, "intro": {"type": "text"}, "tag": {"type": "text"}, "items": {"type": "list"}, "image": {"type": "image"}},
+        "let": {"x0": "669 if d.get('image') else 420", "wcol": "263 if d.get('image') else 500"},
+        "objects": [
+          {"type": "header", "left": 52, "right": 926},
+          {"type": "image", "slot": "image", "when": "d.get('image')", "x": 327, "y": 88, "w": 303, "h": 385, "panel": "secondary"},
+          {"type": "highlight", "text": "d['title']", "x": 52, "y": 137, "size": 62, "fill": "primary", "color": "onPrimary"},
+          {"type": "text", "when": "d.get('lead')", "text": "d['lead']", "x": 52, "y": 325, "w": 270, "size": 24, "color": "ink", "max_h": 82},
+          {"type": "arrow", "x": 52, "y": 422, "size": 70, "color": "ink"},
+          {"type": "text", "when": "d.get('intro')", "text": "d['intro']", "x": "x0", "y": 87, "w": "wcol", "size": 18, "color": "ink", "max_h": 110},
+          {"type": "tag", "when": "d.get('tag')", "text": "d['tag']", "x": "x0", "y": 221, "size": 16, "fill": "primary", "color": "onPrimary", "h": 21},
+          {"type": "text", "text": "d.get('items', [])", "x": "x0", "y": 270, "w": "wcol", "size": 19, "color": "ink", "lh": 1.3, "max_h": 240}
+        ]
+      },
+      "table": {
+        "title": "对比表",
+        "description": "对比表：标题、副标题、原生表格（表头主色）。字段 title, subtitle?, table{columns[],rows[[...]]}, note?",
+        "background": "paper",
+        "fields": {"title": {"type": "text", "required": true}, "subtitle": {"type": "text"}, "table": {"type": "table", "required": true}, "note": {"type": "text"}},
+        "objects": [
+          {"type": "header", "left": 52, "right": 908},
+          {"type": "text", "text": "d['title']", "x": 52, "y": 70, "w": 856, "size": "fit(d['title'], 54, 850)", "color": "ink", "weight": 300, "lh": 1.0, "wrap": false},
+          {"type": "text", "when": "d.get('subtitle')", "text": "d['subtitle']", "x": 52, "y": 140, "w": 856, "size": 20, "color": "ink", "wrap": false},
+          {"type": "table", "table": "d['table']", "x": 52, "y": "182 if d.get('subtitle') else 140", "w": 856, "bottom": "440 if d.get('note') else 470", "max_row_h": 46,
+           "font": 15, "font_small": 13, "small_after_rows": 7, "head_fill": "primary", "head_color": "onPrimary", "body_fill": "paper", "body_color": "ink", "border": "chartTertiary"},
+          {"type": "text", "when": "d.get('note')", "text": "d['note']", "x": 52, "y": 470, "w": 856, "size": 14, "color": "ink", "wrap": false}
+        ]
+      }
+    }
+  },
+  "live": {
+    "canvas": {"width": 720, "height": 405, "unit": "pt"},
+    "layouts": [
+      {"id": "cover", "name": "封面", "placeholders": ["title", "subtitle"], "background": "primary", "boxes": {"title": [43.2, 187.2, 590.4, 158.4], "subtitle": [388.8, 93.6, 309.6, 50.4]}},
+      {"id": "title-content", "name": "标题和内容", "placeholders": ["title", "body"], "background": "paper", "boxes": {"title": [36, 25.2, 648, 64.8], "body": [36, 100.8, 648, 266.4]}},
+      {"id": "title-only", "name": "仅标题", "placeholders": ["title"], "background": "paper", "boxes": {"title": [36, 25.2, 648, 64.8]}},
+      {"id": "closing", "name": "结束页", "placeholders": ["body"], "background": "primary", "boxes": {"body": [43.2, 187.2, 590.4, 158.4]}},
+      {"id": "blank", "name": "空白", "placeholders": [], "background": "paper", "boxes": {}}
+    ],
+    "slots": [
+      {"id": "body", "layout": "title-only", "kind": "text", "box": [36, 140, 648, 230], "note": "正文区"},
+      {"id": "two-col-left", "layout": "title-only", "kind": "text", "box": [36, 140, 312, 230], "note": "左右两栏：左"},
+      {"id": "two-col-right", "layout": "title-only", "kind": "text", "box": [372, 140, 312, 230], "note": "左右两栏：右"},
+      {"id": "three-col-1", "layout": "title-only", "kind": "text", "box": [36, 140, 192, 230], "note": "三栏：第 1 栏"},
+      {"id": "three-col-2", "layout": "title-only", "kind": "text", "box": [264, 140, 192, 230], "note": "三栏：第 2 栏"},
+      {"id": "three-col-3", "layout": "title-only", "kind": "text", "box": [492, 140, 192, 230], "note": "三栏：第 3 栏"},
+      {"id": "left-image", "layout": "title-only", "kind": "image", "box": [36, 100, 312, 270], "art_size": "1248x1080", "text_box": [372, 100, 312, 270], "note": "左图右文，只给竖构图"},
+      {"id": "photo-statement", "layout": "blank", "kind": "image", "box": [0, 50.4, 720, 354.6], "art_size": "1920x945", "darken": 0.3, "title_box": [43.2, 72.0, 496.8, 108.0], "text_box": [518.4, 201.6, 180.0, 136.8], "note": "全幅图文：本页 setBackground 主色，顶部主色条，左叠两行标题，右短说明"},
+      {"id": "banner-image", "layout": "title-only", "kind": "image", "box": [36, 100, 648, 180], "art_size": "1920x533", "text_box": [36, 296, 648, 80], "note": "横幅图，下方一行说明"},
+      {"id": "full-image", "layout": "blank", "kind": "image", "box": [0, 0, 720, 405], "art_size": "1920x1080", "text_box": [36, 250, 648, 80], "darken": 0.45, "note": "全幅背景图，先 fit --darken 0.45，再放白字标题"}
+    ]
+  }
+}

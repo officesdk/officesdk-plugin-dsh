@@ -1,0 +1,10 @@
+{
+  "title": "第二份夹具",
+  "year": 2026,
+  "palette": "color-4",
+  "slides": [
+    {"layout": "columns", "title": "开头不是封面", "columns": [{"label": "一", "text": "1"}, {"label": "二", "text": "2"}, {"label": "三", "text": "3"}]},
+    {"layout": "metrics", "title": "橙色\n指标", "metrics": [{"value": "1", "label": "a"}, {"value": "2", "label": "b"}], "panel": [{"value": "3", "label": "c"}]},
+    {"layout": "closing"}
+  ]
+}
