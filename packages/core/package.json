@@ -1,0 +1,14 @@
+{
+  "name": "@officesdk/core",
+  "version": "0.0.12-alpha.1",
+  "description": "Host-neutral document sessions: import, preview, edit, save and export for DOCX, XLSX and PPTX",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./browser": "./src/browser/index.mjs"
+  },
+  "engines": { "node": ">=22.19.0" },
+  "scripts": { "test": "node --test test/*.test.mjs" }
+}

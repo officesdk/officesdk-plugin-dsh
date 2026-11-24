@@ -1,0 +1,3 @@
+[
+  {"file": "kit-manifest.json", "host": "*", "reason": "office-kit's own kit-manifest.json, taken byte for byte from the pinned release (components/office-kit.json, tooling/kit/vendor.mjs); the gate checks the packaged copy equals components/kit-manifest.json. `*` covers only the hosts that manifest names as its download sources and editor registries, never a private address or a configured company host. The plugin downloads only from the sources the download profile names (office-kit's GitHub release for the Kit, npm for the editor, or a mirror the user sets)."}
+]

@@ -1,0 +1,425 @@
+# Publishes @officesdk/officesdk-plugin-dsh to npmjs (docs/NPM.md, "发布"), or moves one of its dist-tags (mode
+# dist-tag, docs/NPM.md "移动 dist-tag"). Run by hand only: Actions → npm-publish → Run workflow.
+#
+# mode publish (the default): `version` (the version packages/dsh-adapter/package.json is set to), `tag` (that
+# version's stage) and `dry_run`. dry_run is on by default: the package is built, gated and published with --dry-run,
+# nothing is sent to npm. Run it that way first, then again with dry_run off to publish.
+#
+# mode dist-tag: points `tag` at `version`, a version already on npm (for example latest at a preview before the first
+# release); only the dist-tag job runs. With dry_run on it lists the tags (`npm dist-tag ls`) and shows the change and
+# whether npm trusted publishing authenticates; with dry_run off it runs `npm dist-tag add` and reads the tags back.
+# Same trusted publisher as publishing (npm matches the workflow filename, so dist-tags move from this file only): it
+# needs "Allow npm dist-tag" ticked on npmjs.com. `npm dist-tag` trades the OIDC token from npm 11.21.0 on (12.2.0 on
+# npm 12), newer than the npm Node ships, so the job installs npm 11.21.3. No NPM_TOKEN: the package's publishing
+# access requires two-factor authentication and refuses tokens.
+#
+# Authentication, one of the two (set up once, docs/NPM.md):
+#   A. npm trusted publishing (recommended: no long-lived token). On npmjs.com: the package → Settings → Trusted
+#      Publisher → GitHub Actions: Organization `officesdk`, Repository `officesdk-plugin-dsh`, Workflow filename
+#      `npm-publish.yml` (this file: renaming it breaks publishing and dist-tags), Environment empty (or `release` once
+#      the environment below is enabled), Allowed actions: tick `npm publish` (and "Allow npm dist-tag" for mode
+#      dist-tag). Leave the NPM_TOKEN secret unset. The publish
+#      job's `id-token: write` lets the npm CLI (11.5.1 or later) trade the job's GitHub OIDC token for a one-time
+#      publish token. npm adds provenance by itself once the repository is public; it refuses provenance from a private
+#      repository, so --provenance is never passed here.
+#   B. NPM_TOKEN (fallback): a granular access token (read and write to @officesdk/officesdk-plugin-dsh only, "bypass
+#      two-factor authentication", with an expiry) as the secret NPM_TOKEN: Settings → Secrets and variables → Actions →
+#      Secrets. The npm CLI still tries trusted publishing first.
+#   With neither, `npm-release.mjs publish` publishes nothing and the job fails.
+# Both jobs also need the secret NPM_GATE_INTERNAL_HOSTS (Settings → Secrets and variables → Actions → Secrets, not
+# Variables): the comma-separated domains of the publisher's organisation that the gate refuses in the package. It is no
+# credential: it is a secret so that the logs of a public repository print it as ***, where a variable's value would
+# be shown in every step's log. GitHub masks only the whole value, so each job's first step also masks every domain on
+# its own (a gate error names the domain it found).
+#
+# Safety, for a public repository (keep all of this when changing the file):
+#   - workflow_dispatch only. Never add pull_request or pull_request_target: no code from a pull request or a fork runs here.
+#   - permissions: contents: read; only the publish and dist-tag jobs add id-token: write.
+#   - the build job holds no credential; NPM_TOKEN is referenced by one step only (Publish, in the publish job); the
+#     dist-tag job uses no secret.
+#   - the build job installs its tools with --ignore-scripts; the publish job installs nothing; the dist-tag job
+#     installs only npm 11.21.3 (--ignore-scripts, into its own folder, its lockfile integrity checked: npm's own
+#     dependencies are bundled in its package and a published version never changes).
+#   - the dist-tag job trades its OIDC token under the same trusted publisher as publishing, so npm would let that token
+#     publish too: like the publish job it runs no third-party code, only the pinned actions, this repository's scripts
+#     and the integrity-checked npm.
+#   - every action is pinned to a commit SHA (its version in the comment: update both together); no caches;
+#     checkout keeps no git credentials (persist-credentials: false).
+#   - inputs reach the scripts through env only, never as ${{ }} inside a run script.
+#   - the publish job sends the build job's package, checked by sha256 (against a transfer error or a wrong file, not
+#     against a compromised build job: the publish job runs no third-party code and gates the package again with
+#     the kit-manifest.json it fetches itself).
+#   - environment `release` (required reviewers) is commented out below: enable it once the repository's plan supports
+#     it, on the publish and the dist-tag job both, and put `release` in the npm trusted publisher's Environment field
+#     at the same time (OIDC fails otherwise: the one trusted publisher serves both jobs).
+name: npm-publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'publish: build and publish the version; dist-tag: point the tag at a version already on npm'
+        type: choice
+        options: [publish, dist-tag]
+        default: publish
+      version:
+        description: Version (publish — the version packages/dsh-adapter/package.json is set to; dist-tag — one on npm)
+        type: string
+        required: true
+        default: '0.0.1'
+      tag:
+        description: npm dist-tag (publish — the version's stage; dist-tag — the tag to point at the version, e.g. latest)
+        type: choice
+        options: [alpha, beta, rc, next, latest]
+        default: latest
+      dry_run:
+        description: Dry run (nothing is sent to npm, no tag moves)
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+# One run at a time (publish and dist-tag alike); a running one is never cancelled (a run already waiting is replaced
+# by a newer one).
+concurrency:
+  group: npm-publish
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    if: ${{ inputs.mode == 'publish' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      VERSION: ${{ inputs.version }}
+      TAG: ${{ inputs.tag }}
+      DRY_RUN: ${{ inputs.dry_run }}
+      NPM_GATE_INTERNAL_HOSTS: ${{ secrets.NPM_GATE_INTERNAL_HOSTS }}
+    # GitHub drops a job output holding a masked string: never put a domain or a part of the host list in one (the
+    # publish job's sha256 check would then fail on an empty value).
+    outputs:
+      tgz: ${{ steps.pack.outputs.tgz }}
+      sha256: ${{ steps.pack.outputs.sha256 }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Mask the organisation's domains
+        run: |
+          node --input-type=module <<'JS'
+          import { normaliseHosts } from './scripts/npm-gate.mjs';
+          // GitHub masks a secret's whole value only: a gate error naming one of these domains would print it.
+          const raw = (process.env.NPM_GATE_INTERNAL_HOSTS ?? '').split(/[\s,]+/).map(host => host.trim()).filter(Boolean);
+          if (!raw.length) { console.log('::error::the secret NPM_GATE_INTERNAL_HOSTS is not set (Settings → Secrets and variables → Actions → Secrets): the npmjs gate refuses without it'); process.exit(1); }
+          // Shorter entries (a slip such as `im`) would mask half the log: a domain is longer anyway.
+          const forms = new Set([...raw, ...normaliseHosts(raw)].flatMap(host => [host, host.toLowerCase(), host.toUpperCase()]).filter(form => form.length >= 4));
+          for (const form of forms) console.log(`::add-mask::${form}`);
+          console.log(`${raw.filter(host => host.length >= 4).length} domain(s) masked`);
+          JS
+
+      - name: Check the inputs
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import { distTagOf, publishableVersion } from './packages/dsh-adapter/src/host/version.mjs';
+          const { VERSION: version = '', TAG: tag = '', DRY_RUN: dryRun = '', GITHUB_REF: ref = '' } = process.env;
+          const source = JSON.parse(fs.readFileSync('packages/dsh-adapter/package.json', 'utf8')).version;
+          const notes = JSON.parse(fs.readFileSync('packages/dsh-adapter/whats-new.json', 'utf8'));
+          const problems = [];
+          if (!publishableVersion(version)) problems.push(`version ${JSON.stringify(version)} is not X.Y.Z or X.Y.Z-alpha|beta|rc|test.N`);
+          else {
+            if (version !== source) problems.push(`version ${version} is not the version packages/dsh-adapter/package.json is set to (${source}): only that one is published`);
+            if (!notes.entries?.some(entry => entry.version === version)) problems.push(`packages/dsh-adapter/whats-new.json has no section for ${version} (CHANGELOG.md, then node scripts/whats-new.mjs)`);
+            if (distTagOf(version) !== tag) problems.push(`tag ${JSON.stringify(tag)} is not the stage of ${version}: it goes under ${distTagOf(version)}`);
+          }
+          if (dryRun !== 'true' && ref !== 'refs/heads/main') problems.push(`a publish runs from main only, not ${JSON.stringify(ref)}`);
+          for (const problem of problems) console.log(`::error::${problem}`);
+          if (problems.length) process.exit(1);
+          console.log(`${version} under ${tag}${dryRun === 'true' ? ', dry run' : ''}`);
+          JS
+
+      - name: Install the build tools (esbuild, javascript-obfuscator)
+        run: npm ci --prefix tooling --ignore-scripts
+
+      - name: Fetch office-kit files (sha512 / sha256 / SHA256SUMS checked)
+        run: node tooling/kit/vendor.mjs fetch
+
+      - name: Repository checks (whats-new.json, dependency layers, office-kit files)
+        run: npm run check
+
+      - name: Build the public npm package
+        id: pack
+        run: |
+          node tooling/suite/pack-universal.mjs --version "$VERSION" --sources public --obfuscate light \
+            --repository "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" --out artifacts/npm
+          node --input-type=module <<'JS'
+          import { createHash } from 'node:crypto';
+          import fs from 'node:fs';
+          import { buildFor } from './scripts/npm-release.mjs';
+          const tgz = buildFor({ version: process.env.VERSION, registry: 'https://registry.npmjs.org/' });
+          const bytes = fs.readFileSync(tgz);
+          const sha256 = createHash('sha256').update(bytes).digest('hex');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `tgz=${tgz}\nbytes=${bytes.length}\nsha256=${sha256}\n`);
+          console.log(`${tgz}: ${bytes.length} bytes, sha256 ${sha256}`);
+          JS
+
+      - name: Clean-install check
+        env:
+          TGZ: ${{ steps.pack.outputs.tgz }}
+        run: node scripts/verify-universal-package.mjs "$TGZ"
+
+      - name: npm release gate (npmjs)
+        env:
+          TGZ: ${{ steps.pack.outputs.tgz }}
+        run: node scripts/npm-gate.mjs "$TGZ" --target npmjs --registry https://registry.npmjs.org/ --tag "$TAG"
+
+      - name: Dry run of the publish (no credential)
+        run: |
+          result="$(node scripts/npm-release.mjs publish --version "$VERSION" --tag "$TAG" --dry-run)"
+          printf '%s\n' "$result" > artifacts/npm-dry-run.json
+          printf '%s\n' "$result"
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const result = JSON.parse(fs.readFileSync('artifacts/npm-dry-run.json', 'utf8'));
+          if (result.result !== 'dry-run' || result.target !== 'npmjs') { console.log(`::error::the dry run ended ${JSON.stringify(result)}`); process.exit(1); }
+          if (result.alreadyPublished) console.log(`::warning::${result.package} is already on npm with these bytes: publishing it changes nothing`);
+          JS
+
+      - name: Keep the package for the publish job
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: npm-package
+          path: ${{ steps.pack.outputs.tgz }}
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Summary
+        if: always()
+        env:
+          BYTES: ${{ steps.pack.outputs.bytes }}
+          SHA256: ${{ steps.pack.outputs.sha256 }}
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const { VERSION, TAG, DRY_RUN, BYTES, SHA256, GITHUB_SHA, GITHUB_STEP_SUMMARY } = process.env;
+          const result = fs.existsSync('artifacts/npm-dry-run.json') ? fs.readFileSync('artifacts/npm-dry-run.json', 'utf8').trim() : '';
+          const rows = [['version', VERSION], ['tag', TAG], ['dry run', DRY_RUN], ['commit', GITHUB_SHA], ['bytes', BYTES || '-'], ['sha256', SHA256 || '-'], ['publish --dry-run', result || '-']];
+          const text = ['### npm-publish: build', '', '| | |', '|---|---|', ...rows.map(([key, value]) => `| ${key} | \`${String(value).replaceAll('|', '\\|')}\` |`), '',
+            DRY_RUN === 'true' ? 'Dry run: nothing was sent to npm. Run the workflow again with dry_run off to publish.' : 'The publish job sends this package.', ''].join('\n');
+          fs.appendFileSync(GITHUB_STEP_SUMMARY, text);
+          JS
+
+  publish:
+    needs: build
+    if: ${{ inputs.mode == 'publish' && !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Enable once the repository's plan supports environments, with required reviewers, here and on the dist-tag job;
+    # put `release` in the npm trusted publisher's Environment field at the same time, or trusted publishing fails.
+    # environment: release
+    permissions:
+      contents: read
+      id-token: write # npm trusted publishing (OIDC)
+    env:
+      VERSION: ${{ inputs.version }}
+      TAG: ${{ inputs.tag }}
+      NPM_GATE_INTERNAL_HOSTS: ${{ secrets.NPM_GATE_INTERNAL_HOSTS }}
+      EXPECTED_SHA256: ${{ needs.build.outputs.sha256 }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Mask the organisation's domains
+        run: |
+          node --input-type=module <<'JS'
+          import { normaliseHosts } from './scripts/npm-gate.mjs';
+          // GitHub masks a secret's whole value only: a gate error naming one of these domains would print it.
+          const raw = (process.env.NPM_GATE_INTERNAL_HOSTS ?? '').split(/[\s,]+/).map(host => host.trim()).filter(Boolean);
+          if (!raw.length) { console.log('::error::the secret NPM_GATE_INTERNAL_HOSTS is not set (Settings → Secrets and variables → Actions → Secrets): the npmjs gate refuses without it'); process.exit(1); }
+          // Shorter entries (a slip such as `im`) would mask half the log: a domain is longer anyway.
+          const forms = new Set([...raw, ...normaliseHosts(raw)].flatMap(host => [host, host.toLowerCase(), host.toUpperCase()]).filter(form => form.length >= 4));
+          for (const form of forms) console.log(`::add-mask::${form}`);
+          console.log(`${raw.filter(host => host.length >= 4).length} domain(s) masked`);
+          JS
+
+      - name: Check the npm CLI (trusted publishing needs 11.5.1 or later)
+        run: |
+          NPM_CLI_VERSION="$(npm --version)" node --input-type=module <<'JS'
+          const have = process.env.NPM_CLI_VERSION.trim();
+          const [major, minor, patch] = have.split('.').map(part => parseInt(part, 10));
+          if (!(major > 11 || (major === 11 && (minor > 5 || (minor === 5 && patch >= 1))))) { console.log(`::error::npm ${have} cannot publish through trusted publishing (11.5.1 or later)`); process.exit(1); }
+          console.log(`npm ${have}`);
+          JS
+
+      - name: Fetch office-kit files (the gate compares the package's kit-manifest.json with the pinned one)
+        run: node tooling/kit/vendor.mjs fetch && node tooling/kit/vendor.mjs check
+
+      - name: Take the build job's package
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: npm-package
+          path: artifacts/npm
+
+      - name: Check it is the package the build job made
+        run: |
+          node --input-type=module <<'JS'
+          import { createHash } from 'node:crypto';
+          import fs from 'node:fs';
+          import { buildFor } from './scripts/npm-release.mjs';
+          const tgz = buildFor({ version: process.env.VERSION, registry: 'https://registry.npmjs.org/' });
+          const sha256 = fs.existsSync(tgz) ? createHash('sha256').update(fs.readFileSync(tgz)).digest('hex') : 'missing';
+          if (!/^[0-9a-f]{64}$/.test(process.env.EXPECTED_SHA256 ?? '') || sha256 !== process.env.EXPECTED_SHA256) { console.log(`::error::${tgz} is not the package the build job made (sha256 ${sha256}, expected ${process.env.EXPECTED_SHA256})`); process.exit(1); }
+          console.log(`${tgz}: sha256 ${sha256}`);
+          JS
+
+      - name: Publish
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }} # fallback; unset → npm trusted publishing (OIDC)
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then echo "::error::a publish runs from main only, not $GITHUB_REF"; exit 1; fi
+          result="$(node scripts/npm-release.mjs publish --version "$VERSION" --tag "$TAG")"
+          printf '%s\n' "$result" > artifacts/npm-release-result.json
+          printf '%s\n' "$result"
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const result = JSON.parse(fs.readFileSync('artifacts/npm-release-result.json', 'utf8'));
+          if (result.result === 'already-published') console.log(`::warning::${result.package} was already on npm with these bytes: nothing new was published`);
+          else if (result.result !== 'published') { console.log(`::error::nothing was published: ${JSON.stringify(result)} (set up npm trusted publishing or the NPM_TOKEN secret, docs/NPM.md)`); process.exit(1); }
+          JS
+
+      - name: Keep the publish record
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: npm-publish
+          path: |
+            artifacts/npm-publish.json
+            artifacts/npm-release-result.json
+          if-no-files-found: ignore
+
+      - name: Summary
+        if: always()
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const read = file => { try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return undefined; } };
+          const record = read('artifacts/npm-publish.json') ?? read('artifacts/npm-release-result.json');
+          const lines = ['### npm-publish: publish', ''];
+          if (!record) lines.push('**Nothing was published**: the job stopped before npm-release.mjs reported a result (see the failed step\'s log).');
+          else {
+            const headline = { published: `Published ${record.package} under \`${record.tag}\` (${record.auth === 'oidc' ? 'npm trusted publishing' : 'NPM_TOKEN'}).`, 'already-published': `**${record.package} was already on npm with these bytes: nothing new was published.**` }[record.result] ?? `**Nothing was published: ${record.result}${record.reason ? ` (${record.reason})` : ''}.**`;
+            lines.push(headline, '', '```json', JSON.stringify(record, null, 2), '```');
+          }
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${lines.join('\n')}\n`);
+          JS
+
+  dist-tag:
+    if: ${{ inputs.mode == 'dist-tag' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Together with the publish job's (one trusted publisher, one Environment field).
+    # environment: release
+    permissions:
+      contents: read
+      id-token: write # npm trusted publishing (OIDC) for npm dist-tag
+    env:
+      VERSION: ${{ inputs.version }}
+      TAG: ${{ inputs.tag }}
+      DRY_RUN: ${{ inputs.dry_run }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Check the inputs (dist-tag)
+        run: |
+          node --input-type=module <<'JS'
+          import { distTagProblem } from './scripts/npm-release.mjs';
+          const { VERSION: version = '', TAG: tag = '', DRY_RUN: dryRun = '', GITHUB_REF: ref = '' } = process.env;
+          const problems = [distTagProblem(version, tag)].filter(Boolean);
+          if (dryRun !== 'true' && ref !== 'refs/heads/main') problems.push(`a dist-tag moves from main only, not ${JSON.stringify(ref)}`);
+          for (const problem of problems) console.log(`::error::${problem}`);
+          if (problems.length) process.exit(1);
+          console.log(`${tag} → ${version}${dryRun === 'true' ? ', dry run' : ''}`);
+          JS
+
+      - name: Install npm 11.21.3 (npm dist-tag through trusted publishing needs 11.21.0 or later)
+        run: |
+          npm install --prefix "$RUNNER_TEMP/npm" npm@11.21.3 --ignore-scripts --no-audit --no-fund
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          // The bytes are pinned too: npm@11.21.3's integrity on the registry (a published version never changes).
+          const want = 'sha512-5Cf+jE+XctbhH/zjOOqXC+ity7eec/Tkk4Ql38tf6w+1htp2wYPHmE4c1R1Es3DY227Ac14+SLrlYJwkBicbTg==';
+          const lock = JSON.parse(fs.readFileSync(`${process.env.RUNNER_TEMP}/npm/package-lock.json`, 'utf8'));
+          const got = lock.packages?.['node_modules/npm'] ?? {};
+          if (got.version !== '11.21.3' || got.integrity !== want) { console.log(`::error::the installed npm is ${got.version} ${got.integrity}, not 11.21.3 ${want}`); process.exit(1); }
+          JS
+          echo "$RUNNER_TEMP/npm/node_modules/.bin" >> "$GITHUB_PATH"
+
+      - name: Move the dist-tag
+        run: |
+          have="$(npm --version)"
+          if [ "$have" != "11.21.3" ]; then echo "::error::npm is $have, not the installed 11.21.3"; exit 1; fi
+          mkdir -p artifacts
+          if [ "$DRY_RUN" = "true" ]; then
+            result="$(node scripts/npm-release.mjs dist-tag --version "$VERSION" --tag "$TAG" --dry-run)"
+          else
+            if [ "$GITHUB_REF" != "refs/heads/main" ]; then echo "::error::a dist-tag moves from main only, not $GITHUB_REF"; exit 1; fi
+            result="$(node scripts/npm-release.mjs dist-tag --version "$VERSION" --tag "$TAG")"
+          fi
+          printf '%s\n' "$result" > artifacts/npm-dist-tag.json
+          printf '%s\n' "$result"
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const result = JSON.parse(fs.readFileSync('artifacts/npm-dist-tag.json', 'utf8'));
+          const wanted = process.env.DRY_RUN === 'true' ? ['dry-run'] : ['moved', 'unchanged'];
+          const hint = result.reason === 'no-token' ? 'the job has no OIDC token: it needs permissions id-token: write' : 'docs/NPM.md, 移动 dist-tag';
+          if (!wanted.includes(result.result)) { console.log(`::error::no dist-tag was moved: ${JSON.stringify(result)} (${hint})`); process.exit(1); }
+          if (result.oidc?.startsWith('failed')) { console.log(`::error::npm trusted publishing did not authenticate (${result.oidc}): the real run would be refused. Check the npm trusted publisher for npm-publish.yml (docs/NPM.md)`); process.exit(1); }
+          if (result.oidc === 'not-attempted') console.log('::warning::npm reported no OIDC exchange: whether trusted publishing works shows only on the real run');
+          if (result.result === 'unchanged') console.log(`::notice::${result.tag} was already at ${result.version}: nothing changed`);
+          JS
+
+      - name: Summary
+        if: always()
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          let result;
+          try { result = JSON.parse(fs.readFileSync('artifacts/npm-dist-tag.json', 'utf8')); } catch { result = undefined; }
+          const lines = ['### npm-publish: dist-tag', ''];
+          if (!result) lines.push('**No dist-tag was moved**: the job stopped before npm-release.mjs reported a result (see the failed step\'s log).');
+          else {
+            const headline = result.oidc?.startsWith('failed') ? `**Dry run failed: npm trusted publishing did not authenticate (${result.oidc}); a real run would be refused.**` : {
+              'dry-run': `Dry run: \`${result.tag}\` ${result.change === 'none' ? `is already at ${result.version}` : `would move from ${result.from ?? '(none)'} to ${result.version}`}; nothing changed.${result.oidc ? ` OIDC exchange: ${result.oidc}.` : ''}`,
+              moved: `Moved \`${result.tag}\` from ${result.from ?? '(none)'} to ${result.version} (${result.auth === 'oidc' ? 'npm trusted publishing' : result.auth}).`,
+              unchanged: `\`${result.tag}\` was already at ${result.version}: nothing changed.`,
+            }[result.result] ?? `**No dist-tag was moved: ${result.result}${result.reason ? ` (${result.reason})` : ''}.**`;
+            lines.push(headline, '', '```json', JSON.stringify(result, null, 2), '```');
+          }
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${lines.join('\n')}\n`);
+          JS

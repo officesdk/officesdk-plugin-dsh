@@ -1,0 +1,179 @@
+{
+  "name": "default",
+  "title": "蓝色品牌风格（brand-ppt-12）",
+  "meta": {
+    "id": "default",
+    "name": {"zh": "蓝色品牌", "en": "Blue Brand"},
+    "aliases": ["默认", "默认风格", "蓝色品牌", "品牌风格", "brand"],
+    "summary": {"zh": "白底配蓝紫主色块，高亮标题、细线与原生图表，可换 7 套配色", "en": "White pages with blue-violet blocks, highlighted titles, hairlines and native charts; 7 palettes"},
+    "scenarios": {"zh": ["公司介绍", "业务汇报", "产品方案", "数据分析"], "en": ["Company profile", "Business review", "Product proposal", "Data report"]},
+    "requires": {
+      "photos": {"slots": 7, "required": 1, "per_slide_max": 3},
+      "note": {"zh": "照片可选，只有图像陈述页需要一张；缺图时自动生成配图", "en": "Photos are optional; only the image-statement page needs one. Missing photos are filled with generated art."}
+    },
+    "thumb": "thumb.png",
+    "previews": ["preview-3.png", "preview-4.png", "preview-8.png"],
+    "fonts": [
+      {"family": "Noto Sans SC", "role": "cjk", "license": "OFL-1.1", "source": "https://fonts.google.com/noto/specimen/Noto+Sans+SC", "bundled": false},
+      {"family": "Poppins", "role": "latin", "license": "OFL-1.1", "source": "https://fonts.google.com/specimen/Poppins", "bundled": false},
+      {"family": "Poppins Light", "role": "latin_light", "license": "OFL-1.1", "source": "https://fonts.google.com/specimen/Poppins", "bundled": false}
+    ],
+    "design_source": {"from": "brand-ppt-12 v1.4.1", "note": "版式与配色提炼自 brand-ppt-12 的 13 页基线；原包没有记录设计出处。用户已决定随 shimo-pptx 0.0.3 起发布给客户，按已确认处理", "cleared": true}
+  },
+  "canvas": {
+    "width_px": 960,
+    "height_px": 540,
+    "slide_width_in": 10.0,
+    "slide_height_in": 5.625,
+    "emu_per_px": 9525,
+    "pt_per_px": 0.75
+  },
+  "default_palette": "color-1",
+  "default_deck_length": 13,
+  "fonts": {
+    "cjk": "Noto Sans SC",
+    "latin": "Poppins",
+    "latin_light": "Poppins Light",
+    "rule": "一行里只要有中文就整行用 Noto Sans SC；纯英文/数字行用 Poppins（字重 300 用 Poppins Light）。每个 run 同时写 a:latin 与 a:ea。"
+  },
+  "type_scale_px": {
+    "cover_title": 110,
+    "cover_subtitle": 28,
+    "cover_year": 40,
+    "cover_arrow": 70,
+    "page_title": 64,
+    "highlight_title": 60,
+    "lead": 24,
+    "subtitle": 25,
+    "body": 20,
+    "body_small": 18,
+    "caption": 16,
+    "label": 17,
+    "tag": 14,
+    "metric": 48,
+    "metric_label": 14,
+    "number": 51,
+    "header_site": 12
+  },
+  "template": {
+    "note": "实时方式模板 template.pptx 的参数，由 scripts/build_template.py 读取；sizes_pt 是实时方式的字号（pt，页面 720×405 pt）。主题颜色取 default_palette：dk1/dk2/accent1/hlink=primary，lt1=paper，lt2=surface，accent2=secondary，accent3=chartTertiary，accent4=lineOnPrimary，accent5=lineOnPaper，accent6/folHlink=dividerOnPrimary（没有时用 lineOnPrimary）；主题字体 latin=fonts.latin，ea=fonts.cjk。",
+    "surface": "#F4F4F8",
+    "cover": "brand",
+    "sizes_pt": {
+      "cover_title": 54,
+      "cover_subtitle": 20,
+      "page_title": 32,
+      "closing_title": 60,
+      "body": 18,
+      "label": 14,
+      "metric": 40
+    }
+  },
+  "palettes": {
+    "color-1": {
+      "name": "蓝色",
+      "primary": "#2826C9",
+      "ink": "#2826C9",
+      "onPrimary": "#FFFFFF",
+      "paper": "#FFFFFF",
+      "secondary": "#A8A7A5",
+      "onSecondary": "#FFFFFF",
+      "inkOnSecondary": "#2826C9",
+      "chartSecondary": "#A8A7A5",
+      "chartTertiary": "#D0CFCA",
+      "lineOnPaper": "#B9B7C4",
+      "lineOnPrimary": "#9B99E3",
+      "dividerOnPrimary": "#8D89DC"
+    },
+    "color-2": {
+      "name": "绿色",
+      "primary": "#176B45",
+      "ink": "#176B45",
+      "onPrimary": "#FFFFFF",
+      "paper": "#FFFFFF",
+      "secondary": "#56685A",
+      "onSecondary": "#FFFFFF",
+      "inkOnSecondary": "#E1F2D9",
+      "chartSecondary": "#A4BCA7",
+      "chartTertiary": "#D0DDD0",
+      "lineOnPaper": "#B6C9B7",
+      "lineOnPrimary": "#83B49A"
+    },
+    "color-3": {
+      "name": "红色",
+      "primary": "#BC293B",
+      "ink": "#9D2032",
+      "onPrimary": "#FFFFFF",
+      "paper": "#FFFFFF",
+      "secondary": "#745D62",
+      "onSecondary": "#FFFFFF",
+      "inkOnSecondary": "#FFE5E5",
+      "chartSecondary": "#C7A8AB",
+      "chartTertiary": "#E6D2D3",
+      "lineOnPaper": "#D9BEC2",
+      "lineOnPrimary": "#EA9BA5"
+    },
+    "color-4": {
+      "name": "橙色",
+      "primary": "#ED7908",
+      "ink": "#984105",
+      "onPrimary": "#242018",
+      "paper": "#FFFFFF",
+      "secondary": "#75614E",
+      "onSecondary": "#FFFFFF",
+      "inkOnSecondary": "#FFE7C5",
+      "chartSecondary": "#D3B28B",
+      "chartTertiary": "#EFDBC1",
+      "lineOnPaper": "#DECAAF",
+      "lineOnPrimary": "#A95400"
+    },
+    "color-5": {
+      "name": "紫色",
+      "primary": "#6C368F",
+      "ink": "#603078",
+      "onPrimary": "#FFFFFF",
+      "paper": "#FFFFFF",
+      "secondary": "#695D75",
+      "onSecondary": "#FFFFFF",
+      "inkOnSecondary": "#F0E2FF",
+      "chartSecondary": "#B9A8CA",
+      "chartTertiary": "#DDCFE6",
+      "lineOnPaper": "#CBBBD4",
+      "lineOnPrimary": "#BA96CF"
+    },
+    "color-6": {
+      "name": "黄色",
+      "primary": "#F2C400",
+      "ink": "#775900",
+      "onPrimary": "#242112",
+      "paper": "#FFFFFF",
+      "secondary": "#6C624A",
+      "onSecondary": "#FFFFFF",
+      "inkOnSecondary": "#FFF1AA",
+      "chartSecondary": "#C7B774",
+      "chartTertiary": "#E9DFAF",
+      "lineOnPaper": "#D8CC9C",
+      "lineOnPrimary": "#AB8A00"
+    },
+    "color-7": {
+      "name": "黑白",
+      "primary": "#23262C",
+      "ink": "#23262C",
+      "onPrimary": "#FFFFFF",
+      "paper": "#FFFFFF",
+      "secondary": "#626368",
+      "onSecondary": "#FFFFFF",
+      "inkOnSecondary": "#F0F0F0",
+      "chartSecondary": "#A3A4A7",
+      "chartTertiary": "#D4D4D5",
+      "lineOnPaper": "#C4C4C5",
+      "lineOnPrimary": "#84868A"
+    }
+  },
+  "mask_opacity": {
+    "image-statement": 0.3,
+    "metrics": 0.55,
+    "overview-photo": 0.45
+  },
+  "source": "提炼自 brand-ppt-12 v1.4.1：配色取自 palettes.json（7 套原值）；字号层级与几何取自 master-19.json 的 13 页基线（配色 1）。color-1 另补母版里实际使用的封面横线 #9B99E3、指标栏分隔 #8D89DC。"
+}

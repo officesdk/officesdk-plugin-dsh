@@ -1,0 +1,166 @@
+# Makes the GitHub Release of a version of @officesdk/officesdk-plugin-dsh that is already on npm (docs/NPM.md,
+# "GitHub Release"). Run by hand only: Actions → github-release → Run workflow, with `version` and `dry_run`. dry_run is
+# on by default: the package is fetched and checked and the notes are written, but no tag and no release are made. Run
+# it that way first, then again with dry_run off.
+#
+# The release `v<version>` carries the package npm has: `npm pack` fetches the published tarball (its integrity checked
+# against the registry), the notes link the npm version page, and `gh release create` attaches the tarball. A preview
+# version (alpha, beta, rc) is marked pre-release. A release that already exists is left as it is (a draft, or one
+# without the tarball, stops the job with what to do); a tag that already exists is used as it is. It needs no npm
+# credential and no personal token: the built-in GITHUB_TOKEN with contents: write makes the tag and the release.
+#
+# The tag and main: the tag is made on the commit this run was started from (main's head). main is rebuilt as one
+# commit without history each time it is published; the tag then pins that commit, an unchanging snapshot of the
+# repository when the release was made. After the next rebuild the tagged commit is no longer on main but stays
+# reachable through the tag. One release per version is unaffected. The attachment is the bytes npm serves (its
+# integrity proves it); the tag is the repository at release time, not necessarily the source that version was built from.
+#
+# Safety, for a public repository (keep all of this when changing the file):
+#   - workflow_dispatch only. Never add pull_request or pull_request_target: no code from a pull request or a fork runs here.
+#   - permissions: contents: read; the job has contents: write only (the tag and the release); GH_TOKEN is in one step only.
+#   - no secrets are used; npm fetches the package with --ignore-scripts and installs nothing.
+#   - every action is pinned to a commit SHA (its version in the comment: update both together); no caches;
+#     checkout keeps no git credentials (persist-credentials: false).
+#   - inputs reach the scripts through env only, never as ${{ }} inside a run script.
+name: github-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version (already published to npm)
+        type: string
+        required: true
+        default: '0.0.1'
+      dry_run:
+        description: Dry run (fetch and check the package, write the notes; no tag, no release)
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+# One run at a time; a running one is never cancelled (a run already waiting is replaced by a newer one).
+concurrency:
+  group: github-release
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  github-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # the tag v<version> and its release; nothing else
+    env:
+      VERSION: ${{ inputs.version }}
+      DRY_RUN: ${{ inputs.dry_run }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Check the inputs
+        run: |
+          node --input-type=module <<'JS'
+          import { publishableVersion, stageOf } from './packages/dsh-adapter/src/host/version.mjs';
+          const { VERSION: version = '', DRY_RUN: dryRun = '', GITHUB_REF: ref = '' } = process.env;
+          const problems = [];
+          if (!publishableVersion(version) || stageOf(version) === 'test') problems.push(`version ${JSON.stringify(version)} is not X.Y.Z or X.Y.Z-alpha|beta|rc.N`);
+          if (dryRun !== 'true' && ref !== 'refs/heads/main') problems.push(`a release is made from main only, not ${JSON.stringify(ref)}`);
+          for (const problem of problems) console.log(`::error::${problem}`);
+          if (problems.length) process.exit(1);
+          console.log(`v${version}${dryRun === 'true' ? ', dry run' : ''}`);
+          JS
+
+      - name: Fetch the package npm has for the version
+        id: package
+        run: |
+          mkdir -p "$RUNNER_TEMP/release"
+          npm pack "@officesdk/officesdk-plugin-dsh@$VERSION" --pack-destination "$RUNNER_TEMP/release" \
+            --registry https://registry.npmjs.org/ --ignore-scripts
+          tgz="$RUNNER_TEMP/release/officesdk-officesdk-plugin-dsh-$VERSION.tgz"
+          if [ ! -f "$tgz" ]; then echo "::error::npm pack did not write $tgz"; exit 1; fi
+          echo "tgz=$tgz" >> "$GITHUB_OUTPUT"
+
+      - name: Write the release notes (the package is checked against the registry's integrity)
+        env:
+          TGZ: ${{ steps.package.outputs.tgz }}
+        run: |
+          node scripts/npm-release.mjs release-notes --version "$VERSION" --package "$TGZ" > "$RUNNER_TEMP/release/notes.md"
+          cat "$RUNNER_TEMP/release/notes.md"
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TGZ: ${{ steps.package.outputs.tgz }}
+        run: |
+          mkdir -p artifacts
+          tag="v$VERSION"
+          asset="$(basename "$TGZ")"
+          record() { node -e 'process.stdout.write(JSON.stringify(Object.fromEntries(process.argv.slice(1).map(kv => [kv.slice(0, kv.indexOf("=")), kv.slice(kv.indexOf("=") + 1)]))) + "\n")' "$@" > artifacts/github-release.json; cat artifacts/github-release.json; }
+          # Only "not found" means there is none: any other gh failure (network, permissions) stops the job.
+          if info="$(gh release view "$tag" --json url,isDraft,assets --jq '[.url, (.isDraft | tostring), ([.assets[].name] | join(","))] | join(" ")' 2>"$RUNNER_TEMP/gh-release.err")"; then
+            read -r url draft assets <<< "$info"
+            if [ "$draft" = "true" ]; then echo "::error::the release $tag is a draft ($url), left by an interrupted run? Delete the draft, then run again"; exit 1; fi
+            case ",$assets," in
+              *",$asset,"*) ;;
+              *) echo "::error::the release $tag ($url) has no $asset: attach it (gh release upload $tag <the npm package>) or delete the release, then run again"; exit 1 ;;
+            esac
+            echo "::warning::the release $tag already exists ($url) with $asset: it is left as it is"
+            record result=exists tag="$tag" url="$url" asset="$asset"
+            exit 0
+          elif ! grep -qi 'not found' "$RUNNER_TEMP/gh-release.err"; then
+            echo "::error::gh release view $tag failed: $(cat "$RUNNER_TEMP/gh-release.err")"; exit 1
+          fi
+          flags=(--title "$tag" --notes-file "$RUNNER_TEMP/release/notes.md")
+          case "$VERSION" in *-*) flags+=(--prerelease) ;; esac
+          if ref="$(gh api "repos/$GH_REPO/git/ref/tags/$tag" --jq '.object.type + " " + .object.sha' 2>"$RUNNER_TEMP/gh-tag.err")"; then
+            read -r type target <<< "$ref"
+            # An annotated tag points at a tag object: name the commit it tags.
+            if [ "$type" = "tag" ]; then target="$(gh api "repos/$GH_REPO/git/tags/$target" --jq .object.sha)"; fi
+            echo "::notice::the tag $tag already exists (on $target): the release uses it"
+            flags+=(--verify-tag)
+          elif grep -qi 'not found' "$RUNNER_TEMP/gh-tag.err"; then
+            target="$GITHUB_SHA"
+            flags+=(--target "$GITHUB_SHA")
+          else
+            echo "::error::reading the tag $tag failed: $(cat "$RUNNER_TEMP/gh-tag.err")"; exit 1
+          fi
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "dry run: would run gh release create $tag $asset ${flags[*]}"
+            record result=dry-run tag="$tag" target="$target" asset="$asset"
+            exit 0
+          fi
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then echo "::error::a release is made from main only, not $GITHUB_REF"; exit 1; fi
+          url="$(gh release create "$tag" "$TGZ" "${flags[@]}")"
+          record result=created tag="$tag" target="$target" asset="$asset" url="$url"
+
+      - name: Summary
+        if: always()
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          let result;
+          try { result = JSON.parse(fs.readFileSync('artifacts/github-release.json', 'utf8')); } catch { result = undefined; }
+          const lines = ['### github-release', ''];
+          if (!result) lines.push('**No release was made**: the job stopped before it (see the failed step\'s log).');
+          else {
+            const headline = {
+              'dry-run': `Dry run: would create the release \`${result.tag}\` on ${result.target} with ${result.asset}; nothing was made.`,
+              created: `Created the release [${result.tag}](${result.url}) on ${result.target} with ${result.asset}.`,
+              exists: `The release [${result.tag}](${result.url}) already exists with ${result.asset}: left as it is.`,
+            }[result.result] ?? `**${result.result}**`;
+            lines.push(headline, '', '```json', JSON.stringify(result, null, 2), '```');
+          }
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${lines.join('\n')}\n`);
+          JS

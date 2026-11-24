@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Local unselected-state variant: original Shimo Small geometry retained. -->
+  <path d="M19.9926 2H5V30H27V9.00744L19.9926 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M20.014 2H20V9H27V8.98604L20.014 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M14.6726 18.7619L11.2802 14H13.9646L16.0295 17.1933L18.1681 14H20.705L17.3274 18.7759L21 24H18.2419L15.941 20.5406L13.5959 24H11L14.6726 18.7619Z" fill="currentColor"/>
+</svg>

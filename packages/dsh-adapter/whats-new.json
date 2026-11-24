@@ -1,0 +1,32 @@
+{
+  "v": 1,
+  "latestReleased": "0.0.1",
+  "entries": [
+    {
+      "version": "0.0.1",
+      "highlights": [
+        "在 Word、Excel 或 PPT 中选中内容即可发起局部修改。聊天消息显示文档名，悬停可查看引用原文。",
+        "可以同时修改不同位置，或在处理期间切换文件。修改详情按文档保留，直到你采纳或撤销。",
+        "专注模式下可在编辑器右下角继续对话、回答 Agent 的问题。",
+        "创建多页 PPT 时，可以在幻灯片浏览视图中看到各页逐个生成标题、文字和其他元素。"
+      ],
+      "highlightsEn": [
+        "Select content in Word, Excel or PowerPoint to request an edit. Chat messages show the filename. Hover over it to read the original selection.",
+        "Edit several passages at once and switch files while edits are in progress. Each document keeps its changes for review until you accept or undo them.",
+        "In focus mode, continue the conversation and answer the agent’s questions in the lower-right chat panel.",
+        "When creating a presentation, watch titles, text and other elements appear on each slide in Slide Sorter view."
+      ]
+    },
+    {
+      "version": "0.0.1-rc.1",
+      "highlights": [
+        "初始开源版本：在 DeepSeek Harness 右侧标签页打开、编辑和保存 Word、Excel、PPT 文件，对话里的 AI 能在编辑器里实时新建和修改文档。",
+        "自带 PPT 蓝色品牌风格和 Word 公文版式，装好就能用；文档引擎在第一次打开文档时自动下载。"
+      ],
+      "highlightsEn": [
+        "First open-source release: open, edit and save Word, Excel and PPT files in a tab on the right of DeepSeek Harness, and the AI in the chat creates and edits documents live in the editor.",
+        "Comes with the PPT Blue Brand style and the Word official-document layout, ready to use after install; the document engine downloads automatically the first time you open a document."
+      ]
+    }
+  ]
+}
