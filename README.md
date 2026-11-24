@@ -1,7 +1,7 @@
-# OfficeSDK plugin for DeepSeek Harness
+# OfficeSDK for DeepSeek Harness
 
-OfficeSDK (`@officesdk/officesdk-plugin-dsh`) is a DeepSeek Harness (DSH) plugin. It opens, edits and
-saves Word (.docx), Excel (.xlsx) and PowerPoint (.pptx) files in DSH's right-side file tab, lets the model create and edit
+OfficeSDK for DeepSeek Harness (`@officesdk/officesdk-plugin-dsh`) opens, edits and
+saves Word (.docx), Excel (.xlsx) and PowerPoint (.pptx) files in the host’s right-side file tab, lets the model create and edit
 those files live through AI tools, with bundled document and presentation skills. Document rendering runs on the user's
 machine; no server is needed.
 
@@ -12,6 +12,10 @@ pinned release. office-kit is not part of this repository.
 > 中文说明：[docs/OVERVIEW.md](docs/OVERVIEW.md)（项目、架构与发布流程）。
 
 ## Install
+
+[OfficeSDK website](https://officesdk.com/) · [Installation guide](https://officesdk.com/en/install/deepseek-harness) · [中文安装指南](https://officesdk.com/zh/install/deepseek-harness)
+
+In DeepSeek Harness Desktop, open **Plugins → Add plugin** and enter `@officesdk/officesdk-plugin-dsh`. To install from a terminal, use the desktop app’s **Manage dsh Command…** menu first. The command uses the bundled runtime. The package requires Node.js 22.19.0 or later. See the [current package metadata](https://registry.npmjs.org/@officesdk/officesdk-plugin-dsh/latest) for compatible host versions.
 
 ```sh
 dsh plugin --profile desktop add @officesdk/officesdk-plugin-dsh   # quit the desktop app first
