@@ -4,7 +4,7 @@ export const FRAME_VERSION = 1;
  * `selection-request` / `selection-update`: the user's selection rewrite request and its later fate (cancelled, kept,
  * reverted). The envelope owns `id` (the view): a selection id travels as `selection`.
  */
-export const EVENTS = Object.freeze(['ready', 'failed', 'dirty', 'saved', 'conflict', 'agent-result', 'save-request', 'history', 'selection-request', 'selection-update', 'press']);
+export const EVENTS = Object.freeze(['ready', 'failed', 'dirty', 'saved', 'conflict', 'agent-result', 'save-request', 'history', 'selection-request', 'selection-update', 'document-ui', 'open-website', 'press']);
 export const COMMANDS = Object.freeze(['save', 'flush', 'rebind', 'agent']);
 /**
  * Operations an `agent` command may ask of an editor; adapters implement the subset they support. `undo` takes back
@@ -12,7 +12,7 @@ export const COMMANDS = Object.freeze(['save', 'flush', 'rebind', 'agent']);
  * Selection rewrite: `composer` tells the page whether the conversation can take a message, `selectionStatus` answers a
  * selection-request, `rewrite` carries the model's selection_rewrite.
  */
-export const AGENT_OPS = Object.freeze(['inspect', 'preview', 'apply', 'undo', 'cancel', 'flush', 'snapshot', 'history', 'print', 'composer', 'selectionStatus', 'rewrite']);
+export const AGENT_OPS = Object.freeze(['inspect', 'preview', 'apply', 'undo', 'cancel', 'flush', 'snapshot', 'history', 'print', 'composer', 'submitChatRegion', 'readSelection', 'documentUi', 'selectionStatus', 'rewrite', 'changeDetail']);
 const REQUEST_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
 /** Parent side: only the session's own frame, origin, id and current revision are accepted. */

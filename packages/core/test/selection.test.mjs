@@ -111,3 +111,19 @@ test('spreadsheet rewrite: same size only, cells must be unchanged, revert resto
   assert.equal(cellKey({ text: '', raw: null }), valueKey(null));
   assert.equal(cellKey({ text: 'x', formula: 'SUM(A1:A2)' }), valueKey('=sum(A1:A2)'));
 });
+
+test('a resolved paragraph is the object of the rewrite, while literal replacement text is kept', () => {
+  const prompt = instruction => selectionMessage({id:'s', name:'文档.docx', request:{kind:'docx', anchor:{paragraphs:[2,2],start:0,end:1}, original:'甲',instruction}});
+  assert.match(prompt('把第二段内容改成“第二段先交代背景”'),/要求：把当前提供的选区内容改成“第二段先交代背景”/);
+  assert.match(prompt('改写这句话，参考第二段'),/要求：改写这句话，参考第二段/);
+  assert.match(prompt('参考第一段改写第二段'),/要求：参考第一段改写第二段/);
+});
+
+test('a PowerPoint rewrite carries only the chosen shape substring through the model request', () => {
+  const anchor = {slideId:'slide-1', shapeId:'title', start:8, end:12};
+  const ref = validateSelectionRequest({kind:'pptx', anchor, original:'文😀字', instruction:'润色'});
+  assert.deepEqual(ref.anchor, anchor);
+  assert.match(selectionMessage({id:'sel-abcdef01',name:'演示.pptx',request:ref}), /slide-1 \/ title[\s\S]*文😀字[\s\S]*selection_rewrite/);
+  assert.throws(()=>validateSelectionRequest({...ref,anchor:{...anchor,end:11}}),code('invalid-edit'));
+  assert.throws(()=>validateSelectionRequest({...ref,anchor:{...anchor,shapeId:''}}),code('invalid-edit'));
+});

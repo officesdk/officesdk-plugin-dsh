@@ -15,7 +15,7 @@ import { fakeConverter } from '../../core/test/helpers.mjs';
 const code = name => error => error?.code === name;
 
 /** The Host over a real workspace folder with a .docx and a .xlsx in it; the test plays the Client. */
-async function load(t) {
+async function load(t, agent) {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'suite-selection-')));
   t.after(() => rm(root, { recursive: true, force: true }));
   const workspace = join(root, 'ws');
@@ -27,7 +27,7 @@ async function load(t) {
     workspaceFiles: { stat: async (scope, path) => ({ absolutePath: absolute(path), version: 'v1', size: 1 }), readBytes: async () => { throw new Error('not read'); } },
     webServer: { register: () => () => {} },
     connection: { admit: () => ({ rejection: 403 }) },
-    typert: { lookups: { get: () => ({ resolve: async id => ({ sessionId: id, workspaceRoot: workspace }) }) } },
+    typert: { lookups: { get: name => ({ resolve: async id => name === 'agent' ? agent : {sessionId:id,workspaceRoot:workspace} }) } },
   };
   for (const [name, value] of Object.entries(services)) { app.provide(name); app.set(name, value); }
   const environment = { converter: fakeConverter(), runtimeRoot: join(root, 'runtime'), tempRoot: join(root, 'tmp'), dataRoot: join(root, 'data'), writer: { canWrite: () => true } };
@@ -124,6 +124,48 @@ test('Host: a document_edit landing on the file makes its waiting selections sta
   await assert.rejects(service.aiRewriteSelection('s1', { selection: waiting.id, text: 'x' }), code('selection-stale'));
 });
 
+test('independent selections stream concurrently on the session model and commit in response order', async t => {
+  const first = Promise.withResolvers(), second = Promise.withResolvers(), both = Promise.withResolvers();
+  const requests = [];
+  const timeline = [];
+  const agent = { session:{id:'s1',append:(type,data)=>timeline.push({type,...data})}, model:{current:()=>({provider:'current-route',model:'current-model'})}, ctx:{llm:{
+    async *stream(options) {
+      requests.push(options);
+      if (requests.length===2) both.resolve();
+      const text=await (JSON.parse(options.messages[0].content[0].text).selection==='第一句话。'?first:second).promise;
+      yield {type:'text-delta',text:JSON.stringify({text})};
+      yield {type:'finish',reason:{kind:'stop'}};
+    },
+  }}};
+  const {service,scope,client}=await load(t,agent);
+  const a=await service.selectionCreate(scope('s1'),'报告.docx',{...DOC_REQUEST,trackRange:true},'zh');
+  const b=await service.selectionCreate(scope('s1'),'报告.docx',{...DOC_REQUEST,instruction:'改写第二段的写法，保留原意',anchor:{paragraphs:[1,1],start:0,end:5},original:'第二句话。',trackRange:true},'zh');
+  const runA=service.selectionParallel(scope('s1'),a.id), runB=service.selectionParallel(scope('s1'),b.id);
+  await both.promise;
+  assert.deepEqual(timeline.map(e=>e.type), ['command/run','command/run']);
+  assert.equal(timeline[0].args, DOC_REQUEST.instruction+'\n\n> 编辑目标：报告.docx\n> 第 3 段\n> 第一句话。');
+  assert.equal(timeline[1].args, '改写第二段的写法，保留原意\n\n> 编辑目标：报告.docx\n> 第 2 段\n> 第二句话。');
+  const { parallelInputDefinition, parallelMessage } = await import('../src/parallel-message.mjs');
+  const event = { type: timeline[1].type, seq: 8, data: timeline[1] };
+  const state = parallelInputDefinition.start({}, {event});
+  const replay = parallelInputDefinition.buildViewNode({id:b.id, key:b.id, state});
+  assert.equal(parallelMessage(replay.data).text, timeline[1].args);
+  const payload = JSON.parse(requests[1].messages[0].content[0].text);
+  assert.equal(payload.instruction, '改写当前提供的选区的写法，保留原意');
+  assert.deepEqual(payload.resolvedTarget, {document:'Word',firstParagraphIndex:1, lastParagraphIndex:1,startOffset:0,endOffset:5,indexBase:0});
+  assert.ok(requests.every(r=>r.model==='current-model' && r.provider==='current-route' && r.sessionId==='s1'));
+  assert.equal(service.selections.staleFor('s1',service.selections.get('s1',a.id).realPath),0);
+  second.resolve('第二处先完成');
+  const writtenB=await client(()=>({ok:true,result:{applied:true}}));
+  assert.equal(writtenB.selection.id,b.id);assert.equal(writtenB.text,'第二处先完成');await runB;
+  assert.equal(service.selections.get('s1',a.id).state,'pending');
+  first.resolve('第一处后完成');
+  const writtenA=await client(()=>({ok:true,result:{applied:true}}));
+  assert.equal(writtenA.selection.id,a.id);assert.equal(writtenA.text,'第一处后完成');await runA;
+  assert.deepEqual(timeline.slice(2).map(e=>[e.commandId,e.kind]), [[timeline[1].commandId,'success'],[timeline[0].commandId,'success']]);
+
+});
+
 test('tools: selection_rewrite passes the selection and the replacement with the agent Session', async () => {
   const tools = new Map();
   const calls = [];
@@ -159,6 +201,21 @@ test('client: the request becomes the user\'s message when the input box is empt
   assert.deepEqual(tab.calls[0], ['selectionCreate', { path: 'docs/报告.docx', selectionRequest: { kind: 'docx', anchor: DOC_REQUEST.anchor, original: DOC_REQUEST.original, instruction: DOC_REQUEST.instruction }, selectionLanguage: 'zh' }]);
   assert.deepEqual(box.log, [['draft', '修改「报告.docx」…'], ['submit']]);
   assert.deepEqual(tab.agents, [['selectionStatus', { requestId: 'q1', ok: true, id: 'sel-0000000a' }]]);
+});
+
+test('client: a local edit with zero or multiple regions is never submitted', async () => {
+  const registry = createComposerRegistry();
+  const tab = fakeTab();
+  const box = actions();
+  registry.set('s1', 'pane', { actions: box, draft: '', attachments: 0, running: false });
+  for (const references of [[], [DOC_REQUEST, DOC_REQUEST]]) {
+    await handleSelectionRequest({ controller:tab, registry, defer:now, message:{
+      kind:'region-batch', requestId:'q1', instruction:'缩短', references
+    }});
+    assert.deepEqual(tab.agents.at(-1),['selectionStatus',{requestId:'q1',ok:false,reason:'failed'}]);
+  }
+  assert.deepEqual(tab.calls,[]);
+  assert.deepEqual(box.log,[]);
 });
 
 test('client: a draft, attachments, a running turn or no input box keep the request out; a failed send leaves no selection', async () => {
@@ -239,4 +296,77 @@ test('client: the bridge hands selection_rewrite to the tab\'s page without a ca
   const result = await bridge.run('s1', { kind: 'rewrite', path: 'docs/报告.docx', selection: { id: 'sel-0000000a', kind: 'docx', anchor: DOC_REQUEST.anchor, original: DOC_REQUEST.original }, text: '新句子' });
   assert.deepEqual(result, { applied: true });
   assert.deepEqual(page, [['rewrite', { id: 'sel-0000000a', kind: 'docx', anchor: DOC_REQUEST.anchor, original: DOC_REQUEST.original, text: '新句子' }]]);
+});
+
+
+test('a missing parallel endpoint ends only that request and tells the user how to recover', async () => {
+  const registry = createComposerRegistry(), box = actions();
+  registry.set('s1','pane',{actions:box,running:true,draft:'',attachments:0});
+  const tab = fakeTab({fail:{selectionParallel:'transport failure for /api/shimoPreview/selectionParallel: HTTP 404'}});
+  tab.set = patch => Object.assign(tab.state,patch);
+  await handleSelectionRequest({controller:tab, registry, message:{kind:'region-batch',requestId:'two',
+    references:[{...DOC_REQUEST,number:2}],instruction:'改写第二段'}});
+  assert.match(tab.state.parallelError,/重启 DSH/);
+  assert.ok(tab.agents.some(([op,args])=>op==='selectionStatus' && args.dropped==='sel-0000000a'));
+  assert.deepEqual(box.log,[]);
+});
+
+
+test('focus history excludes backfilled messages and a pre-entry turn, but tracks new local edits and streaming text',async()=>{
+  const {focusChatRows}=await import('../src/client/edit-surfaces.mjs');
+  const period={since:100,lastSeq:7};
+  const text=value=>[{type:'text',text:value}];
+  const edit={kind:'command',name:'officesdk-edit',seq:16,time:104,args:'改写第二段'};
+  const chat={turnTimings:new Map([[1,{startTime:82}],[2,{startTime:103}]]),nodes:[
+    {kind:'user',seq:7,time:100,content:text('进入时已显示')},
+    {kind:'user',seq:9,time:89,content:text('延迟加载的旧消息')},
+    {kind:'assistant',seq:11,time:101,turn:1,blocks:text('早前开始的回答')},
+    {kind:'user',seq:13,time:102,content:text('润色第一段')},edit,
+  ],partial:{turn:2,blocks:text('本次回答')}};
+  assert.deepEqual(focusChatRows(chat,period).map(r=>r.text),['润色第一段','改写第二段','正在修改…','本次回答']);
+  edit.outcome={kind:'success'};chat.partial={turn:1,blocks:text('之前的流式回答')};
+  assert.deepEqual(focusChatRows(chat,period).map(r=>r.text),['润色第一段','改写第二段','这处修改已完成。']);
+  assert.deepEqual(focusChatRows(chat,{since:105,lastSeq:16}),[]);
+});
+
+test('focus chat surfaces the running turn, tool activity and failure without leaking the previous turn',async()=>{
+  const {focusChatRows}=await import('../src/client/edit-surfaces.mjs');
+  const period={since:100,lastSeq:5};
+  const chat={turnTimings:new Map([[1,{startTime:50}]]),nodes:[]};
+  const rows=running=>focusChatRows(chat,period,false,running).map(r=>r.text);
+  assert.deepEqual(rows(true),[]);
+  chat.turnTimings.set(2,{startTime:110});
+  assert.deepEqual(rows(true),['正在处理…']);
+  chat.runningCalls=[{turn:2}];
+  assert.deepEqual(rows(true),['正在调用工具…']);
+  chat.partial={turn:2,blocks:[{type:'text',text:'改写中'}]};
+  assert.deepEqual(rows(true),['改写中']);
+  chat.nodes=[{kind:'turn-error',seq:8,time:120,turn:1,message:'old'},{kind:'turn-error',seq:14,time:160,turn:2,message:'连接中断'}];
+  chat.partial=null;chat.turnTimings.set(2,{startTime:110,endTime:160});
+  assert.deepEqual(rows(false),['连接中断']);
+});
+
+test('the visible parallel instruction stays at its send position after a later completion', async () => {
+  const { parallelInputDefinition: definition, parallelMessage } = await import('../src/parallel-message.mjs');
+  const run = { type: 'command/run', seq: 10, data: { name: 'officesdk-edit', args: '改写第二段', commandId: 'cmd-officesdk-b' } };
+  const done = { type: 'command/done', seq: 22, data: { commandId: 'cmd-officesdk-b', kind: 'success' } };
+  const start = definition.start({}, { event: run });
+  const updated = definition.update({ state: start }, { event: done });
+  for (const state of [start, updated]) {
+    const node = definition.buildViewNode({ state, key: 'input', id: 'b' });
+    assert.equal(node.anchorSeq, 10);
+    assert.equal(node.groupTree, 'input');
+    assert.equal(parallelMessage(node.data).text, '改写第二段');
+  }
+});
+
+
+test('a quoted parallel message preserves the selected lines and sheet address in the send language', async () => {
+  const { parallelEditMessage } = await import('../../core/src/index.mjs');
+  const multi = { kind:'docx', instruction:'润色', anchor:{paragraphs:[1,2]}, original:'甲\n\n> 乙' };
+  const text = parallelEditMessage({name:'计划.docx', path:'草稿/计划.docx', request:multi, lang:'zh'});
+  assert.equal(text,'润色\n\n> 编辑目标：计划.docx\n> 第 2–3 段\n> 甲\n> \n> > 乙\n> 草稿/计划.docx');
+  const sheet = {kind:'xlsx', instruction:'Update these cells', anchor:{sheet:'Q4',row:1,column:1,rowCount:2,columnCount:2}, original:'1\t2\n3\t4'};
+  assert.equal(parallelEditMessage({name:'Plan.xlsx', request:sheet, lang:'en'}),
+    'Update these cells\n\n> Editing target: Plan.xlsx\n> Q4!B2:C3\n> 1\t2\n> 3\t4');
 });

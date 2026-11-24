@@ -187,7 +187,7 @@ test('create row: file, style, generating; refused or existing files', () => {
   assert.equal(toolViewModel(zh, props('presentation_create', started({ path: 'out/洱海.pptx', style: 'second' }))).summary, '风格 second');
   assert.equal(toolViewModel(zh, props('presentation_create', settled({ path: 'out/洱海.pptx' }, text({ created: true, style: { name: 'second' }, styleSource: 'workspace' })))).summary, '风格 second', 'the style the Host chose');
   const done = toolViewModel(zh, props('presentation_create', settled({ path: 'out/洱海.pptx', style: 'blue' }, text({ created: true, style: { name: 'blue', palette: {} }, format: 'pptx', path: 'out/洱海.pptx', deck: { slides: [] }, generating: true }))));
-  assert.deepEqual([done.title, done.summary, done.lines], ['新建了演示文稿', '风格 blue', ['边生成边在右侧显示，可在标签页里停止']]);
+  assert.deepEqual([done.title, done.summary, done.lines], ['新建了演示文稿', '风格 blue', ['在右侧幻灯片浏览视图中逐页生成']]);
   const refused = toolViewModel(zh, props('presentation_create', failed({ path: '/far/x.pptx' }, 'sandbox-denied: The user did not allow creating /far/x.pptx outside the workspace (rejected). Create it inside the workspace instead.')));
   assert.deepEqual([refused.state, refused.title, refused.lines], ['declined', '没有新建演示文稿', ['你没有同意']]);
   const streaming = reader({ path: 'a.pptx', style: 'blu' }, ['path']);

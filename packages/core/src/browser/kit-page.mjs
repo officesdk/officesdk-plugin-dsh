@@ -3,6 +3,8 @@ import { createFrameChannel, quietModals, serveAgent } from './frame.mjs';
 export { quietModals };
 import { installSheetMediaBridge, sheetMediaReference } from './kit-sheet-assets.mjs';
 import { createSelectionFeature, createSelectionUi } from './selection-ui.mjs';
+import { installEditorChrome } from './editor-chrome.mjs';
+import { createPendingReviews } from './pending-reviews.mjs';
 
 /**
  * The editor page for a Kit view (spec §12.4, §13.3): office-kit's editor package mounts the suite, every local
@@ -35,16 +37,16 @@ export function suiteMountOptions({ suite, mode, user, language, nextChangeSetRe
 }
 
 /**
- * DOCX opens at page width, as Core's preview does. The Writer SDK has no zoom API in this mode, so the page
+ * DOCX opens with the whole first page visible, as Core's preview does. The Writer SDK has no zoom API in this mode, so the page
  * runs the SDK's own status-bar command, found by its language-independent hooks. Missing → default zoom.
  */
-export async function fitWriterPageWidth(document, { timeoutMs = 5000, wait = ms => new Promise(resolve => setTimeout(resolve, ms)) } = {}) {
+export async function fitWholeWriterPage(document, { timeoutMs = 5000, wait = ms => new Promise(resolve => setTimeout(resolve, ms)) } = {}) {
   for (let waited = 0; waited <= timeoutMs; waited += 100) {
     const zoom = document.querySelector('.editor-statusbar__zoom-value');
     if (zoom) {
       zoom.click();
       for (let tries = 0; tries < 20; tries++) {
-        const item = document.querySelector('[data-menu-binding-token="root:fit-page-width"]');
+        const item = document.querySelector('[data-menu-binding-token="root:fit-whole-page"]');
         if (item) { item.click(); return true; }
         await wait(50);
       }
@@ -53,7 +55,7 @@ export async function fitWriterPageWidth(document, { timeoutMs = 5000, wait = ms
     }
     await wait(100);
   }
-  console.warn('officesdk: page width zoom unavailable; opening at the default zoom');
+  console.warn('officesdk: whole page zoom unavailable; opening at the default zoom');
   return false;
 }
 
@@ -122,6 +124,12 @@ export async function startKitPage({ window, document, fetch: fetchImpl = window
   try {
     const editorModule = await loadEditor(new URL('editor/bundle/offline-editor.js', staticRoot).href);
     const meta = await (await call(fetchImpl, new URL('meta', base))).json();
+    const reviewUrl = new URL('reviews', base);
+    const reviews = meta.reviewHistory && createPendingReviews(
+      await (await call(fetchImpl, reviewUrl)).json(),
+      async patch => (await call(fetchImpl, reviewUrl, {method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify(patch)})).json(),
+      reviewSaveFailed => channel.notify('document-ui', {reviewSaveFailed}),
+    ) || undefined;
     if (meta.suite === 'sheet') {
       // The Sheet SDK reads pictures by their raw reference and needs the icon faces the resources stripped.
       installSheetMediaBridge(window, async (reference, purpose) => {
@@ -167,7 +175,7 @@ export async function startKitPage({ window, document, fetch: fetchImpl = window
       async cancel(resourceRef) { await call(fetchImpl, new URL(`media?reference=${encodeURIComponent(resourceRef)}`, base), { method: 'DELETE' }); },
     };
 
-    let editor, agent, selection, rebuilding = null, dirtyNotified = false, printing = false, historyOff, lastHistory;
+    let editor, agent, selection, chrome, rebuilding = null, dirtyNotified = false, printing = false, historyOff, lastHistory;
     // Until someone acts on the document — the user's input in the page, or an AI or toolbar operation — a change is
     // the editor's own load-time housekeeping (the Sheet SDK clears its calc-csr data after the first render). Kit
     // takes it to stay in step with the editor, but it is no edit: nothing turns unsaved and nothing is written back.
@@ -201,7 +209,7 @@ export async function startKitPage({ window, document, fetch: fetchImpl = window
     const queue = createChangeQueue({
       send: (seq, change, tag) => call(fetchImpl, new URL('change', base), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ seq, format: change.format, body: change.body, ...(tag?.inert && { inert: true }) }) }),
       // The editor's own load-time change is in Kit now, but the document is no more edited than before.
-      onAccepted: (number, tag) => { if (tag?.inert) return; channel.notify('dirty', { dirty: true, editRevision: queue.sent, ...(tag?.manual && { manual: true }) }); dirtyNotified = true; },
+      onAccepted: (number, tag) => { if (tag?.inert) return; void selection?.contentChanged(); channel.notify('dirty', { dirty: true, editRevision: queue.sent, ...(tag?.manual && { manual: true }) }); dirtyNotified = true; },
       onRebuild: error => { void rebuild(error); },
     });
 
@@ -232,12 +240,16 @@ export async function startKitPage({ window, document, fetch: fetchImpl = window
       created.on('saveIntent', () => channel.notify('save-request', { editRevision: queue.sent }));
       await created.start();
       editor = created;
-      if (meta.suite === 'document') void fitWriterPageWidth(document);
+      if (meta.mode === 'edit' && window.MutationObserver) {
+        chrome?.dispose();
+        chrome = installEditorChrome({ root, window, document, suite: meta.suite, locale, signal: lifetime.signal, onWebsite:()=>channel.notify('open-website'), onGeometry:()=>selection?.layoutChanged(), onStatusInset: dockBottom => channel.notify('document-ui', { dockBottom }) });
+      }
+      if (meta.suite === 'document') void fitWholeWriterPage(document);
       watchHistory();
       agent = createAgent?.({ editor, document, channel, view: base, locale });
-      // Selection rewrite (spec 261109-selection-ai-edit): Word and Sheet in edit mode, when the agent can read selections.
-      if (meta.mode === 'edit' && (meta.suite === 'document' || meta.suite === 'sheet') && typeof agent?.readSelection === 'function') {
-        selection = createSelectionFeature({ ui: createSelectionUi(document, { locale }), agent, window, document, notify: (event, payload) => channel.notify(event, payload) });
+      if (meta.mode === 'edit' && document.body && agent && (meta.suite === 'presentation' || typeof agent.readSelection === 'function')) {
+        selection = createSelectionFeature({ ui: createSelectionUi(document, { locale }), agent, window, document, reviews,
+          allowSelection: typeof agent.readSelection === 'function', notify: (event, payload) => channel.notify(event, payload) });
       }
     }
 
@@ -247,6 +259,8 @@ export async function startKitPage({ window, document, fetch: fetchImpl = window
         try {
           selection?.dispose();
           selection = undefined;
+          chrome?.dispose();
+          chrome = undefined;
           agent?.dispose?.();
           agent = undefined;
           historyOff?.();
@@ -272,9 +286,22 @@ export async function startKitPage({ window, document, fetch: fetchImpl = window
       const result = await running;
       await queue.idle();
       if (queue.stopped) throw new PageError('stage-failed', 'The edit did not reach the document service; the editor is reloading.');
+      // The edit has already reached Kit. Report storage errors in the review
+      // sidebar without making the model repeat an applied document mutation.
+      await reviews?.flush().catch(() => {});
       return { ...result, editRevision: queue.sent };
     };
 
+    // Model calls can overlap. Mutations of a single live document are validated and committed in order of arrival.
+    let writes=Promise.resolve();
+    const commit=(signal,run)=>{
+      const result=writes.then(()=>{
+        if(signal?.aborted) throw new PageError('cancelled','This edit was cancelled.');
+        return run();
+      });
+      writes=result.catch(()=>{});
+      return result;
+    };
     serveAgent(channel, {
       // Save and export first take what the editor still holds: settle input, then every change reaches the Host.
       // `settle: false` (autosave) only waits for what was already sent: an IME composition or a cell being
@@ -284,6 +311,7 @@ export async function startKitPage({ window, document, fetch: fetchImpl = window
         if (!editor) throw new PageError('no-editor', 'The editor is not ready.');
         if (meta.mode === 'edit' && args?.settle !== false) await editor.prepare();
         await queue.idle();
+        await reviews?.flush();
         if (queue.stopped) throw new PageError('stage-failed', 'The latest changes did not reach the document service; the editor is reloading.');
         return { editRevision: queue.sent };
       },
@@ -294,20 +322,48 @@ export async function startKitPage({ window, document, fetch: fetchImpl = window
         if (!api?.exportSnapshot) throw new PageError('unsupported-operation', 'This editor has no model snapshot.');
         return { content: await api.exportSnapshot() };
       },
-      inspect: args => agent ? agent.inspect(args) : Promise.reject(new PageError('unsupported-operation', 'This editor has no AI support.')),
+      async inspect(args, abort) {
+        if (!agent) throw new PageError('unsupported-operation', 'This editor has no AI support.');
+        if (args?.editTarget && meta.suite === 'document') {
+          if (!selection) throw new PageError('read-only', 'Open this document for editing.');
+          return selection.inspectEditTarget(args.editTarget, abort);
+        }
+        return agent.inspect(args);
+      },
       // An AI edit or undo returns once its changes reached the Host, with the page's change count.
       apply: (args, abort) => {
         acted = true;
         return meta.mode !== 'edit' ? Promise.reject(new PageError('read-only', `This ${SUITE_NOUN[meta.suite] ?? 'document'} is open read only.`))
-          : agent ? delivered(agent.apply(args, abort)) : Promise.reject(new PageError('unsupported-operation', 'This editor has no AI support.'));
+          : agent ? commit(abort,()=>delivered(agent.apply(args, abort, undefined, selection?.takeChatPreview()))) : Promise.reject(new PageError('unsupported-operation', 'This editor has no AI support.'));
       },
       // Selection rewrite: the conversation's state, the answer to a request, and the model's replacement.
       composer: async args => selection ? selection.composer(args) : { ok: false },
+      documentUi: async args => {
+        if (args?.endGeneration && meta.suite === 'presentation') { await commit(undefined, () => agent?.endGeneration?.()); return {ok:true}; }
+        if (args?.retryReviews) await reviews?.flush();
+        if (typeof args?.focusMode === 'boolean') chrome?.focusMode(args.focusMode);
+        return selection?.hydrate(args) ?? { ok: false };
+      },
+      changeDetail: async (args, abort) => {
+        if (meta.mode !== 'edit' || !selection) throw new PageError('read-only', 'Open this document for editing.');
+        if (args.action === 'remove') { acted = true; return delivered(selection.changeDetail(args, abort)); }
+        if (args.action === 'accept') {
+          const result=await selection.changeDetail(args, abort);
+          await reviews?.flush().catch(() => {});
+          return result;
+        }
+        return selection.changeDetail(args, abort);
+      },
+      readSelection: async () => {
+        const selected = meta.mode === 'edit' ? await agent?.readSelection?.() : undefined;
+        return selected ? { original: selected.original, unsupported: selected.unsupported } : null;
+      },
+      submitChatRegion: args => selection?.submitChatRegion(args) ?? {handled:false},
       selectionStatus: async args => selection ? selection.status(args) : { ok: false },
       rewrite: (args, abort) => {
         acted = true;
         return meta.mode !== 'edit' ? Promise.reject(new PageError('read-only', `This ${SUITE_NOUN[meta.suite] ?? 'document'} is open read only.`))
-          : selection ? delivered(selection.rewrite(args, abort))
+          : selection && typeof agent?.rewriteSelection === 'function' ? commit(abort,()=>delivered(selection.rewrite(args, abort)))
             : typeof agent?.rewriteSelection === 'function' ? delivered(agent.rewriteSelection(args, abort).then(outcome => outcome.reply))
               : Promise.reject(new PageError('unsupported-operation', 'This editor cannot rewrite a selection.'));
       },

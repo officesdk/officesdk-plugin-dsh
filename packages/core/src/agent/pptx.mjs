@@ -18,7 +18,7 @@ export const PPTX_LIMITS = Object.freeze({
   maxTableRows: 30, maxTableColumns: 12, maxCellText: 500,
   maxChartSeries: 6, maxChartCategories: 24,
   // New slides per edit: a batch plays together and is undone as a whole when it fails, so it stays small (spec §11.2).
-  maxNewSlides: 4,
+  maxNewSlides: 4, maxPlannedSlides: 400,
 });
 /** The `invalid-edit` message when a batch adds more slides than one edit may. */
 export const NEW_SLIDES_MESSAGE = `At most ${PPTX_LIMITS.maxNewSlides} new slides per edit; build the deck in several presentation_edit calls.`;

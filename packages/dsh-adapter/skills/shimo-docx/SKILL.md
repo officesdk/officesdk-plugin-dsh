@@ -3,7 +3,7 @@ name: shimo-docx
 description: 新建 Word（.docx）时的默认风格，与 office、office-docx 一起加载：公文版式（A4、小标宋标题、仿宋正文、四级标题、奇偶页码）；通知/函/请示等公文或给了发文机关时加红头与红线。默认在右侧 OfficeSDK 编辑器里实时写（document_create / document_edit），用户看着内容一段段出现，红头公文和页码也一样；只有实时方式做不到的（如表格）才用离线脚本，并在回复里说明原因。
 whenToUse: 用户要写新的 Word 文档（报告、方案、总结、制度、通知、红头公文等），且没有指定其他模板或格式时加载；要改右侧已打开的 Word 文档时也用实时方式。编辑已有 Word 时只用实时方式改正文，不要套本 skill 的版式；用户给了单位模板或明确要别的格式时不要用。
 metadata:
-  version: 0.0.5
+  version: 0.0.6
   distilledFrom: redhead-docx
 ---
 
@@ -29,7 +29,7 @@ metadata:
    三个模板都带页码（gongwen、redhead 是「— 1 —」，奇数页居右、偶数页居左；basic 居中）。页面设置、页眉页脚都在模板里，编辑器没有页面设置、页眉页脚接口，不要试图改纸张、页边距或页眉。实时版的红头没有离线版的「草稿 · 待核定」页眉。用户在输入框「灵感库」里选了 Word 模板时，消息里是「请使用「公文版式」样式生成 Word 文档。」这样的句子（「公文版式」= `gongwen`，「红头公文」= `redhead`，「普通 A4」= `basic`），会话上下文里还有一条「Inspiration library pick」写明模板名，就按它传 `template`；选的是「红头公文」时按下面第 2 步的红头流程写（先用 `setText` 改两段占位）。选的是「公文版式」但用户明确要红头，或给了发文机关标志时，改用 `redhead`（同一套公文版式加红头）。
 2. **红头（redhead）**：新建后第 0 段是「【发文机关】文件」（红色 42pt 小标宋），第 1 段是「【发文字号】」（下面带红线）。第一次 `document_edit` 先用 `setText` 改这两段（带 `document_create` 返回的 `readToken`）：第 0 段写「××××文件」（机关名超过约 8 个字时，再用 `formatParagraph` 把第 0 段的 `size` 调到 36 或 30，免得折行），第 1 段写发文字号，如「×发〔2026〕12号」，没给的写【待填写发文字号】。然后在后面用 `insertParagraph` 写：标题（`style: "title"`）、主送机关（`firstLineIndent: 0`，以「：」结尾）、正文各节；最后写落款：署名、日期各一段，`align: "right"`、`firstLineIndent: 0`。需要版记（抄送、印发机关和日期）时，写在落款后面，`firstLineIndent: 0`。不要在红头上方再插标题。
 3. **分段写**：每次 `document_edit` 写一部分，让用户看着内容出现：第一次写标题（红头先改好两段占位）和第一节，之后每次一节（一个标题加它的段落或清单）。gongwen、basic 新建后只有一个空段，第一段用 `insertParagraph`（`style: "title"`）写标题，不要用 `setText` 改这个空段（那样不会套上标题样式）。新段落都给 `style`：`title`、`heading1`（一、）、`heading2`（（一））、`heading3`（1.）、`body`；编号写进文字。清单用 `list: "bullet"` 或 `"number"`。附件另起一页用 `insertPageBreak`。每个操作一段，文字里不能换行。**实时方式暂时不能插表格**（编辑器里看得到，但保存会失败）：表格是这份文档的主要内容时，按上面的说法用一句话说明，再改用离线脚本出整份稿；表格只是一小部分时，可以问用户是否改成清单、继续在右侧写。新建的文件写入时不用用户逐次确认；用户点了「停止」后，之后每次都会弹确认。
-4. **改已有文档**：先 `document_read`，用它给的段落编号和 `readToken`；`setText` / `replaceText` / `formatParagraph` / `deleteParagraph` 按编号改，`after` / `before` 指定插入位置。修改已有文件每次都要用户在标签页确认。
+4. **改已有文档**：先 `document_read`，定位到要改的已有文字后，先调用 `document_read(path, editTarget: {paragraph, readToken, find?})` 标出目标，再拟写改文。局部替换用 `find` 指明原文，整段修改省略它。已有 selection_rewrite ID 时按该选区处理。并发改写时，其他段落先完成也可沿用本次读取的 `readToken` 提交，遇到 `source-changed` 再重新读取并定位。使用读取结果的段落编号和 `readToken`；`setText` / `replaceText` / `formatParagraph` / `deleteParagraph` 按编号改，`after` / `before` 指定插入位置。修改已有文件每次都要用户在标签页确认。
 5. **保存**：写完调用 `document_save`。没保存时改动只在编辑器里。
 6. **没有回滚**：一次 `document_edit` 中途出错或用户点了停止，前面已完成的步骤留在编辑器里（没有保存），错误信息会写「Steps 1–N of M were applied…」。照实告诉用户完成到第几步、没有撤销；**不要说已回滚或已撤销**。接着先 `document_read` 看现状，再决定补写还是用 `deleteParagraph` / `setText` 改回。用户不想要这些内容时，由你用 document_edit 删掉，或请用户在编辑器里删。
 7. **不要混用**：文件在右侧打开期间，不要用 shell、python 或其它工具改同一个文件；编辑器里的内容才是最新的。

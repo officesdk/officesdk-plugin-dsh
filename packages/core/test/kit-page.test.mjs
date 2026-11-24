@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { attachmentKind, createChangeQueue, fitWriterPageWidth, pageLocale, startKitPage, suiteMountOptions, ACT_EVENTS } from '../src/browser/kit-page.mjs';
+import { attachmentKind, createChangeQueue, fitWholeWriterPage, pageLocale, startKitPage, suiteMountOptions, ACT_EVENTS } from '../src/browser/kit-page.mjs';
 import { injectWorkerSource, installSheetMediaBridge, sheetMediaReference } from '../src/browser/kit-sheet-assets.mjs';
 import { frameCommand } from '../src/browser/frame.mjs';
 
@@ -68,14 +68,14 @@ test('the change queue still numbers changes from 0 after a restart', async () =
   assert.deepEqual(sent, [[0, 'mow-v1'], [1, 'mow-v1'], [0, 'mow-v1']]);
 });
 
-test('page width: the SDK\'s own status-bar command is used; without it the document keeps its default zoom', async () => {
+test('whole page: the SDK\'s own status-bar command is used; without it the document keeps its default zoom', async () => {
   const clicks = [];
   const zoom = { click: () => clicks.push('zoom') }, item = { click: () => clicks.push('fit') };
-  const document = { querySelector: selector => selector === '.editor-statusbar__zoom-value' ? zoom : selector.includes('root:fit-page-width') && clicks.includes('zoom') ? item : null };
-  assert.equal(await fitWriterPageWidth(document, { wait: async () => {} }), true);
+  const document = { querySelector: selector => selector === '.editor-statusbar__zoom-value' ? zoom : selector.includes('root:fit-whole-page') && clicks.includes('zoom') ? item : null };
+  assert.equal(await fitWholeWriterPage(document, { wait: async () => {} }), true);
   assert.deepEqual(clicks, ['zoom', 'fit']);
   const warn = console.warn; console.warn = () => {};
-  try { assert.equal(await fitWriterPageWidth({ querySelector: () => null }, { timeoutMs: 300, wait: async () => {} }), false); }
+  try { assert.equal(await fitWholeWriterPage({ querySelector: () => null }, { timeoutMs: 300, wait: async () => {} }), false); }
   finally { console.warn = warn; }
 });
 

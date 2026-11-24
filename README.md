@@ -2,7 +2,7 @@
 
 OfficeSDK (`@officesdk/officesdk-plugin-dsh`) is a DeepSeek Harness (DSH) plugin. It opens, edits and
 saves Word (.docx), Excel (.xlsx) and PowerPoint (.pptx) files in DSH's right-side file tab, lets the model create and edit
-those files live through AI tools, and adds an inspiration library of templates and styles. Everything runs on the user's
+those files live through AI tools, with bundled document and presentation skills. Document rendering runs on the user's
 machine; no server is needed.
 
 Documents open through [office-kit](NOTICE), a separate external component: its document engine (Kit) and editor
@@ -25,7 +25,7 @@ It updates itself from the plugin panel. The first open of a document downloads 
 ```sh
 npm ci --prefix tooling --ignore-scripts
 node tooling/kit/vendor.mjs fetch
-node tooling/suite/pack-universal.mjs --version 0.0.1-rc.1 --sources public --obfuscate light \
+node tooling/suite/pack-universal.mjs --version 0.0.1 --sources public --obfuscate light \
   --repository https://github.com/officesdk/officesdk-plugin-dsh --out artifacts/npm
 ```
 

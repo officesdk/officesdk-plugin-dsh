@@ -1,8 +1,10 @@
-import { DOCX_ALIGN, DOCX_LIVE_MARK, DOCX_OPS, DOCX_OUTLINE_STYLES, DOCX_STYLES, DOCX_STYLE_FALLBACK, checkDocxToken, docxProgress, docxReadToken, validateDocxOps } from '../agent/docx.mjs';
+import { DOCX_ALIGN, DOCX_LIVE_MARK, DOCX_OPS, DOCX_OUTLINE_STYLES, DOCX_STYLES, DOCX_STYLE_FALLBACK, createDocxReadHistory, docxProgress, validateDocxOps } from '../agent/docx.mjs';
 import { DOC_LABELS, createDocOverlay } from './doc-overlay.mjs';
 import { agentLabel, docxStatus } from './agent-status.mjs';
+import { bodyBlock, paragraphRange, rememberWriterIndents, tableLocator, unionRects } from './writer-geometry.mjs';
+export { findParagraphElements, boxOf } from './writer-geometry.mjs';
 import { textChunks } from './selection.mjs';
-import { docSelectionMethods } from './selection-edit.mjs';
+import { docSelectionMethods, previousWriterChange, previewWriterPrefixes, startWriterWork } from './selection-edit.mjs';
 
 /**
  * AI editing of a Word document on a Kit page (spec 261105 §3.3), through office-kit's public `editor.api.writer`
@@ -16,14 +18,15 @@ const agentError = (code, message) => Object.assign(new Error(message), { code }
 const PAGE_CODES = new Set(['invalid-edit', 'source-changed', 'cancelled', 'busy', 'read-only', 'unsupported-operation']);
 
 /** The document as the model reads it: paragraphs (text, style, list, inside a table) and tables. */
-export async function inspectDocument(Word) {
+export async function inspectDocument(Word, document) {
   let doc;
   await Word.run(async ctx => {
     const paragraphs = ctx.document.body.paragraphs;
-    paragraphs.load('items/text,items/style,items/isListItem,items/tableNestingLevel');
+    paragraphs.load('items/text,items/style,items/isListItem,items/tableNestingLevel' + (document ? ',items/leftIndent,items/rightIndent' : ''));
     const tables = ctx.document.body.tables;
     tables.load('items/rowCount,items/values');
     await ctx.sync();
+    rememberWriterIndents(document, paragraphs.items);
     // Plain copies only: office-kit's Writer API hands out arrays as proxies, which postMessage cannot clone.
     doc = {
       paragraphs: Array.from(paragraphs.items, paragraph => ({ text: String(paragraph.text ?? ''), style: paragraph.style ? String(paragraph.style) : undefined, list: paragraph.isListItem === true, table: Number(paragraph.tableNestingLevel ?? 0) > 0 })),
@@ -34,80 +37,6 @@ export async function inspectDocument(Word) {
     };
   });
   return doc;
-}
-
-const normalize = text => String(text ?? '').replace(/\s+/g, '');
-
-/**
- * Where paragraph `text` is drawn now: Writer draws each line as SVG `text[data-writer-document-content]` whose
- * `data-paint-key` is `fragment:<story>/<block>/…`. Lines of one block are joined and compared with the text; of
- * several matches the one whose block number is nearest `near` wins. Read only; undefined when the paragraph is not
- * drawn (pages are drawn near the view only) or has no text. Depends on Writer's DOM (office-kit K4 has no API).
- */
-export function findParagraphElements(document, text, near = 0) {
-  const wanted = normalize(text);
-  if (!wanted) return undefined;
-  const blocks = new Map();
-  for (const element of document.querySelectorAll('text[data-writer-document-content]')) {
-    const match = /^fragment:(\d+)\/(\d+)\//.exec(element.getAttribute('data-paint-key') ?? '');
-    if (!match || match[1] !== '0') continue;
-    const block = Number(match[2]);
-    const entry = blocks.get(block) ?? { block, elements: [], text: '' };
-    entry.elements.push(element);
-    entry.text += element.textContent ?? '';
-    blocks.set(block, entry);
-  }
-  let best;
-  for (const entry of blocks.values()) {
-    if (normalize(entry.text) !== wanted) continue;
-    if (!best || Math.abs(entry.block - near) < Math.abs(best.block - near)) best = entry;
-  }
-  return best?.elements;
-}
-
-/** The screen box of `elements` (their union), clipped to Writer's scrolling view when it is there. */
-export function boxOf(document, elements) {
-  let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity;
-  for (const element of elements ?? []) {
-    if (!element.isConnected) return undefined;
-    const rect = element.getBoundingClientRect();
-    if (!rect.width && !rect.height) continue;
-    left = Math.min(left, rect.left); top = Math.min(top, rect.top); right = Math.max(right, rect.right ?? rect.left + rect.width); bottom = Math.max(bottom, rect.bottom ?? rect.top + rect.height);
-  }
-  if (!Number.isFinite(left)) return undefined;
-  const scroller = document.querySelector('.writer-document-preview__scroll')?.getBoundingClientRect();
-  return { left, top, width: right - left, height: bottom - top, ...(scroller && { clip: { left: scroller.left, top: scroller.top, right: scroller.right ?? scroller.left + scroller.width, bottom: scroller.bottom ?? scroller.top + scroller.height } }) };
-}
-
-/**
- * Where a new paragraph will go before it exists (spec §7.6 11): one line below (or above) the paragraph it is inserted
- * next to, as wide as that paragraph. Undefined when that paragraph is not drawn.
- */
-export function placeLocator(document, { text, index, insert }) {
-  let elements, misses = 0;
-  return () => {
-    if (!elements || elements.some(element => !element.isConnected)) {
-      if (elements === null && misses++ % 8) return undefined;
-      elements = findParagraphElements(document, text, index) ?? null;
-    }
-    const box = elements && boxOf(document, elements);
-    if (!box) return undefined;
-    const line = Math.max(12, Math.min(40, elements[0].getBoundingClientRect().height || 18));
-    return { ...box, top: insert === 'before' ? box.top - line - 4 : box.top + box.height + 4, height: line };
-  };
-}
-
-/** Follows paragraph `text` near block `near` every frame; finds its elements again when Writer redraws them. */
-export function paragraphLocator(document, text, near) {
-  let elements, misses = 0;
-  return () => {
-    if (!elements || elements.some(element => !element.isConnected)) {
-      // Looking again costs a query over the drawn lines: at most every few frames while it is not found.
-      if (elements === null && misses++ % 8) return undefined;
-      elements = findParagraphElements(document, text, near) ?? null;
-    }
-    return elements ? boxOf(document, elements) : undefined;
-  };
 }
 
 /**
@@ -135,6 +64,13 @@ export async function runDocxSteps(Word, steps, doc, { signal, onStep = () => {}
   const order = doc.paragraphs.map((_, number) => `#${number}`);
   const tableOrder = doc.tables.map((_, number) => `#${number}`);
   const texts = new Map(doc.paragraphs.map((paragraph, number) => [`#${number}`, paragraph.text]));
+  const tableParagraphs = new Set(order.filter((key, i) => doc.paragraphs[i].table));
+  const tableRows = new Map(doc.tables.map((table, i) => [tableOrder[i], table.rows]));
+  const blockOf = index => bodyBlock(order, index, key => tableParagraphs.has(key));
+  const tableBlock = index => {
+    const starts = order.flatMap((key, i) => tableParagraphs.has(key) && !tableParagraphs.has(order[i - 1]) ? [i] : []);
+    return starts.length === tableOrder.length && starts[index] !== undefined ? blockOf(starts[index]) : undefined;
+  };
   const refs = {};
   // The caller reads where the batch got to even when it stops part way.
   Object.assign(track, { order, tableOrder, refs });
@@ -273,7 +209,7 @@ export async function runDocxSteps(Word, steps, doc, { signal, onStep = () => {}
         const added = text.slice((texts.get(entry.key) ?? '').length);
         await Word.run(async ctx => { (await load(ctx))[at].insertText(added, 'End'); await ctx.sync(); });
         texts.set(entry.key, text);
-        onWrite(entry.number, { index: at, text });
+        onWrite(entry.number, { index: at, block: blockOf(at), text });
         if (!entry.parts.length) await cursorTo(at);
       }
     }
@@ -287,21 +223,33 @@ export async function runDocxSteps(Word, steps, doc, { signal, onStep = () => {}
       const index = where.at === 'start' ? 0 : where.at === 'end' ? order.length - 1 : indexOf(where.after ?? where.before);
       return { insert: where.before || where.at === 'start' ? 'before' : 'after', index, text: texts.get(order[index]) ?? '' };
     }
-    if (step.target) { const index = indexOf(step.target); return { index, text: texts.get(order[index]) ?? '' }; }
+    if (step.target) {
+      const index = indexOf(step.target), text = texts.get(order[index]) ?? '';
+      if (step.find !== undefined) {
+        const start = Array.from(text.slice(0, text.indexOf(step.find))).length;
+        return { index, text, start, end: start + Array.from(step.find).length };
+      }
+      return { index, text };
+    }
     return undefined;
   };
   for (const [number, step] of steps.entries()) {
     if (signal?.aborted) { track.partial = pending.find(item => item.parts.length)?.number; throw agentError('cancelled', 'Stopped by the user.'); }
     // Anything but another new paragraph, or a full set of tracks, first finishes the paragraphs being written.
     if (pending.length && (step.op !== 'insertParagraph' || pending.length >= tracks)) await flush();
-    await onSelect(number, selectTarget(step), step);
+    let target = selectTarget(step);
+    if (step.op === 'setCell') {
+      const table = tableIndexOf(step.table);
+      target = { tableBlock: tableBlock(table), row: step.row, column: step.column, rows: tableRows.get(tableOrder[table]) };
+    } else if (target) target.block = blockOf(target.index);
+    const staged = await onSelect(number, target, step, () => order.map(id=>texts.get(id)));
     // A stop while the target was being selected writes nothing.
     if (signal?.aborted) { track.partial = pending.find(item => item.parts.length)?.number; throw agentError('cancelled', 'Stopped by the user.'); }
     let focus, grouped = false;
     switch (step.op) {
       case 'insertParagraph': {
         let at;
-        const parts = chunk(step.text);
+        const parts = chunk(step.text, startOf(step.where, order.length));
         await Word.run(async ctx => {
           const items = await load(ctx);
           const before = items.length;
@@ -328,7 +276,7 @@ export async function runDocxSteps(Word, steps, doc, { signal, onStep = () => {}
         if (step.list) await list(at, step.list); else await unlist(at);
         if (step.format) await Word.run(async ctx => { applyFormat((await load(ctx))[at], step.format); await ctx.sync(); });
         texts.set(order[at], parts[0]);
-        onWrite(number, { index: at, text: parts[0] });
+        onWrite(number, { index: at, block: blockOf(at), text: parts[0] });
         if (parts.length > 1) { pending.push({ key: order[at], parts: parts.slice(1), number }); grouped = true; }
         focus = { index: at, text: parts[0], tone: 'add' };
         break;
@@ -337,7 +285,7 @@ export async function runDocxSteps(Word, steps, doc, { signal, onStep = () => {}
         const at = indexOf(step.target);
         // A whole rewrite grows in parts like a new paragraph (in this step, not on a track); a replaceText (`find`)
         // changes only part of the paragraph and is written once: growing it would first wipe the rest of the text.
-        const parts = step.find === undefined ? chunk(step.text) : [step.text];
+        const parts = staged?.parts ?? (step.find === undefined ? chunk(step.text, at) : [step.text]);
         for (const [part, text] of parts.entries()) {
           if (part) {
             if (signal?.aborted) throw agentError('cancelled', 'Stopped by the user.');
@@ -349,7 +297,8 @@ export async function runDocxSteps(Word, steps, doc, { signal, onStep = () => {}
           texts.set(order[at], text);
           // From the first part on, a stop leaves this paragraph half rewritten.
           if (part < parts.length - 1) track.partial = number;
-          if (parts.length > 1) onWrite(number, { index: at, text });
+          const start = step.find === undefined ? 0 : Array.from(step.before.slice(0, step.before.indexOf(step.find))).length;
+          onWrite(number, { index: at, block: blockOf(at), text, start, end: start + Array.from(step.replace ?? text).length });
         }
         focus = { index: at, text: step.text, tone: 'edit' };
         break;
@@ -393,10 +342,13 @@ export async function runDocxSteps(Word, steps, doc, { signal, onStep = () => {}
           const after = await load(ctx);
           const delta = expectCount(step, before, after.length, { atLeast: rows * columns });
           order.splice(at, 0, ...Array.from({ length: delta }, (_, i) => `+${number}.${i}`));
-          tableOrder.splice(tablesBefore(after, at), 0, step.ref ? `@${step.ref}` : `+${number}`);
+          for (const key of order.slice(at, at + delta)) tableParagraphs.add(key);
+          const tableKey = step.ref ? `@${step.ref}` : `+${number}`;
+          tableOrder.splice(tablesBefore(after, at), 0, tableKey);
+          tableRows.set(tableKey, rows);
           if (step.ref) refs[step.ref] = 'table';
         });
-        // The frame goes round the first cell's text (each cell is its own drawn block).
+        onWrite(number, { tableBlock: blockOf(at) });
         focus = { index: at, text: step.values[0][0], tone: 'add' };
         break;
       }
@@ -451,33 +403,53 @@ export function refsNow(track) {
 
 export function createKitDocumentAgent({ editor, document, animate = () => true, locale = 'zh', wait = ms => new Promise(resolve => setTimeout(resolve, ms)), pauseMs = 120, enabled = DOCX_OPS }) {
   const Word = () => editor.api.writer.Word;
+  const reads = createDocxReadHistory();
   const labels = DOC_LABELS[locale] ?? DOC_LABELS.zh;
-  const overlay = createDocOverlay(document, { animate, wait });
-  let applying = false;
-  /** The lock and overlay of apply, for the selection rewrite's in-paragraph writes (selection-edit.mjs). */
-  const locked = async run => {
-    if (applying) throw agentError('busy', 'Another edit is still running.');
+  const overlay = createDocOverlay(document, { animate, wait, showStatus: false });
+  let applying = false, settled, release;
+  const beginWrite = () => {
     applying = true;
+    settled = new Promise(resolve => { release = resolve; });
+  };
+  const finishWrite = () => {
+    applying = false;
+    release();
+  };
+  /** The lock and overlay of apply, for the selection rewrite's in-paragraph writes (selection-edit.mjs). */
+  const locked = async (run, signal) => {
+    while (applying) await settled;
+    if (signal?.aborted) throw agentError('cancelled', 'Stopped by the user.');
+    beginWrite();
     overlay.busy(true, labels.editing);
     try { return await run(); }
-    finally { try { await editor.prepare?.(); } catch {} await wait(100); applying = false; overlay.busy(false); }
+    finally { try { await editor.prepare?.(); } catch {} await wait(100); finishWrite(); overlay.busy(false); }
   };
   const agent = {
     /** True while an AI edit is writing: its changes are not the user's. */
     get applying() { return applying; },
     handOff() {},
-    inspect: () => inspectDocument(Word()),
-    async apply({ ops, readToken }, signal) {
-      if (applying) throw agentError('busy', 'Another edit is still running.');
-      applying = true;
+    async inspect({ checkEdit } = {}) {
+      const doc = await inspectDocument(Word(), document);
+      if (checkEdit) {
+        reads.check(checkEdit.ops, doc, checkEdit.readToken);
+        return { ...doc, checkedEdit: true };
+      }
+      reads.remember(doc);
+      return doc;
+    },
+    async apply({ ops, readToken, editId }, signal, selectionWork, chatBatch) {
+      while (applying) await settled;
+      if (signal?.aborted) throw agentError('cancelled', 'Stopped by the user.');
+      beginWrite();
       overlay.busy(true, labels.editing);
       let total = Array.isArray(ops) ? ops.length : 0;
       const track = { done: 0 };
+      const batchFrames=new Map(), writtenChanges=new Map(), previousChanges=new Map();
       try {
         const word = Word();
-        const doc = await inspectDocument(word);
+        const doc = await inspectDocument(word, document);
         // Checked here, after the approval card: the user may have edited while it was open.
-        checkDocxToken(ops, doc, readToken);
+        reads.check(ops, doc, readToken);
         const { steps } = validateDocxOps(ops, doc, { enabled });
         total = steps.length;
         // v1.1: each step's agent (one of three tracks) selects first, then writes; new paragraphs grow in parts.
@@ -487,19 +459,78 @@ export function createKitDocumentAgent({ editor, document, animate = () => true,
           if (!owners.has(number)) owners.set(number, ['t0', 't1', 't2'].find(name => ![...owners.values()].includes(name)) ?? `t${number % 3}`);
           return owners.get(number);
         };
+        const locate = (target, workBands = false) => {
+          if (!target) return () => undefined;
+          if ('tableBlock' in target) return target.tableBlock === undefined ? () => undefined : tableLocator(document, target.tableBlock, target);
+          const at = target.insert === 'before' ? 0 : Array.from(target.text).length;
+          return paragraphRange(document, target.text, target.block, target.insert ? at : target.start, target.insert ? at : target.end, true, workBands);
+        };
+        const writtenRanges = new Map();
+        const followWritten = (number, written) => {
+          const step=steps[number];
+          if(chatBatch && editId && step.op==='setText' && written.text===step.text){
+            const before=step.find ?? step.before, after=step.replace ?? step.text;
+            if(before!==after && before && !doc.paragraphs[written.index]?.table){
+              const anchor={paragraphs:[written.index,written.index],start:written.start,end:written.end};
+              writtenChanges.set(number,{id:editId+'-'+number,kind:'docx',before,after,appliedAt:Date.now(),
+                revert:{anchor,original:after,text:before},located:{anchor,view:{first:written.index,texts:[written.text],blocks:[written.block]}}});
+            }
+          }
+          if (!selectionWork) return overlay.point(batchFrames.get(number)?.key ?? key(number), locate(written, batchFrames.has(number)));
+          if (selectionWork.reserved) return;
+          const {after} = selectionWork;
+          const [first, last] = after.paragraphs;
+          const length = Array.from(written.text).length;
+          writtenRanges.set(written.index, paragraphRange(document,written.text,written.block,
+            written.index === first ? Math.min(after.start,length) : 0, written.index === last ? Math.min(after.end,length) : length,true,true));
+          overlay.point(selectionWork.key, () => {
+            const ranges = [...writtenRanges].sort(([a],[b]) => a-b).map(([,find]) => find()).filter(Boolean);
+            const rects = ranges.flatMap(range => range.rects);
+            return rects.length ? { ...unionRects(rects), rects, clip:ranges[0].clip } : undefined;
+          });
+        };
+        const moving=animate() && !selectionWork?.reserved;
+        const chunk=(text,index)=>{
+          if (!moving) return [text];
+          const parts=textChunks(text);
+          if (!selectionWork?.previewLines) return parts;
+          const offset=index-selectionWork.after.paragraphs[0], shown=selectionWork.previewLines[offset];
+          if (shown === undefined) return parts;
+          const count=Array.from(shown).length+(offset===0 ? selectionWork.after.start : 0);
+          return parts.filter((part,i)=>i===parts.length-1 || Array.from(part).length>=count);
+        };
         const outcome = await runDocxSteps(word, steps, doc, {
-          signal, wait, pause: animate() ? pauseMs : 0, track, chunk: animate() ? textChunks : text => [text],
-          onSelect: async (number, target, step) => {
+          signal, wait, pause:moving ? pauseMs : 0, track, chunk,
+          onSelect: async (number, target, step, currentTexts) => {
+            if (selectionWork) return;
             overlay.say(labels.step(number + 1, total));
-            const find = !target ? undefined : step.op === 'insertParagraph' ? placeLocator(document, target) : paragraphLocator(document, target.text, target.index);
-            await overlay.select(key(number), find ?? (() => undefined), { label: agentLabel(locale, docxStatus(step)), selecting: agentLabel(locale, 'selecting'), edge: false });
+            if(chatBatch && step.op==='setText' && target?.text){
+              const original=step.find ?? target.text, start=target.start ?? 0;
+              const end = start + Array.from(original).length;
+              previousChanges.set(number, previousWriterChange(chatBatch.changes,currentTexts(),{paragraphs:[target.index,target.index],start,end},original));
+              const work = chatBatch.claim({ kind:'docx', original, anchor:{ paragraphs:[target.index,target.index], start, end } })
+                ?? startWriterWork({overlay,locale},locate(target, true),true);
+              batchFrames.set(number,work);
+              await work.ready;await overlay.phase(work.key,'clear',160);await overlay.phase(work.key,'write');
+              if (!moving) return;
+              const targetText=step.replace ?? step.text;
+              const staged=await previewWriterPrefixes(overlay,work.key,textChunks(targetText),signal);
+              if (staged.reserved) overlay.drop(work.key);
+              // A partial replacement writes its whole SDK paragraph in one operation.
+              return step.find === undefined ? staged : {parts:[step.text]};
+            }
+            await overlay.select(key(number), locate(target), { label: agentLabel(locale, docxStatus(step)), selecting: agentLabel(locale, 'selecting'), edge: true });
           },
-          onWrite: (number, written) => overlay.point(key(number), paragraphLocator(document, written.text, written.index)),
-          onFinish: number => { overlay.release(key(number)); owners.delete(number); },
+          onWrite: followWritten,
+          onFinish: number => {
+            if(writtenChanges.has(number)){chatBatch.record(writtenChanges.get(number),previousChanges.get(number));writtenChanges.delete(number);}
+            if(batchFrames.has(number)){batchFrames.get(number).dispose();batchFrames.delete(number);}
+            else if (!selectionWork) { overlay.release(key(number)); owners.delete(number); }
+          },
         });
         const refs = outcome.refs;
-        const after = await inspectDocument(word);
-        return { applied: steps.length, ...(Object.keys(refs).length && { refs }), readToken: docxReadToken(after), ...(outcome.styleFallback && { styleFallback: outcome.styleFallback }) };
+        const after = await inspectDocument(word, document);
+        return { applied: steps.length, ...(Object.keys(refs).length && { refs }), readToken: reads.remember(after), ...(outcome.styleFallback && { styleFallback: outcome.styleFallback }) };
       } catch (error) {
         const code = signal?.aborted ? 'cancelled' : PAGE_CODES.has(error?.code) ? error.code : 'editor-failed';
         const reason = signal?.aborted ? 'Stopped by the user.' : (error?.message ?? String(error));
@@ -510,11 +541,12 @@ export function createKitDocumentAgent({ editor, document, animate = () => true,
         const extra = [...(track.complete ?? [])].filter(number => number >= (track.done ?? 0)).sort((a, b) => a - b);
         throw agentError(code, `${reason} ${docxProgress(track.done ?? 0, total, refsNow(track), partial, extra)}`);
       } finally {
+        for(const frame of batchFrames.values())frame.dispose();
         // Writer reports local commits to the change listener as it makes them; settle input and let any late
         // report through while the changes still count as the AI's (spec 261105 §1.3).
         try { await editor.prepare?.(); } catch {}
         await wait(100);
-        applying = false;
+        finishWrite();
         overlay.busy(false);
       }
     },
@@ -522,6 +554,6 @@ export function createKitDocumentAgent({ editor, document, animate = () => true,
     dispose() { overlay.dispose(); },
   };
   // Selection rewrite (spec 261109-selection-ai-edit): read the user's selection, replace it, take it back.
-  Object.assign(agent, docSelectionMethods({ Word, document, overlay, locale, animate, locked, applying: () => applying, apply: (args, signal) => agent.apply(args, signal) }));
+  Object.assign(agent, docSelectionMethods({ Word, document, reads, overlay, locale, animate, locked, applying: () => applying, apply: (...args) => agent.apply(...args) }));
   return agent;
 }

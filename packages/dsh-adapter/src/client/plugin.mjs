@@ -1,11 +1,15 @@
+import {openOfficeWebsite} from '../../../core/src/browser/office-brand.mjs';
+import { registerDeckChat } from './deck-chat.mjs';
+import { createEditSurfaces } from './edit-surfaces.mjs';
 import { DocumentController } from './controller.mjs';
 import { failureKind, fileAddress, parseSource } from './address.mjs';
 import { baseName, isAbsolute, joinPath, parentOf, segments } from './paths.mjs';
 import { AGENT_FORMATS, AgentBridge, ControllerRegistry, deckOpener } from './agent.mjs';
+import { createEditorFrame } from './editor-frame.mjs';
 import { createToolViewStore, registerToolViews } from './tool-views.mjs';
 import { registerStylePicker } from './style-picker.mjs';
 import { registerStyleFlows } from './style-flows.mjs';
-import { InspirationLibrary, registerInspirationLibrary } from './inspiration-library.mjs';
+import { registerDocumentContext } from './document-context.mjs';
 import { createWhatsNewWatch, fill, whatsNewView } from './whats-new.mjs';
 import { createComposerRegistry, handleSelectionRequest, pushComposerState, registerSelectionComposer } from './selection-bridge.mjs';
 import { anyUnsaved, cancelKey, copyName, createToolbarPrefs, createUpdateWatch, editButtons, menuKey, modeButtons, nameProblem, pickedPath, switchPlan, offeredModules, placeMenu, rovingKey, toolbarBusy, updateEntry, updatePanelView } from './toolbar.mjs';
@@ -21,7 +25,7 @@ const MESSAGES = {
     diverged: 'The file changed outside this editor. Discard your edits and reload, or keep them as a copy.', discard: 'Discard and reload', keepCopy: 'Download my version',
     conflict: 'The file changed before saving. Your edits were kept as a draft.', retry: 'Try again', noDrafts: 'No drafts', unsaved: 'Unsaved changes',
     proposalTitle: 'AI wants to change this presentation', apply: 'Apply', decline: 'Discard', danger: 'This edit deletes content or changes many slides. Check it before applying.',
-    undo: 'Undo AI edit', undoing: 'Undoing…', undoFailed: 'Undo is no longer possible here.', generating: 'AI is generating this file', stopGenerating: 'Stop', generationStopped: 'Stopped: AI edits ask first again',
+    focusMode: 'Focus mode', exitFocus: 'Exit focus mode', generating: 'AI is generating this file', stopGenerating: 'Stop', generationStopped: 'Stopped: AI edits ask first again',
     unsavedBadge: 'Unsaved', unsavedApprovalBadge: 'Unsaved (editing not allowed yet)', unstagedBadge: 'Latest change not handed to DSH yet — retrying', saveOutside: 'Allow editing the original file? Once allowed, changes in this tab are saved to it automatically.', saveConfirm: 'Allow editing', authorize: 'Allow editing', authorizeTitle: 'Changes in this tab will be saved to the original file automatically', authorized: 'Editing allowed', authorizedTitle: 'Changes are saved to the original file automatically', readOnlyTitle: 'This Session is read-only; switch it to a writable mode to edit the original file', authorizeHint: 'You are changing this file, but editing the original file is not allowed yet, so nothing is saved. Once allowed, changes are saved to it automatically.', readOnlyHint: 'This Session is read-only: changes here are not saved to the original file.', later: 'Later', updateTo: 'Update to {version}', updating: 'Updating…', modeEdit: 'Edit mode', modeView: 'Read mode', modeSelected: '{mode} · selected', modeSwitch: '{mode} · click to switch', modeBlocked: 'Some changes are not saved yet, so the document stays in edit mode.', viewBlockedTitle: 'Unsaved changes: allow editing so they are saved, then switch to read mode', updateTitle: 'Plugin update', updateNew: 'New version', updateAvailable: 'New version v{version} found — plugin update', updateCurrent: 'Current version', updateLatest: 'New version', updateNow: 'Update', updateUnsaved: 'Some documents have unsaved changes. Save them before updating.', updateKeeps: 'Open documents reload with the new version.', updateInstalled: 'Updated to {version}', updateInstalledTitle: 'Restart DSH if the new version does not load by itself', updateFailed: 'Update failed', updatingLabel: 'Updating plugin', updateReadyLabel: 'Plugin update ready', updateProduct: 'OfficeSDK v{version}', updatePreparing: 'Updating', updatePreparingNote: 'Preparing the update…', updateGotIt: 'Got it', updateReadyRestart: 'The update is ready. Save your files, then restart DSH to use it.', updateReadyLoaded: 'The update is ready; the new version is loading.', updateNotes: 'What’s new', updateNotesFallback: 'The full notes appear in “What’s new” once the update is installed. Open documents reload with the new version.', toolbar: 'Quick access', customize: 'Customize Quick Access Toolbar', module_undo: 'Undo', module_redo: 'Redo', module_save: 'Save', module_saveAs: 'Save As', module_folder: 'Open local folder', module_print: 'Print', module_layout: 'Ribbon layout', module_mode: 'Edit / view mode', module_update: 'Plugin update', module_account: 'Account', busyTitle: 'Wait until the current save finishes', saveViewTitle: 'Nothing to save in read mode', accountConnected: 'Connected account', accountConnect: 'Connect account', accountReconnect: 'Reconnect', accountUsage: 'Usage', accountCredits: '{n} credits', accountUsageUnavailable: 'Unavailable — retry', accountWebsite: 'Visit officesdk.com', accountBlocked: 'The account is not connected: editing and saving wait until it is.', module_accountPreview: 'Account (preview)', accountDemo: 'Demo data', accountDemoStates: 'Demo state', demo_connected: 'Connected', demo_disconnected: 'Not connected', demo_expired: 'Expired', demo_zero: 'No credits left', demo_unknown: 'Usage unavailable', saveAsTitle: 'Save As', saveAsName: 'Save as', saveAsFormat: 'Format', saveAsWhere: 'Where', saveAsChoose: 'Choose…', saveAsOutside: 'This place is outside the workspace; saving allows writing here.', saveAsSave: 'Save', copySuffix: ' copy', nameEmpty: 'Enter a file name.', nameCharacters: 'A file name cannot contain / \\ : * ? " < > |', nameDot: 'A file name cannot start with a dot.', nameSame: 'That is this document itself; use Save instead.', targetBusy: 'Another program has that file open. Close it there, then save again.', replacePrompt: '“{name}” already exists. Replace it?', replace: 'Replace', saveAsFailed: 'Not saved: ', saveAsAction: 'Save As…', openTitle: 'Open', openAction: 'Open', openFailed: 'Cannot open: ', openUnsupported: 'Only Word, Excel and PowerPoint files open here.', folderUp: 'Up', workspace: 'Workspace', emptyFolder: 'No documents here', keptEditing: 'New edits kept arriving while saving; try again.', saveAsKept: 'The copy is saved; the original kept its unsaved edits in the editor record: ', savedLabel: 'Saved', autosaveFailed: 'Not saved', cancel: 'Cancel', saveFailed: 'Not saved: ', diskChanged: 'The file changed on disk since your unsaved edits.', useDisk: 'Use the disk version', keepEdits: 'Keep my edits', overwritePrompt: 'Another program changed the file. Replace it with this version?', overwriteConfirm: 'Replace', whatsNewTag: 'What’s new', whatsNewFresh: 'What’s new in v{current}', whatsNewRange: 'Updated from v{previous} to v{current}', whatsNewMore: 'Show all ({n})', whatsNewLess: 'Show less', whatsNewOk: 'Got it', engineDownloading: 'Downloading the document engine (first use) {received}/{total} MB…', engineFallback: ' The npm registry is unreachable; downloading from another source.', engineTesting: ' (this platform is in test)', skillsMenu: 'Skills…', skillsTitle: 'Skills', skillsDownload: 'Download', skillsClear: 'Clear cache', skillsCheck: 'Check for updates', skillsDownloadAll: 'Download all', skillsDone: 'Done', skillState_ready: 'downloaded', skillState_missing: 'downloads on first use', skillState_update: 'update available', skillState_downloading: 'downloading…', skillState_failed: 'download failed', skillState_bundled: 'included',
     fallbackPreview: 'The editor is unavailable; showing a read-only preview.', fallbackUnsaved: 'The editor is unavailable; showing a read-only preview of the file on disk. Your unsaved edits are still kept in the edit record.',
     op_setText: 'Text', op_setFont: 'Font', op_setAlignment: 'Alignment', op_setFill: 'Fill', op_setGeometry: 'Position/size', op_addTextBox: 'New text box',
@@ -34,7 +38,7 @@ const MESSAGES = {
     diverged: '文件已在外部修改。可以放弃修改并重新加载，或保留你的版本。', discard: '放弃修改并重新加载', keepCopy: '下载我的版本',
     conflict: '保存前文件已变化，你的修改已保存为草稿。', retry: '重试', noDrafts: '没有草稿', unsaved: '有未保存的修改',
     proposalTitle: 'AI 想修改这份演示文稿', apply: '应用', decline: '放弃', danger: '这次修改会删除内容或改动大量页面，请确认后再应用。',
-    undo: '撤销 AI 修改', undoing: '正在撤销…', undoFailed: '这里已无法撤销。', generating: 'AI 生成中', stopGenerating: '停止', generationStopped: '已停止，之后 AI 的修改会先问你',
+    focusMode: '专注模式', exitFocus: '退出专注模式', generating: 'AI 生成中', stopGenerating: '停止', generationStopped: '已停止，之后 AI 的修改会先问你',
     unsavedBadge: '未保存', unsavedApprovalBadge: '未保存（未授权修改）', unstagedBadge: '最新修改还没交给 DSH，正在重试', saveOutside: '允许修改原文件吗？允许后，这个标签里的修改会自动保存到原文件。', saveConfirm: '允许修改', authorize: '授权修改', authorizeTitle: '授权后，这个标签里的修改会自动保存到原文件', authorized: '已授权修改', authorizedTitle: '修改会自动保存到原文件', readOnlyTitle: '当前会话是只读的，切换为可写模式后才能修改原文件', authorizeHint: '你已经修改了这个文件，但还没有授权修改原文件，修改不会保存。授权后会自动保存到原文件。', readOnlyHint: '当前会话是只读的，这里的修改不会保存到原文件。', later: '稍后', updateTo: '更新到 {version}', updating: '更新中…', modeEdit: '编辑模式', modeView: '阅读模式', modeSelected: '{mode} · 已选中', modeSwitch: '{mode} · 点击切换', modeBlocked: '还有修改没保存，暂不能切到阅读。', viewBlockedTitle: '有未保存修改，授权保存后才能切到阅读', updateTitle: '插件更新', updateNew: '有新版本', updateAvailable: '发现新版本 v{version}，插件更新', updateCurrent: '当前版本', updateLatest: '新版本', updateNow: '更新', updateUnsaved: '仍有未保存修改，请先保存后更新。', updateKeeps: '更新后打开的文档会用新版本重新加载。', updateInstalled: '已更新到 {version}', updateInstalledTitle: '如未自动生效，请重启 DSH', updateFailed: '更新失败', updatingLabel: '正在更新插件', updateReadyLabel: '插件更新已准备就绪', updateProduct: 'OfficeSDK v{version}', updatePreparing: '正在更新', updatePreparingNote: '正在准备更新…', updateGotIt: '知道了', updateReadyRestart: '更新已准备就绪，保存文件后重启 DSH 生效。', updateReadyLoaded: '更新已准备就绪，新版本正在加载。', updateNotes: '更新内容', updateNotesFallback: '完整的更新说明会在更新完成后的「本次更新」中显示；打开的文档会用新版本重新加载。', toolbar: '快速访问', customize: '自定义快速访问工具栏', module_undo: '撤销', module_redo: '重做', module_save: '保存', module_saveAs: '另存为', module_folder: '打开本地文件夹', module_print: '打印', module_layout: '功能区模式', module_mode: '编辑 / 查看模式', module_update: '插件更新', module_account: '个人中心', busyTitle: '请等当前保存完成', saveViewTitle: '阅读模式下没有要保存的修改', accountConnected: '已连接账户', accountConnect: '连接账户', accountReconnect: '重新连接', accountUsage: '使用情况', accountCredits: '{n} credits', accountUsageUnavailable: '暂不可用，点击重试', accountWebsite: '访问 officesdk.com', accountBlocked: '账户未连接，暂不能编辑和保存。', module_accountPreview: '个人中心（预览）', accountDemo: '演示数据', accountDemoStates: '演示状态', demo_connected: '已连接', demo_disconnected: '未连接', demo_expired: '已失效', demo_zero: '额度为 0', demo_unknown: '用量暂不可用', saveAsTitle: '另存为', saveAsName: '保存为', saveAsFormat: '文件格式', saveAsWhere: '位置', saveAsChoose: '选择…', saveAsOutside: '位置在工作区外，保存即允许写入此位置。', saveAsSave: '保存', copySuffix: ' - 副本', nameEmpty: '请输入文件名。', nameCharacters: '文件名不能包含 / \\ : * ? " < > |', nameDot: '文件名不能以 . 开头。', nameSame: '这是当前文件本身，请直接保存。', targetBusy: '该文件正被其他程序占用，请先在那个程序中关闭它，再重新保存。', replacePrompt: '「{name}」已存在，要替换吗？', replace: '替换', saveAsFailed: '未能另存：', saveAsAction: '另存为…', openTitle: '打开', openAction: '打开', openFailed: '无法打开：', openUnsupported: '只能打开 Word、Excel、PowerPoint 文件。', folderUp: '上一级', workspace: '工作区', emptyFolder: '这里没有可打开的文档', keptEditing: '保存时仍有新的修改，请再试一次。', saveAsKept: '副本已保存；原文件未写入，但未保存的修改仍留在编辑记录中：', savedLabel: '已保存', autosaveFailed: '未能自动保存', cancel: '取消', saveFailed: '未保存：', diskChanged: '磁盘上的文件在你未保存期间被修改过。', useDisk: '使用磁盘版本', keepEdits: '保留我的修改', overwritePrompt: '文件已被其他程序修改，用当前内容覆盖吗？', overwriteConfirm: '覆盖', whatsNewTag: '本次更新', whatsNewFresh: 'v{current} 更新内容', whatsNewRange: '已从 v{previous} 更新到 v{current}', whatsNewMore: '展开全部（共 {n} 条）', whatsNewLess: '收起', whatsNewOk: '知道了', engineDownloading: '首次使用，正在下载文档引擎 {received}/{total} MB…', engineFallback: 'npm 源连不上，已改用其他来源下载。', engineTesting: '（此平台测试中）', skillsMenu: 'Skills 管理…', skillsTitle: 'Skills', skillsDownload: '预下载', skillsClear: '清除缓存', skillsCheck: '检查更新', skillsDownloadAll: '全部预下载', skillsDone: '完成', skillState_ready: '已下载', skillState_missing: '首次使用时下载', skillState_update: '有新版本', skillState_downloading: '下载中…', skillState_failed: '下载失败', skillState_bundled: '随包',
     fallbackPreview: '编辑器不可用，已切换为只读预览。', fallbackUnsaved: '编辑器不可用，已切换为只读预览。未保存的修改仍保留在编辑记录中，预览显示的是磁盘版本。',
     op_setText: '文字', op_setFont: '字体', op_setAlignment: '对齐', op_setFill: '填充', op_setGeometry: '位置/大小', op_addTextBox: '新增文本框',
@@ -87,6 +91,10 @@ export function install(ctx, React, environment = {}) {
   const prefs = environment.toolbarPrefs ?? createToolbarPrefs();
   // The input boxes by Session, for the selection rewrite's message (selection-bridge.mjs).
   const composers = environment.composers ?? createComposerRegistry();
+  const { ChangeRail, FocusChat, FocusDecision } = createEditSurfaces(React);
+  const documentUis = new Map();
+  const tabEditors = new Map();
+  ctx.effect(() => () => { for (const editor of tabEditors.values()) editor.dispose(); });
   const useController = tabId => useSyncExternalStore(
     listener => {
       controllerWatchers.add(listener);
@@ -96,67 +104,126 @@ export function install(ctx, React, environment = {}) {
     () => controllers.get(tabId)?.state,
   );
 
-  function Document({ resourceAddress, content, useTabInfo, useResource, t }) {
-    const { tab } = useTabInfo();
-    const frame = useRef(null);
+  function Document({ resourceAddress, content, useTabInfo, useResource, useSessionStatus, renderFactorySlot, t }) {
+    const { tab, sidebar } = useTabInfo();
+    const frameContainer = useRef(null);
     const [view, setView] = useState({ loading: true });
+    const [frameFullscreen,setFrameFullscreen]=useState(false);
+    useEffect(()=>{
+      const changed=()=>setFrameFullscreen(Boolean(doc.fullscreenElement && doc.fullscreenElement===controllers.get(tab.id)?.frame));
+      changed();
+      doc.addEventListener('fullscreenchange',changed);
+      return ()=>doc.removeEventListener('fullscreenchange',changed);
+    },[resourceAddress,tab.id]);
+    const focused=Boolean(sidebar?.fullscreen || frameFullscreen);
     const request = content.kind === 'renderer' ? content : undefined;
     const meta = useResource?.(resourceAddress);
-    useEffect(() => {
-      if (!request) return;
+    useLayoutEffect(() => {
+      if (!request || !frameContainer.current) return;
+      let editor = tabEditors.get(tab.id);
+      if (editor && (editor.controller.address !== resourceAddress || editor.controller.signal !== tab.signal)) {
+        editor.dispose();
+        editor = undefined;
+      }
+      if (!editor) editor = startEditor(frameContainer.current);
+      else editor.surface.attach(frameContainer.current);
+      const { controller } = editor;
+      setView(controller.state);
+      const unsubscribe = controller.subscribe(setView);
+      return () => {
+        unsubscribe();
+        if (tabEditors.get(tab.id) !== editor) return;
+        if (!tab.signal || tab.signal.aborted || !editor.surface.park()) editor.dispose();
+      };
+    }, [resourceAddress, tab.id, tab.signal, Boolean(request)]);
+
+    function startEditor(container) {
+      const surface = createEditorFrame(container, { printable: sandboxFormat(resourceAddress) === 'docx', title: t?.('title') || 'OfficeSDK' });
       const controller = new DocumentController({ rpc: ctx.connection.rpc, events: window, base: environment.base || doc.baseURI, address: resourceAddress,
-        signal: tab.signal, update: setView, download: anchorDownload(doc), locale: t?.('lang') || undefined });
+        signal: tab.signal, update: state => surface.update(state), download: anchorDownload(doc), locale: t?.('lang') || undefined });
+      const permissionKey = JSON.stringify([controller.source.sessionId, controller.source.path]);
+      controller.setAiPermission('always');
       setController(tab.id, controller);
       controller.setAccountHold(accountHeld(account.snapshot()));
       controller.messages = { keptEditing: t?.('keptEditing'), readOnlyHint: t?.('readOnlyHint') };
-      controller.frame = frame.current;
+      controller.frame = surface.frame;
+      controller.onOpenWebsite = () => openOfficeWebsite(doc);
       // Selection rewrite: the page learns whether the conversation can take a message, and asks to send one.
-      controller.onReady = () => pushComposerState([controller], composers, controller.source.sessionId);
+      controller.onReady = () => {
+        pushComposerState([controller], composers, controller.source.sessionId);
+        controller.syncDocumentUi();
+      };
+      const documentUi = documentUis.get(permissionKey) ?? { draft: '', references: [], pending: [], candidates: [], changes: [], next: 1 };
+      documentUis.set(permissionKey, documentUi);
+      controller.documentUi = documentUi;
       controller.onSelectionRequest = message => handleSelectionRequest({ controller, message, registry: composers, lang: t?.('lang') === 'en' ? 'en' : 'zh' });
       const unregister = registry.add(resourceAddress, controller);
+      const dispose = () => {
+        tab.signal?.removeEventListener('abort', dispose);
+        unregister();
+        if (controllers.get(tab.id) === controller) setController(tab.id);
+        tabEditors.delete(tab.id);
+        controller.stop();
+        surface.dispose();
+      };
+      const editor = { controller, surface, dispose };
+      tabEditors.set(tab.id, editor);
+      tab.signal?.addEventListener('abort', dispose, { once: true });
       void controller.open(request.revision, { mode: initialMode(resourceAddress), loaded: request.loaded, failed: request.failed });
-      return () => { unregister(); if (controllers.get(tab.id) === controller) setController(tab.id); controller.stop(); };
-    }, [resourceAddress, tab.id, tab.signal]);
+      return editor;
+    }
     useEffect(() => {
       const controller = controllers.get(tab.id);
       if (!controller || !request || controller.revision === undefined || request.revision === controller.revision) return;
       void controller.adopt(request.revision, meta?.value?.version, { loaded: request.loaded, failed: request.failed });
     }, [request?.revision]);
+    useEffect(()=>{
+      const controller=controllers.get(tab.id);
+      if (!controller) return;
+      const chat=composers.get(controller.source.sessionId)?.chat;
+      const lastSeq=chat?.nodes?.reduce((last,node)=>Math.max(last,node.seq ?? -1),-1) ?? -1;
+      controller.set({focusMode:focused,focusPeriod:focused?{since:Date.now(),lastSeq}:undefined});
+      if (controller.state.ready) void controller.agent('documentUi',{focusMode:focused}).catch(()=>{});
+    },[tab.id,resourceAddress,focused]);
+    const pendingInteraction=useSessionStatus?.(statuses=>statuses?.get?.(controllers.get(tab.id)?.source.sessionId)?.pendingInteraction);
+    const running = useSessionStatus?.(statuses => statuses?.get?.(controllers.get(tab.id)?.source.sessionId)?.running);
+    const previousTurn = useRef();
+    useEffect(() => {
+      const controller = controllers.get(tab.id);
+      if (previousTurn.current === true && running === false && !pendingInteraction && controller?.state.ready && /\.pptx$/i.test(controller.source?.path ?? '')) {
+        void controller.agent('documentUi', {endGeneration:true}).catch(() => {});
+      }
+      previousTurn.current = running;
+    }, [tab.id, running]);
     if (!request) return null;
     const controller = controllers.get(tab.id);
-    const printable = sandboxFormat(resourceAddress) === 'docx';
+    // A session can still require an answer while its document is read-only or loading.
+    const showFocusChat=controller && focused && view.focusPeriod &&
+      ((view.ready && view.mode==='edit') || pendingInteraction || view.proposal || view.diverged);
     const overlay = view.diverged
-      ? h('div', { role: 'alert', style: banner }, t?.('diverged'),
+      ? h('div', { role: 'alert', style: showFocusChat ? {padding:12} : banner }, t?.('diverged'),
           h('button', { style: button, onClick: () => controller?.open(request.revision, { mode: 'edit', loaded: request.loaded, failed: request.failed }) }, t?.('discard')),
           h('button', { style: button, onClick: () => controller?.exportDownload() }, t?.('keepCopy')))
       : view.error ? h('div', { role: 'alert', style: cover }, view.error,
           failureKind({ code: view.errorCode }).kind === 'retry' ? h('button', { style: button, onClick: () => request.reload?.() }, t?.('retry')) : null)
       : view.loading ? h('div', { role: 'status', 'aria-live': 'polite', style: { ...cover, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', color: 'var(--dsw-alias-label-secondary,#666)' } }, view.engine?.total ? (t?.('engineDownloading') || 'Downloading the document engine {received}/{total} MB').replace('{received}', String(Math.round(view.engine.received / 1048576))).replace('{total}', String(Math.round(view.engine.total / 1048576))) + (view.engine.testing ? t?.('engineTesting') || ' (this platform is in test)' : '') + (view.engine.fallback ? t?.('engineFallback') || ' The npm registry is unreachable; downloading from another source.' : '') : t?.('loading') || 'Loading document…')
       : null;
-    const proposal = view.proposal ? h(Proposal, { proposal: view.proposal, t, decide: approved => controller?.decide(approved) }) : null;
-    // The model is generating this file without a card per batch: say so, and let the user stop it.
-    const generating = view.generating ? h('div', { role: 'status', 'aria-live': 'polite', 'data-shimo-generating': true, style: generatingBar },
-      h('span', null, view.generating.stopped ? t?.('generationStopped') : t?.('generating')),
-      view.generating.stopped ? null : h('button', { style: button, onClick: () => view.generating.stop?.() }, t?.('stopGenerating'))) : null;
-    return h('div', { style: { position: 'relative', width: '100%', height: '100%', minHeight: 0, overflow: 'hidden' }, 'data-shimo-document': true },
-      // allow-modals lets the editor open the print dialog, only where printing works (DOCX); its alert/confirm/prompt
-      // stay quiet (kit-page quietModals). A browser takes sandbox flags as they are when the frame navigates: set later,
-      // they are ignored and print() does nothing. So the flags come from the file's extension, known before the first
-      // load, and a frame for another format is a new element.
-      h('iframe', { key: printable ? 'print' : 'plain', ref: frame, title: t?.('title') || 'OfficeSDK', src: view.url, style: { display: 'block', border: 0, width: '100%', height: '100%' },
-        sandbox: printable ? 'allow-scripts allow-same-origin allow-modals' : 'allow-scripts allow-same-origin', referrerPolicy: 'no-referrer',
-        allow: view.mode === 'edit' ? "clipboard-read 'none'; clipboard-write 'self'" : "clipboard-read 'none'; clipboard-write 'none'" }),
+    const proposal = view.proposal ? h(Proposal, { proposal: view.proposal, inline:!!showFocusChat, t, decide: approved => controller?.decide(approved), alwaysApply: () => controller?.setAiPermission('always') }) : null;
+    return h('div', { style: { position: 'relative', width: '100%', height: '100%', minHeight: 0, overflow: 'hidden', display: 'flex' }, 'data-shimo-document': true },
+      h('div', { className:'office-editor-pane' }, h('div', {ref:frameContainer,style:{width:'100%',height:'100%'}}),
       // The last save before switching files: the editor takes no input until it is done.
       view.locked ? h('div', { 'data-shimo-lock': true, style: { position: 'absolute', inset: 0, cursor: 'progress' } }) : null,
-      overlay, generating, proposal);
+      showFocusChat && view.diverged ? h(FocusDecision,{controller},overlay) : overlay, !showFocusChat && proposal,
+      showFocusChat && h(FocusChat,{key:resourceAddress,controller,period:view.focusPeriod,frameFullscreen,registry:composers,openDeck:path=>deckOpener(sidebarOf,hostPlatform).openDeck(controller.source.sessionId,path),renderFactorySlot,pendingInteraction,proposal,bottom:view.dockBottom,en:t?.('lang')==='en'})),
+      view.ready && view.mode==='edit' && h(ChangeRail,{key:resourceAddress,controller,revealed:view.revealedChange,anchors:view.changeAnchors,records:view.changes ?? controller?.documentUi?.changes,en:t?.('lang')==='en'}));
   }
 
   /** The AI's change, shown in the tab it applies to: where, what was there, what will be. */
-  function Proposal({ proposal, t, decide }) {
+  function Proposal({ proposal, inline, t, decide, alwaysApply }) {
     const apply = useRef(null);
     useEffect(() => { if (!proposal.danger) apply.current?.focus(); }, [proposal]);
     const title = t?.(proposal.kind === 'document' ? 'proposalTitleDocument' : proposal.kind === 'spreadsheet' ? 'proposalTitleSpreadsheet' : 'proposalTitle');
-    return h('div', { role: 'dialog', 'aria-modal': false, 'aria-label': title, 'data-shimo-proposal': true, style: card },
+    return h('div', { role: 'dialog', 'aria-modal': false, 'aria-label': title, 'data-shimo-proposal': true, style: inline ? {...card,position:'static',width:'auto',boxShadow:'none'} : card },
       h('div', { style: { fontWeight: 600 } }, title),
       proposal.summary ? h('div', { style: { color: 'var(--dsw-alias-label-secondary,#555)' } }, proposal.summary) : null,
       proposal.danger ? h('div', { role: 'alert', style: { color: '#c02d2e' } }, t?.(proposal.kind === 'document' ? 'dangerDocument' : proposal.kind === 'spreadsheet' ? 'dangerSpreadsheet' : 'danger')) : null,
@@ -166,7 +233,8 @@ export function install(ctx, React, environment = {}) {
         row.after !== undefined ? h('ins', { style: { color: '#067647', textDecoration: 'none', whiteSpace: 'pre-wrap' } }, row.after) : null))),
       h('div', { style: { display: 'flex', gap: 8, justifyContent: 'flex-end' } },
         h('button', { style: button, onClick: () => decide(false) }, t?.('decline')),
-        h('button', { ref: apply, style: proposal.danger ? { ...button, borderColor: '#c02d2e', color: '#c02d2e' } : { ...button, background: '#2f6bff', borderColor: '#2f6bff', color: '#fff' }, onClick: () => decide(true) }, t?.('apply'))));
+        h('button', { ref: apply, style: proposal.danger ? { ...button, borderColor: '#c02d2e', color: '#c02d2e' } : { ...button, background: '#17181a', borderColor: '#17181a', color: '#fff' }, onClick: () => decide(true) }, t?.('apply')),
+        h('button', { style: button, onClick: alwaysApply }, t?.('lang') === 'en' ? 'Always apply' : '始终应用')));
   }
 
   /**
@@ -175,7 +243,7 @@ export function install(ctx, React, environment = {}) {
    * DSH's theme without re-rendering.
    */
   function Action({ useTabInfo, t }) {
-    const { tab } = useTabInfo();
+    const { tab, sidebar: rightPane, panel } = useTabInfo();
     const state = useController(tab.id);
     const [busy, setBusy] = useState(false);
     const [drafts, setDrafts] = useState();
@@ -242,7 +310,8 @@ export function install(ctx, React, environment = {}) {
     const fileKeys = ['undo', 'redo', 'save', 'saveAs', 'folder', 'print'].filter(shows);
     // 个人中心 is a preview with demo data: its own checkbox (the preview switch) shows it, not the hidden list.
     const showAccount = accountNow.preview;
-    const keys = [...fileKeys, ...showMode ? ['edit', 'view'] : [], ...showUpdate ? ['update'] : [], 'more', ...showAccount ? ['account'] : []];
+    const showFocus = showMode && state.backend === 'kit' && !panel?.isFloating && typeof sidebarOf()?.toggleFullscreen === 'function';
+    const keys = [...fileKeys, ...(showFocus ? ['focus'] : []), ...showMode ? ['edit', 'view'] : [], ...showUpdate ? ['update'] : [], 'more', ...showAccount ? ['account'] : []];
     if (open === 'update' && !showUpdate) setOpen(null);
     if (open === 'saveAs' && (!edits.saveAs || held)) setOpen(null);
     // A save starting closes the account menu (busy), as it does the rest of the toolbar.
@@ -268,6 +337,11 @@ export function install(ctx, React, environment = {}) {
       if (hadFocus && (!active || active === doc.body || active.tagName === 'IFRAME' || root.current?.contains(active)))
         root.current?.querySelector('[data-key][aria-pressed="true"]')?.focus();
     };
+    const toggleFocus = event => {
+      const sidebar=sidebarOf();
+      const target=sidebar?.commandTarget?.(event.currentTarget);
+      if (target && target.host!=='float') sidebar.toggleFullscreen(target);
+    };
     const modeButton = (mode, path, label) => {
       const { pressed, disabled, reason } = modes[mode];
       const blocked = disabled && !pressed;
@@ -277,15 +351,6 @@ export function install(ctx, React, environment = {}) {
     };
     const run = async operation => { setBusy(true); try { await operation(); } catch (error) { if (failureKind(error).kind === 'conflict') setDrafts(await controller.listDrafts().catch(() => [])); } finally { setBusy(false); } };
     const caps = state.capabilities;
-    const latest = state.edits?.at(-1);
-    const undo = async () => {
-      setBusy(true);
-      try {
-        const result = await controller.agent('undo', { editId: latest.editId });
-        controller.set({ notice: undefined, edits: (state.edits ?? []).filter(edit => edit.editId !== result.undone) });
-      } catch (error) { controller.set({ edits: [], notice: error?.code === 'officesdk/undo-unavailable' ? t?.('undoFailed') : error.message }); }
-      finally { setBusy(false); }
-    };
     // Outside the workspace the Host refuses until the user agrees here; the same click then writes.
     const save = async (approved, overwrite = false) => {
       setBusy(true);
@@ -307,9 +372,13 @@ export function install(ctx, React, environment = {}) {
       } finally { setBusy(false); }
     };
     // Dialogs the tab raises by itself: beside the toolbar, without taking focus from the editor.
-    const prompt = (text, onCancel, actions, alert = false) => h(Popover, { kind: 'self', anchor: root, root, className: 'sbp-dialog', role: 'alertdialog', label: text, onCancel },
-      h('span', { role: alert ? 'alert' : undefined, 'aria-live': 'polite' }, text),
-      h('div', { className: 'sbp-actions' }, actions));
+    const dockDecisions=Boolean(state.focusMode && state.ready && state.mode==='edit');
+    const prompt = (text,onCancel,actions,alert=false) => {
+      const content=[h('span',{role:alert?'alert':undefined,'aria-live':'polite'},text),h('div',{className:'sbp-actions'},...actions)];
+      if (dockDecisions) return h(FocusDecision,{controller},h('div',{className:'office-chat-confirm',role:'alertdialog','aria-label':text,
+        onKeyDown:e=>{if(cancelKey(e)){e.stopPropagation();onCancel();}}},...content));
+      return h(Popover,{kind:'self',anchor:root,root,className:'sbp-dialog',role:'alertdialog',label:text,onCancel},...content);
+    };
     const choice = (label, onClick, primary = false, disabled = false) => h('button', { type: 'button', className: primary ? 'sbp-btn sbp-primary' : 'sbp-btn', disabled, onClick }, label);
     const confirm = (text, onCancel, onConfirm, label, cancelLabel = t?.('cancel')) => prompt(text, onCancel, [choice(cancelLabel, onCancel), choice(label, onConfirm, true, busy)]);
     const editing = state.mode === 'edit';
@@ -450,7 +519,6 @@ export function install(ctx, React, environment = {}) {
     // One row: the status area shrinks and ellipsizes; the toolbar never wraps or squeezes.
     return h('div', { ref: root, className: 'sbp', 'data-shimo-actions': true },
       h('div', { className: 'sbp-status' },
-        latest ? h('button', { type: 'button', className: 'sbp-btn', disabled: busy, title: latest.summary, onClick: undo }, busy ? t?.('undoing') : t?.('undo')) : null,
         held ? status('sbp-warn', t?.('accountBlocked')) : null,
         held ? h('button', { type: 'button', className: 'sbp-btn sbp-primary', onClick: () => account.connect() }, t?.(accountNow.account.status === 'expired' ? 'accountReconnect' : 'accountConnect')) : null,
         !held && kit && editing ? (state.authorized
@@ -487,6 +555,8 @@ export function install(ctx, React, environment = {}) {
         shows('print') ? tool('print', t?.('module_print'), { ...edits.print, onClick: print }, glyph(PRINT)) : null,
         fileKeys.length && (showMode || showUpdate) ? h('div', { className: 'sbp-sep', 'aria-hidden': true }) : null,
         showMode ? h('div', { role: 'group', 'aria-label': t?.('module_mode'), className: 'sbp-group' },
+          showFocus ? h('button', { type: 'button', className: 'sbp-icon', ...stopProps('focus'), 'aria-pressed': Boolean(rightPane?.fullscreen),
+            'aria-label': t?.(rightPane?.fullscreen ? 'exitFocus' : 'focusMode'), title: t?.(rightPane?.fullscreen ? 'exitFocus' : 'focusMode'), onClick: toggleFocus }, glyph(FOCUS)) : null,
           modeButton('edit', PEN, 'modeEdit'), modeButton('view', EYE, 'modeView')) : null,
         showUpdate ? h('button', { type: 'button', ref: triggers.update, className: 'sbp-icon', ...stopProps('update'), 'aria-haspopup': 'dialog', 'aria-expanded': open === 'update',
           'aria-label': updateLabel, title: updateBlocked ? t?.('busyTitle') : updateLabel, 'aria-disabled': updateBlocked || undefined, 'data-update': entry,
@@ -799,10 +869,7 @@ export function install(ctx, React, environment = {}) {
     const connected = status === 'connected';
     const website = () => {
       // An anchor in the main document, like the downloads: opens a new browser tab and leaves this document as it is.
-      const link = Object.assign(doc.createElement('a'), { href: 'https://officesdk.com', target: '_blank', rel: 'noopener noreferrer' });
-      doc.body.appendChild(link);
-      link.click();
-      link.remove();
+      openOfficeWebsite(doc);
       close(true);
     };
     const rows = [
@@ -921,18 +988,16 @@ export function install(ctx, React, environment = {}) {
     const sidebar = environment.sidebarRight ?? ctx.get?.('sidebarRight');
     if (!sidebar?.mounted || !sidebar.openResource) return () => {};
     const previous = bridge?.lastPlatform;
-    bridge = new AgentBridge({ rpc: ctx.connection.rpc, openResource: address => sidebar.openResource(address), controllers: registry, mounted: sidebar.mounted, views: toolViews, platform: hostPlatform });
+    bridge = new AgentBridge({ rpc: ctx.connection.rpc, openResource: (address,options) => sidebar.openResource(address,options), controllers: registry, mounted: sidebar.mounted, views: toolViews, platform: hostPlatform });
     bridge.lastPlatform = previous;
     return bridge.start();
   });
   // Chat rows for the presentation tools. Opening a file uses the AI tab's own address, and only for the Session the
   // right Sidebar (and the bridge) follows.
+  registerDeckChat(ctx, React);
   registerToolViews(ctx, React, { store: toolViews, deck: deckOpener(sidebarOf, hostPlatform) });
-  // The inspiration library (handoff v2.0): the sidebar entry and its full page; a template's 「添加并使用」 lands in the
-  // input box of the Session the user goes back to, whose toolbar shows the template prefix.
-  const library = environment.inspiration ?? new InspirationLibrary();
-  const stylePicker = registerStylePicker(ctx, React, { rpc: ctx.connection?.rpc, library });
-  registerInspirationLibrary(ctx, React, { stores: stylePicker.stores, library, document: doc });
+  const stylePicker = registerStylePicker(ctx, React, { rpc: ctx.connection?.rpc });
+  registerDocumentContext(ctx, React, { sidebarOf, controllers, composers, document: doc });
   // The model's style recommendation, above the input box.
   registerStyleFlows(ctx, React, { stores: stylePicker.stores, document: doc });
   // Selection rewrite: each input box registers itself, and every open tab of its Session hears when it can send.
@@ -950,11 +1015,10 @@ const cover = { position: 'absolute', inset: 0, padding: 16, fontSize: 13, backg
 const banner = { position: 'absolute', left: 8, right: 8, top: 8, display: 'flex', gap: 8, alignItems: 'center', padding: '6px 10px', fontSize: 12, background: 'var(--dsw-alias-bg-layer-1,#fff)', border: '1px solid var(--dsw-alias-border,#e5e7eb)', borderRadius: 4 };
 // The preview panel around the tab sets a monospace font; the AI's notes in the tab use the interface font.
 const uiFont = '-apple-system, system-ui, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
-const generatingBar = { position: 'absolute', right: 12, top: 12, zIndex: 20, display: 'flex', gap: 8, alignItems: 'center', padding: '4px 6px 4px 10px', fontSize: 12, fontFamily: uiFont,
-  background: 'var(--dsw-alias-bg-layer-1,#fff)', border: '1px solid #2f6bff', borderRadius: 14, boxShadow: '0 2px 8px rgba(0,0,0,.12)' };
 const button = { height: 28, padding: '0 10px', fontSize: 12, border: '1px solid var(--dsw-alias-border,#d1d5db)', borderRadius: 4, background: 'transparent', cursor: 'pointer' };
 // Line icons (24×24 paths) from the v2.9 design package.
 const DOWNLOAD = 'M4 15v6h16v-6M12 3v12M7 10l5 5 5-5';
+const FOCUS = 'M13 4h7v7M4 13v7h7';
 const PEN = 'm4 16 12-12 4 4L8 20H4zM14 6l4 4';
 const EYE = 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6';
 const MORE = 'M5 12h.1M12 12h.1M19 12h.1';

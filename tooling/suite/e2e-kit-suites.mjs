@@ -4,7 +4,7 @@
  * bundle, SDK resources, host fonts and page, served by kit-host's HTTP handler; the parent page plays the
  * DSH tab. Each suite starts from a fresh (cold) Kit work root.
  *
- *   node tooling/suite/e2e-kit-suites.mjs [--suite document|sheet|all] [--resources packages/dsh-adapter/resources]
+ *   node tooling/suite/e2e-kit-suites.mjs [--suite document|sheet|local-edit|presentation-generation|all] [--resources packages/dsh-adapter/resources]
  *        [--large-docx <file>] [--large-xlsx <file>] [--shots <dir>] [--headed]
  */
 import { createServer } from 'node:http';
@@ -33,8 +33,12 @@ function picturePng(size = 32) {
 const PICTURE = picturePng();
 
 const PARENT = `<!doctype html><meta charset="utf-8"><style>html,body{margin:0;height:100%}iframe{border:0;width:100%;height:100%}</style>
-<iframe id="doc"></iframe><script type="module">
-const frame = document.getElementById('doc');
+<div id="mount" style="height:100%"></div><script type="module">
+import { createEditorFrame } from '/editor-frame.mjs';
+const surface = createEditorFrame(document.getElementById('mount'), {title:'OfficeSDK', printable:true});
+const frame = surface.frame;
+frame.id = 'doc';
+window.editorSurface = surface;
 const pending = new Map(); let view, revision = 1, n = 0;
 window.events = [];
 addEventListener('message', event => {
@@ -113,6 +117,11 @@ async function environment(browser, suite) {
     meta: view => ({ v: 1, id: view.id, suite: view.suite, mode: view.writer ? 'edit' : 'view', name: path.basename(view.path), diskChanged: view.diskChanged, user: { uid: 'local:e2e', name: 'e2e' } }) });
   const server = createServer(async (req, res) => {
     if (req.url === '/') { res.writeHead(200, { 'content-type': 'text/html' }); res.end(PARENT); return; }
+    if (req.url === '/editor-frame.mjs') {
+      res.writeHead(200, { 'content-type': 'text/javascript' });
+      res.end(readFileSync(path.join(repo, 'packages/dsh-adapter/src/client/editor-frame.mjs')));
+      return;
+    }
     if (!(await handler(req, res))) { res.statusCode = 404; res.end(); }
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -271,9 +280,8 @@ async function documentSuite(browser) {
     const typed = tag => `KIT-${tag}`;
     // Click into the body text of the first page, then go to the end of that paragraph.
     const place = async () => {
-      const box = await env.frame().locator('[data-role="editor-mount"]').first().boundingBox().catch(() => null)
-        ?? await page.locator('iframe').boundingBox();
-      await page.mouse.click(box.x + box.width / 2, box.y + Math.min(box.height * 0.45, 360));
+      const glyph=env.frame().locator('text[data-writer-document-content]').first();
+      await glyph.click({force:true,timeout:5000});
       await page.keyboard.press('End');
     };
 
@@ -287,15 +295,15 @@ async function documentSuite(browser) {
     const atMount = imported.ok && mountedModel.ok ? differences(model(imported.content), model(mountedModel.result.content)) : ['unavailable'];
     const remaining = imported.ok && mountedModel.ok ? differences(model(imported.content, { withoutTableNodeIds: true }), model(mountedModel.result.content, { withoutTableNodeIds: true })) : ['unavailable'];
     check(suite, 'at mount the page model is Kit\'s import except Writer\'s load-time table node ids', remaining.length === 0 && atMount.every(line => line.includes('table-node:')), { remaining, atMount: atMount.length });
-    // The zoom menu marks the active mode: "fit page width" must be the selected item.
+    // The zoom menu marks the active mode: "fit whole page" must be the selected item.
     await page.waitForTimeout(1000);
     await env.frame().locator('.editor-statusbar__zoom-value').click();
-    const fitItem = env.frame().locator('[data-menu-binding-token="root:fit-page-width"]');
+    const fitItem = env.frame().locator('[data-menu-binding-token="root:fit-whole-page"]');
     await fitItem.waitFor({ timeout: 5000 }).catch(() => {});
     const selected = await fitItem.getAttribute('data-selected').catch(() => null);
     const zoomText = (await env.frame().locator('.editor-statusbar__zoom-value').textContent().catch(() => '')).trim();
     await page.keyboard.press('Escape');
-    check(suite, 'the document opens at page width, like the preview', selected === 'true', { selected, zoom: zoomText });
+    check(suite, 'the document opens with the whole first page visible, like the preview', selected === 'true', { selected, zoom: zoomText });
 
     await typeUntilChanged(env, place, typed('HAND'));
     const flushed = await env.agent('flush');
@@ -310,6 +318,14 @@ async function documentSuite(browser) {
     // A composition still open when the save starts is committed by prepare, once.
     await place();
     const cdp = await page.context().newCDPSession(page);
+    const preedit = 'dianshizhizuochengguo'.repeat(8);
+    await cdp.send('Input.imeSetComposition',{text:preedit,selectionStart:preedit.length,selectionEnd:preedit.length});
+    await env.frame().waitForFunction(()=>document.querySelector('textarea[style*="--office-ime-span"]'));
+    const contained=await env.frame().evaluate(()=>{
+      const field=document.activeElement.getBoundingClientRect(), pane=document.querySelector('.writer-document-preview__scroll').getBoundingClientRect();
+      return field.left>=pane.left-1 && field.right<=pane.right+1 && !document.querySelector('text[data-writer-document-content] set[attributeName="x"]');
+    });
+    check(suite,'long marked text stays inside the viewport without moving committed glyphs',contained);
     await cdp.send('Input.imeSetComposition', { text: 'KIT-IME', selectionStart: 7, selectionEnd: 7 });
     await page.waitForTimeout(300);
     const imeFlush = await env.agent('flush');
@@ -335,7 +351,7 @@ async function documentSuite(browser) {
       const f = env.frame();
       await f.locator('text=插入').first().click();
       await page.waitForTimeout(400);
-      await f.locator('button:visible', { hasText: '图片' }).first().click();
+      await f.getByRole('button',{name:'图片',exact:true}).first().click();
       await f.locator('[data-menu-binding-token="root:insert-picture-local"]').click();
     });
     await env.agent('flush');
@@ -486,9 +502,219 @@ async function sheetSuite(browser) {
   } finally { await env.dispose(); }
 }
 
+// Submit through the real selection chip. Model replies are deterministic so we
+// can deliver the second reply first and inspect the rendered tracks and file.
+async function localEditSuite(browser) {
+  for (const [suite,file] of [['sheet','kit-edit.xlsx'],['presentation','sample.pptx']]) {
+    const env=await environment(browser,suite);
+    try {
+      copyFileSync(path.join(fixtures,file),path.join(env.workspace,file));
+      await env.page.setViewportSize({width:1150,height:800});
+      const opened=await env.open(file);
+      if(opened.failed) throw new Error(opened.failed.message);
+      const f=env.frame(), page=env.page, ppt=suite==='presentation';
+      const call=async(op,args)=>{
+        const response=await env.agent(op,args);
+        if (!response.ok) throw new Error(response.message);
+        return response.result;
+      };
+      const initial=await call('inspect',{});
+      const refs=[];
+      for (const number of [1,2]) {
+        if (ppt) {
+          const point=await f.waitForFunction(n=>{
+            const body=document.querySelector('svg[data-mop-svg-definition-namespace^="mop-main"] [data-mop-logical-id="slide-1-object-'+n+'"][data-mop-svg-text-body]');
+            const runs=Array.from(body?.querySelectorAll('text') ?? []).filter(run=>run.textContent.trim() && run.getBoundingClientRect().width>1);
+            if (!runs.length) return;
+            const box=runs[Math.floor(runs.length/2)].getBoundingClientRect();
+            return {x:box.left+box.width/2,y:box.top+box.height/2};
+          },number,{timeout:5000});
+          const {x,y}=await point.jsonValue();
+          await page.mouse.dblclick(x,y);
+        } else {
+          await page.mouse.click(number===1?230:550,230);
+          if(number===1) await page.keyboard.press('Shift+ArrowDown');
+        }
+        await f.locator('[data-shimo-selection="chip"]').click({timeout:5000});
+        const input=f.locator('[data-shimo-selection="input"]');
+        await input.fill('改得更简洁');await input.press('Enter');
+        await page.waitForFunction(n=>window.events.filter(e=>e.name==='selection-request').length===n,number);
+        const sent=await page.evaluate(()=>window.events.findLast(e=>e.name==='selection-request'));
+        const ref=sent.references[0], id='sel-0000cc0'+number;
+        if (ref.kind!==(ppt?'pptx':'xlsx') || sent.references.length!==1) throw new Error('Incorrect edit target');
+        await call('selectionStatus',{requestId:sent.requestId,ok:true,ids:[{number:ref.number,id}],independent:true});
+        refs.push({...ref,id});
+      }
+      await f.waitForFunction(()=>Array.from(document.querySelectorAll('[data-shimo-agent="frame"]')).filter(el=>{
+        const bar=el.querySelector('path[stroke-linecap="round"]');
+        return el.getBoundingClientRect().width && bar && bar.style.display!=='none';
+      }).length===2);
+      if (ppt) {
+        const wordName = 'kit-edit.docx';
+        copyFileSync(path.join(fixtures,wordName),path.join(env.workspace,wordName));
+        const word = await env.docs.open(env.scope,wordName,env.peer);
+        await page.evaluate(id => {
+          if (!window.editorSurface.park()) throw new Error('PPT was not retained');
+          document.querySelector('#mount').remove();
+          const foreground = document.createElement('iframe');
+          foreground.id = 'word';
+          document.body.appendChild(foreground);
+          addEventListener('message', e => {
+            if (e.source===foreground.contentWindow && e.data?.id===id && e.data.type==='officesdk:ready') {
+              window.wordReady = true;
+              foreground.contentWindow.focus();
+            }
+          });
+          const url = new URL(window.editorSurface.frame.src);
+          url.searchParams.set('view', id);
+          foreground.src = url.href;
+        },word.id);
+        await page.waitForFunction(()=>window.wordReady && document.activeElement?.id==='word');
+      }
+      for(const ref of [...refs].reverse()) {
+        const text='改写'+ref.number;
+        await call('rewrite',{...ref,...(ppt?{text}:{values:ref.cells.map(row=>row.map(()=>text))})});
+      }
+      const cards=await page.evaluate(()=>window.events.findLast(e=>e.draftState).draftState.changes);
+      if (cards.map(c=>c.id).join()!==refs.map(r=>r.id).reverse().join()) throw new Error('Missing or out-of-order cards');
+      if (ppt) {
+        await call('flush',{});
+        await env.docs.save(opened.view.id,env.peer);
+        const focus = await page.evaluate(()=>document.activeElement?.id);
+        if (focus !== 'word') throw new Error('Background rewrite took keyboard focus');
+        if (!unzipText(path.join(env.workspace,file),'ppt/slides/slide1.xml').includes('改写2')) throw new Error('Background result missing from saved PPT');
+        await page.evaluate(() => {
+          document.querySelector('#word').remove();
+          const mount = document.createElement('div');
+          mount.style.height = '100%';
+          document.body.appendChild(mount);
+          window.editorSurface.attach(mount);
+        });
+        if (!JSON.stringify(await call('inspect',{})).includes('改写2')) throw new Error('Switched-back editor lost its rewrite');
+        check(suite,'PPT finishes and saves while Word keeps focus; returning retains its edits and cards',true);
+      }
+      await call('changeDetail',{id:refs[0].id,action:'remove'});
+      await call('changeDetail',{id:refs[1].id,action:'accept'});
+      const final=await call('inspect',{});
+      if (ppt && final.slides[0].shapes[0].text!==initial.slides[0].shapes[0].text) throw new Error('Undo changed neighbouring slide text');
+      if (!JSON.stringify(final).includes('改写2')) throw new Error('Undo lost the independent change');
+      check(suite,'two local edits wait independently and commit in reply order',true);
+    } finally { await env.dispose(); }
+  }
+}
+
+async function plannedPresentationSuite(browser) {
+  const env = await environment(browser, 'presentation');
+  const file = 'planned.pptx';
+  const call = async (op, args) => {
+    const answer = await env.agent(op, args);
+    if (!answer.ok) throw new Error(answer.message);
+    return answer.result;
+  };
+  try {
+    copyFileSync(path.join(repo,'packages/dsh-adapter/skills/shimo-pptx/styles/default/template.pptx'), path.join(env.workspace,file));
+    await env.page.setViewportSize({width:850, height:680});
+    const {view,failed} = await env.open(file);
+    if (failed) throw new Error(failed.message);
+    const frame = env.frame();
+    const count = 6;
+    const creating = call('apply',{prepareSlideCount:count});
+    await frame.waitForFunction(n => document.querySelectorAll('.office-slide-generation[data-phase="creating"] [data-agent]').length === n, count);
+    const {slideIds} = await creating;
+    const state = () => frame.evaluate(() => ({
+      sorter: !!document.querySelector('#ppt-editor-main[inert]'),
+      viewTab: document.querySelector('[role=tab][aria-selected=true]')?.textContent,
+      waiting: [...document.querySelectorAll('.office-slide-generation[data-phase=waiting]')].map(layer => layer.parentElement.dataset.thumbnailSlideId),
+      patterns: [...document.querySelectorAll('.office-slide-generation [data-placeholder]')].map(layer => layer.innerHTML),
+      layers: document.querySelectorAll('.office-slide-generation').length,
+    }));
+    let visible = await state();
+    check('presentation-generation','all planned pages share the initial creation gesture and keep distinct placeholders', visible.sorter && /^(视图|View)$/i.test(visible.viewTab) && visible.waiting.length === count && new Set(visible.patterns).size === count, visible.viewTab);
+    await env.shot('planned-waiting');
+    const deck = await call('inspect',{});
+    check('presentation-generation','cover and closing layouts are at the intended ends', deck.slides[0].shapes.length === 2 && deck.slides.at(-1).shapes.length === 1 && deck.slides.every((s,i) => s.id === slideIds[i]));
+    const titles = ['城市步行观察','观察路线','记录方法','路口停留','街道变化','下一次观察'];
+    const text = i => ({op:'setText', slideId:slideIds[i], shapeId:deck.slides[i].shapes[0].id, text:titles[i]});
+    const write = (indices, extra) => call('apply',{ops:indices.map(text),...extra});
+    const repeatedAdd = await env.agent('apply',{ops:[{op:'addSlide'}]});
+    check('presentation-generation','duplicate page creation is rejected and leaves the plan intact', !repeatedAdd.ok && (await state()).waiting.length === count);
+    const middle = call('apply',{ops:[3,2].flatMap(i=>[
+      text(i),
+      {op:'addShape',slideId:slideIds[i],shape:'Rectangle',left:60,top:150,width:220,height:120,fill:'#147D75',text:'实地观察'},
+      {op:'addImage',slideId:slideIds[i],imageType:'image/png',imageBase64:PICTURE.toString('base64'),left:370,top:130,width:150,height:150},
+    ])});
+    const targets = [2,3].map(i=>({id:slideIds[i],shape:deck.slides[i].shapes[0].id,text:titles[i]}));
+    await frame.waitForFunction(targets => targets.every(({id,shape,text}) => {
+      const thumb = document.querySelector('[data-thumbnail-slide-id="'+id+'"]');
+      const module = thumb?.querySelector('[data-module=setText][data-pulling]');
+      if (!module || thumb.querySelector('svg').textContent.includes(text)) return false;
+      const expected = thumb.querySelector('[data-mop-move-preview-id="'+shape+'"]').getBoundingClientRect();
+      const actual = module.getBoundingClientRect();
+      const border = module.querySelector('[data-marquee]').getBoundingClientRect();
+      return Math.abs(actual.left-expected.left)<2 && Math.abs(actual.width-expected.width)<2 && border.width>1 && border.width<actual.width-1;
+    }), targets,{timeout:6000});
+    check('presentation-generation','each agent pulls its actual inherited title bounds before any text is written',true);
+    await frame.waitForFunction(targets => targets.every(({id,text}) => {
+      const thumb = document.querySelector('[data-thumbnail-slide-id="'+id+'"]');
+      const module = thumb.querySelector('[data-module=addShape][data-pulling]');
+      return module && thumb.querySelector('svg').textContent.includes(text) && !thumb.querySelector('svg').textContent.includes('实地观察');
+    }), targets,{timeout:6000});
+    check('presentation-generation','both titles remain visible while the next modules are selected independently',true);
+    await env.shot('planned-module-selection');
+    await frame.waitForFunction(targets => targets.every(({id}) => {
+      const thumb = document.querySelector('[data-thumbnail-slide-id="'+id+'"]');
+      const module = thumb.querySelector('[data-module=addImage][data-pulling]');
+      return module && thumb.querySelector('svg').textContent.includes('实地观察') && !thumb.querySelector('svg image')
+        && Math.abs(parseFloat(module.style.left)-370/720*100)<.01;
+    }), targets,{timeout:6000});
+    check('presentation-generation','shape content is visible before the agent places the image at its requested coordinates',true);
+    await middle;
+    await frame.waitForFunction(ids=>ids.every(id=>document.querySelector('[data-thumbnail-slide-id="'+id+'"] svg image')),targets.map(t=>t.id));
+    visible = await state();
+    check('presentation-generation','two middle pages finish before the cover while the other four keep waiting', visible.sorter && visible.waiting.length === 4 && visible.waiting.includes(slideIds[0]) && !visible.waiting.includes(slideIds[3]));
+    await frame.waitForFunction(pages => pages.every(([id,title]) =>
+      [...document.querySelectorAll('[data-thumbnail-slide-id]')].find(el => el.dataset.thumbnailSlideId === id)?.querySelector('svg')?.textContent.includes(title)),
+      [2,3].map(i => [slideIds[i],titles[i]]), {timeout:6000});
+    check('presentation-generation','finished text is actually painted on both sorter thumbnails',true);
+    await env.shot('planned-partial');
+    await env.page.setViewportSize({width:470,height:690});
+    await write([0],{completedSlideIds:[]});
+    await write([5,1,4]);
+    check('presentation-generation','a multi-batch page keeps the sorter open in a narrow pane', (await state()).sorter && (await state()).layers === 1);
+    await call('apply',{ops:[{op:'setText',slideId:slideIds[0],shapeId:deck.slides[0].shapes[1].id,text:'以六页记录一次观察'}]});
+    await frame.waitForFunction(() => document.querySelector('#ppt-editor-main:not([inert])') && !document.querySelector('.office-slide-generation'));
+    const final = await call('inspect',{});
+    check('presentation-generation','normal view selects page one and every page has its own returned content', final.selectedSlideIds[0] === slideIds[0] && final.slides.every((slide,i) => slide.shapes.some(s => s.text === titles[i])));
+    await env.page.setViewportSize({width:850,height:680});
+    await env.shot('planned-finished');
+    await call('flush',{});
+    await env.docs.save(view.id,env.peer);
+    await env.closeView(view,{autosave:false});
+    const reopenedView = await env.open(file);
+    const reopened = await call('inspect',{});
+    check('presentation-generation','the saved file contains all pages and no temporary visuals', reopened.slides.length === count && reopened.slides.every((slide,i) => slide.shapes.some(s => s.text === titles[i])) && !(await state()).layers);
+    // Opening the saved deck starts asynchronous font downloads. Let the view finish
+    // mounting before navigating away so deliberately detaching it does not abort them.
+    await env.frame().waitForLoadState('networkidle');
+    await env.closeView(reopenedView.view,{autosave:false});
+    const single = 'single.pptx';
+    copyFileSync(path.join(repo,'packages/dsh-adapter/skills/shimo-pptx/styles/default/template.pptx'), path.join(env.workspace,single));
+    await env.page.emulateMedia({reducedMotion:'reduce'});
+    await env.open(single);
+    const one = await call('apply',{prepareSlideCount:1,slideLayouts:['blank']});
+    const singleFrame = env.frame();
+    await singleFrame.waitForFunction(() => document.querySelector('[data-thumbnail-slide-id] [data-phase=waiting]'));
+    await call('apply',{ops:[{op:'addTextBox',slideId:one.slideIds[0],text:'一页概览',left:40,top:50,width:250,height:40}],completedSlideIds:[]});
+    await call('documentUi',{endGeneration:true});
+    const interrupted = await call('inspect',{});
+    check('presentation-generation','ending a single-page partial generation clears the cursor and retains the written text', interrupted.slides.length === 1 && interrupted.slides[0].shapes.some(shape=>shape.text === '一页概览') && !await singleFrame.locator('.office-slide-generation').count());
+    check('presentation-generation','no page errors',!env.errors.length,env.errors);
+  } finally { await env.dispose(); }
+}
+
 const browser = await chromium.launch({ headless: !values.headed });
 try {
-  for (const [name, run] of [['document', documentSuite], ['sheet', sheetSuite]]) {
+  for (const [name, run] of [['document', documentSuite], ['sheet', sheetSuite], ['local-edit', localEditSuite], ['presentation-generation', plannedPresentationSuite]]) {
     if (values.suite !== 'all' && values.suite !== name) continue;
     try { await run(browser); } catch (error) { check(name, `the ${name} run finished`, false, error.message); }
   }

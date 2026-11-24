@@ -57,7 +57,9 @@ export function modeButtons(state, saving = false) {
  * plugin provides it; the three-dot button follows them and cannot be hidden; the account (个人中心) comes after it.
  */
 export const MODULES = Object.freeze(['undo', 'redo', 'save', 'saveAs', 'folder', 'print', 'layout', 'mode', 'update', 'account']);
-const STORAGE_KEY = 'officesdk:toolbar';
+const STORAGE_KEY = 'officesdk:toolbar:v3.1';
+const PREVIOUS_STORAGE_KEY = 'officesdk:toolbar';
+const DEFAULT_HIDDEN = ['print', 'update'];
 
 /**
  * Busy for the P buttons: the header's own work (authorization, export), the toolbar's Save, an AI edit writing, a
@@ -105,7 +107,7 @@ export function editButtons(state, busy = false) {
  * the 工作台 or a desktop client. The open flow behind it (openFile, openPicked, BrowsePanel, OPEN-01, the Host's
  * probe/browse) stays, so it can come back by removing the id here.
  */
-export const WITHDRAWN_MODULES = Object.freeze(['folder']);
+export const WITHDRAWN_MODULES = Object.freeze(['folder', 'undo', 'redo']);
 
 /** The modules this tab offers, in order: a module must be provided here, apply to this tab, and not be withdrawn. */
 export const offeredModules = applies => MODULES.filter(id => applies[id] === true && !WITHDRAWN_MODULES.includes(id));
@@ -118,10 +120,13 @@ export function createToolbarPrefs(storage = () => globalThis.localStorage) {
   const listeners = new Set();
   const read = () => {
     try {
-      const hidden = JSON.parse(storage()?.getItem(STORAGE_KEY) ?? '{}')?.hidden;
+      const store = storage();
+      const stored = store?.getItem(STORAGE_KEY);
+      const hidden = JSON.parse(stored ?? store?.getItem(PREVIOUS_STORAGE_KEY) ?? '{}')?.hidden;
       // Ids this version does not know stay: a newer version (another tab, before a downgrade) may own them.
-      return Object.freeze(Array.isArray(hidden) ? hidden.filter(id => typeof id === 'string') : []);
-    } catch { return Object.freeze([]); }
+      const ids = Array.isArray(hidden) ? hidden.filter(id => typeof id === 'string') : [];
+      return Object.freeze(stored == null ? [...new Set([...DEFAULT_HIDDEN, ...ids])] : ids);
+    } catch { return Object.freeze([...DEFAULT_HIDDEN]); }
   };
   let hidden = read();
   const publish = next => { hidden = Object.freeze(next); for (const listener of listeners) listener(); };

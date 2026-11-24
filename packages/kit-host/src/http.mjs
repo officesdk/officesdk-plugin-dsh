@@ -65,7 +65,7 @@ async function readBody(req, cap) {
   return Buffer.concat(chunks);
 }
 
-export function createKitHttpHandler({ documents, admit, allowedOrigin, staticRoots, meta = view => view, prefix = '/shimo' }) {
+export function createKitHttpHandler({ documents, admit, allowedOrigin, staticRoots, meta = view => view, prefix = '/shimo', reviews }) {
   const base = `${prefix}/kit/`;
   const sameOrigin = req => {
     const origin = req.headers.origin;
@@ -123,7 +123,17 @@ export function createKitHttpHandler({ documents, admit, allowedOrigin, staticRo
       }
       if (parts[0] !== 'v' || !VIEW.test(parts[1] ?? '')) throw new KitError('not-found', 'Not found.');
       const [, viewId, route] = parts;
-      if (route === 'meta' && !writing) return json(res, 200, meta(documents.view(viewId, peer))), true;
+      if (route === 'meta' && !writing) {
+        const view=documents.view(viewId,peer), info=meta(view);
+        return json(res,200,reviews && view.writer ? {...info,reviewHistory:true} : info),true;
+      }
+      if (route==='reviews' && reviews && (method==='GET' || method==='POST')) {
+        const view=documents.view(viewId,peer);
+        if (!view.writer) throw new KitError('read-only','This view has no editable review history.');
+        const result=method==='GET' ? await reviews.read(view) :
+          await reviews.commit(view,JSON.parse((await readBody(req,MAX_CHANGE)).toString('utf8')));
+        return json(res,200,result),true;
+      }
       if (route === 'content' && !writing) {
         const content = await documents.content(viewId, peer);
         res.setHeader('Content-Type', 'application/json; charset=utf-8');

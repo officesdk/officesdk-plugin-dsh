@@ -67,7 +67,7 @@ const sessionOf = exec => {
   return id;
 };
 
-const GENERATE = `To build a deck, add slides in batches: each presentation_edit adds at most ${PPTX_LIMITS.maxNewSlides} new slides (addSlide with a ref and a layout, then each slide's content through slideRef), and the slides of one call are drawn at the same time while the user watches. Send the cover alone first so something appears quickly, then 2–${PPTX_LIMITS.maxNewSlides} content slides per call, with the closing slide in the last call; prepare a batch's images before sending it. One slide per call is fine when the user wants to follow slide by slide. The user watches the panel and the process cards record each step, so do not narrate progress in the chat (no "the cover is up", no check-and-fix reports); go straight to the next call, and when done reply in two or three sentences: slide count, file, and a one-line credit for web pictures.`;
+const GENERATE = 'As soon as the slide count is known, call presentation_create with slideCount, before drafting content or fetching images. All slides are created together in the sorter. Fill those slideIds as each page is ready, using setText on returned placeholders or adding shapes by slideId. Each touched slide is marked finished unless completedSlideIds limits the finished pages of this call. Use [] for an intermediate batch. The editor returns to the first slide once all are complete. Go straight to the tools without narrating progress.';
 
 /** Runtime context entry naming the workspace's remembered PPT style; DSH's own entries sit at 100–210. */
 export const STYLE_CONTEXT = Object.freeze({ name: 'officesdk-ppt-style', order: 300 });
@@ -92,14 +92,17 @@ export function apply(ctx, _config, environment = {}) {
   };
   ctx.tools.register(defineTool({
     name: 'presentation_create',
-    description: `Create a new .pptx from a style pack of the shimo-pptx skill and open it in the side panel next to this conversation, so the user can watch it being built. The file starts with no slides; add them with presentation_edit. ${GENERATE} While you build a file you created, your edits apply without asking the user each time; they can press Stop in the panel, after which each edit asks again. style: the pack name (folder under the skill's styles/); its display name or an alias works too. Pass it only when the user named a style (an "Inspiration library pick" line in your context counts as the user naming it); leave it out otherwise, and the workspace's default style is used (the one the user remembered in the input box's PPT style picker, else "default": primary #2826C9, Noto Sans SC / Poppins). An unknown name fails and lists the packs there are. Layouts are told apart by their placeholders: title+subtitle = cover, title+body = content, title = title only, body = closing page, none = blank. Fails if the file exists. Save with presentation_save when done. Result: the same fields as presentation_read, plus created: true, style (its name, palette colours, fonts and text sizes in pt) and styleSource (given, workspace or default).`,
-    parameters: { path: PATH, style: { type: 'string', description: 'Style pack name (or its display name / alias), only when the user named a style or an Inspiration library pick names one; omitted means the workspace default style.' } },
+    description: `Create a new .pptx from a style pack of the shimo-pptx skill and open it in the side panel next to this conversation, so the user can watch it being built. The result includes the reserved slides and their shapes in deck.slides. ${GENERATE} While you build a file you created, your edits apply without asking the user each time; the chat can interrupt a running generation. style: the pack name (folder under the skill's styles/); its display name or an alias works too. Pass it only when the user named a style (an "Inspiration library pick" line in your context counts as the user naming it); leave it out otherwise, and the workspace's default style is used (the one the user remembered in the input box's PPT style picker, else "default": primary #2826C9, Noto Sans SC / Poppins). An unknown name fails and lists the packs there are. Layouts are told apart by their placeholders: title+subtitle = cover, title+body = content, title = title only, body = closing page, none = blank. Fails if the file exists. Save with presentation_save when done. Result: the same fields as presentation_read, plus created: true, style (its name, palette colours, fonts and text sizes in pt) and styleSource (given, workspace or default).`,
+    parameters: { path: PATH,
+      slideCount: { type:'integer', required:true, description:'Total number of pages, including cover and ending.' },
+      slideLayouts: { type:'array', items:{ type:'string', enum:['cover','content','title','closing','blank'] }, description:'Optional template role per planned slide in deck order. Defaults to cover, content, closing.' },
+      style: { type: 'string', description: 'Style pack name (or its display name / alias), only when the user named a style or an Inspiration library pick names one; omitted means the workspace default style.' } },
     output: {
       schema: { type: 'json' },
       render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }],
     },
     async execute(args, exec) {
-      try { return await service.aiCreate(sessionOf(exec), { path: args.path, style: args.style }, { approve: approvalFor(exec, `在工作区外新建演示文稿：${args.path}`), signal: exec.signal }); }
+      try { return await service.aiCreate(sessionOf(exec), { path: args.path, style: args.style, ...(args.slideCount !== undefined && {slideCount:args.slideCount}), ...(args.slideLayouts && {slideLayouts:args.slideLayouts}) }, { approve: approvalFor(exec, `在工作区外新建演示文稿：${args.path}`), signal: exec.signal }); }
       catch (error) { throw failure(error); }
     },
   }));
@@ -137,10 +140,11 @@ export function apply(ctx, _config, environment = {}) {
   }));
   ctx.tools.register(defineTool({
     name: 'presentation_edit',
-    description: `Change a .pptx file the way a person would in the editor beside the conversation. The user sees each change happen; they approve each batch first, except while you build a file you made with presentation_create (until they press Stop). ${GENERATE} Changes stay in the editor (unsaved) and are written to the file by presentation_save, the panel's Save button, or automatically when the tab closes; several edits in a row need no save in between. While a presentation is open, never change that file with any other tool (shell, python, copies): the editor holds the latest version and would conflict. Use ids from a fresh presentation_read, or refs to objects created earlier in the same call. At most ${PPTX_LIMITS.maxOps} operations and ${PPTX_LIMITS.maxNewSlides} new slides per call. A call applies whole or not at all: if one step fails, or the user presses Stop, the whole call is undone (earlier calls stay) — fix that call and send it again after an error, but after a Stop (code cancelled) do not resend; ask the user. Text edits replace a shape's whole text (replaceText computes it for you). Only the listed operations exist: say so plainly when a request needs something else (tables, charts, animations, partial-run formatting) instead of approximating it. Result: { declined: true } when the user said no; otherwise { applied, slideIds, refs, editId, unsaved: true, generating? }.`,
+    description: `Change a .pptx file the way a person would in the editor beside the conversation. The user sees each change happen; they approve each batch first, except while you build a file you made with presentation_create. ${GENERATE} Changes stay in the editor (unsaved) and are written to the file by presentation_save, the panel's Save button, or automatically when the tab closes; several edits in a row need no save in between. While a presentation is open, never change that file with any other tool (shell, python, copies): the editor holds the latest version and would conflict. Use ids from a fresh presentation_read, or refs to objects created earlier in the same call. At most ${PPTX_LIMITS.maxOps} operations and ${PPTX_LIMITS.maxNewSlides} new slides per call. A call applies whole or not at all: if one step fails, or the user presses Stop, the whole call is undone (earlier calls stay) — fix that call and send it again after an error, but after a Stop (code cancelled) do not resend; ask the user. Text edits replace a shape's whole text (replaceText computes it for you). Only the listed operations exist: say so plainly when a request needs something else (tables, charts, animations, partial-run formatting) instead of approximating it. Result: { declined: true } when the user said no; otherwise { applied, slideIds, refs, editId, unsaved: true, generating? }.`,
     parameters: {
       path: PATH,
       summary: { type: 'string', required: true, description: 'One sentence, in the user\'s language, describing the change for the approval card.' },
+      completedSlideIds: { type: 'array', items:ID, description:'When building a planned deck, slides fully written by this batch. Omit to complete all touched slides, or pass [] to keep all pending.' },
       operations: { type: 'array', required: true, items: OPERATION },
     },
     output: {
@@ -148,7 +152,7 @@ export function apply(ctx, _config, environment = {}) {
       render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }],
     },
     async execute(args, exec) {
-      try { return await service.aiEdit(sessionOf(exec), { path: args.path, ops: args.operations, summary: args.summary, callId: exec.callId }, exec.signal); }
+      try { return await service.aiEdit(sessionOf(exec), { path: args.path, ops: args.operations, ...(args.completedSlideIds !== undefined && {completedSlideIds:args.completedSlideIds}), summary: args.summary, callId: exec.callId }, exec.signal); }
       catch (error) { throw failure(error); }
     },
   }));

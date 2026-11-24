@@ -1,6 +1,6 @@
 import { PPTX_LIMITS, placeholderKey, validatePptxOps } from '../agent/pptx.mjs';
 import { AttentionOverlay } from './attention-overlay.mjs';
-import { selectionAt, selectionMs, textChunks } from './selection.mjs';
+import { AGENT_LAYER, selectionAt, selectionMs, textChunks } from './selection.mjs';
 import { agentLabel, conclusionIndex, pptStatus } from './agent-status.mjs';
 
 const EMU_PER_POINT = 12700;
@@ -110,7 +110,7 @@ export function readView(document) {
   if (typeof document?.querySelectorAll !== 'function') return undefined;
   let cards = false;
   for (const surface of document.querySelectorAll('svg.ppt-slide-surface')) {
-    if (!shown(surface.getBoundingClientRect?.())) continue;
+    if (!shown(surface.getBoundingClientRect?.()) || surface.closest?.('[inert]')) continue;
     const namespace = namespaceOf(surface);
     if (namespace.startsWith('mop-main')) return NORMAL;
     if (namespace.startsWith('mop-thumbnail')) cards = true;
@@ -137,6 +137,24 @@ export function locateCard(document, slideId) {
 /** Where `geometry` (points) of `slideId` is on screen in `slide`; undefined while another slide is shown. */
 export function project(slide, geometry, slideId) {
   if (!slide || !geometry || (slideId && slide.shown && slide.shown !== slideId)) return undefined;
+  if (geometry.id && slide.surface?.querySelectorAll) {
+    const shape = Array.from(slide.surface.querySelectorAll('[data-mop-move-preview-id]'))
+      .find(node => node.getAttribute('data-mop-move-preview-id') === geometry.id);
+    const bounds = shape?.getBoundingClientRect();
+    if (bounds?.width && bounds.height) return { left: bounds.left, top: bounds.top, width: bounds.width, height: bounds.height, clip: slide.area?.getBoundingClientRect() };
+    if (!sized(geometry)) return undefined;
+  }
+  const matrix = slide.surface?.getScreenCTM?.();
+  if (matrix) {
+    const x = geometry.left * EMU_PER_POINT, y = geometry.top * EMU_PER_POINT;
+    const w = geometry.width * EMU_PER_POINT, h = geometry.height * EMU_PER_POINT;
+    const corners = [[x,y], [x+w,y], [x,y+h], [x+w,y+h]].map(([u,v]) => ({
+      x: matrix.a*u + matrix.c*v + matrix.e, y: matrix.b*u + matrix.d*v + matrix.f
+    }));
+    const xs = corners.map(p => p.x), ys = corners.map(p => p.y);
+    const left = Math.min(...xs), top = Math.min(...ys);
+    return { left, top, width: Math.max(...xs) - left, height: Math.max(...ys) - top, clip: slide.area?.getBoundingClientRect() };
+  }
   const { box, scale } = slide;
   return { left: box.left + geometry.left * scale, top: box.top + geometry.top * scale, width: Math.max(geometry.width * scale, 8), height: Math.max(geometry.height * scale, 8), clip: slide.area?.getBoundingClientRect() };
 }
@@ -248,12 +266,12 @@ export function createOverlay(document, { animate: motion = () => true, pause = 
     // the AttentionOverlay drawn inside it, made when the box is first shown and again when its kind changes.
     const box = document.createElement('div');
     box.dataset.shimoAgent = 'frame';
-    Object.assign(box.style, { position: 'fixed', zIndex: '2147483647', display: 'none', pointerEvents: 'none', boxSizing: 'border-box' });
+    Object.assign(box.style, { position: 'fixed', zIndex: AGENT_LAYER.selection, display: 'none', pointerEvents: 'none', boxSizing: 'border-box' });
     // The agent's cursor: an arrow at a corner of the drawn box and its status beside it. Not inside the box, so the
     // box's clip never cuts it in half: it hides as a whole instead.
     const cursor = document.createElement('div');
     cursor.dataset.shimoAgent = 'cursor';
-    Object.assign(cursor.style, { position: 'fixed', zIndex: '2147483647', display: 'none', width: '0', height: '0', pointerEvents: 'none' });
+    Object.assign(cursor.style, { position: 'fixed', zIndex: AGENT_LAYER.cursor, display: 'none', width: '0', height: '0', pointerEvents: 'none' });
     const arrow = document.createElementNS(SVG_NS, 'svg');
     arrow.setAttribute('viewBox', '0 0 20 20');
     Object.assign(arrow.style, { position: 'absolute', left: '0', top: '0', width: '20px', height: '20px', overflow: 'visible', transformOrigin: '1px 1px', filter: 'drop-shadow(0 1px 1px #0002)' });
@@ -267,7 +285,7 @@ export function createOverlay(document, { animate: motion = () => true, pause = 
     // Typed text drawn over the shape while the AI writes; the document only takes the final value.
     const caption = document.createElement('div');
     caption.dataset.shimoAgent = 'caption';
-    Object.assign(caption.style, { position: 'fixed', zIndex: '2147483647', display: 'none', pointerEvents: 'none', overflow: 'hidden', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+    Object.assign(caption.style, { position: 'fixed', zIndex: AGENT_LAYER.selection, display: 'none', pointerEvents: 'none', overflow: 'hidden', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
       font: '16px/1.3 system-ui, sans-serif', color: '#111827', background: 'rgba(255,255,255,.94)', padding: '2px 4px', boxSizing: 'border-box' });
     return { box, cursor, arrow, pill, caption, outline: undefined, sized: undefined, kind: 'text', label: '', selecting: '', pillWidth: 0, above: false,
       framed: undefined, written: undefined, text: '', glide: undefined, drawn: undefined, start: undefined, motion: false, settle: undefined };
@@ -428,7 +446,7 @@ export function createOverlay(document, { animate: motion = () => true, pause = 
     const ring = document.createElement('div');
     ring.dataset.shimoAgent = 'mark';
     // A gradient border only: the mask cuts out its middle (and would cut off a shadow, so there is none).
-    Object.assign(ring.style, { position: 'fixed', zIndex: '2147483647', display: 'none', pointerEvents: 'none', borderRadius: '6px', boxSizing: 'border-box', padding: '3px', background: GLOW, ...CUT_OUT });
+    Object.assign(ring.style, { position: 'fixed', zIndex: AGENT_LAYER.selection, display: 'none', pointerEvents: 'none', borderRadius: '6px', boxSizing: 'border-box', padding: '3px', background: GLOW, ...CUT_OUT });
     document.body.append(ring);
     return (rings[index] = ring);
   };
@@ -507,7 +525,7 @@ export function createOverlay(document, { animate: motion = () => true, pause = 
       // From where the box is drawn now, also when the last glide has not finished; only between two shapes of
       // one slide in one look: to or from a whole slide, or to another look (gap and corners change), it jumps.
       const from = track.drawn;
-      track.glide = from?.geometry && next?.geometry && from.slideId === next.slideId && look === track.kind && track.box.style.display !== 'none' ? { from: { ...from.geometry }, start: now() } : undefined;
+      track.glide = !select && from?.geometry && next?.geometry && from.slideId === next.slideId && look === track.kind && track.box.style.display !== 'none' ? { from: { ...from.geometry }, start: now() } : undefined;
       if (look !== track.kind) { dropOutline(track); track.kind = look; }
       track.framed = next;
       track.label = title ?? '';
@@ -612,7 +630,7 @@ export function playsTogether(steps, { animate = true, typing = 'document', outl
  * fails the others stop at their next call and the error is thrown after all of them have stopped, so the caller
  * can undo the whole batch. `report.together` says which way the batch ran.
  */
-export async function runSteps(api, steps, { overlay, document, animate = true, signal, wait = ms => new Promise(resolve => setTimeout(resolve, ms)), labels = LABELS.zh, geometryOf = () => undefined, typing = 'document', outline = 'overlay', refs = {}, report = {}, locale, viewOf = readView, settleMs = 240 } = {}) {
+export async function runSteps(api, steps, { overlay, document, animate = true, signal, wait = ms => new Promise(resolve => setTimeout(resolve, ms)), labels = LABELS.zh, geometryOf = () => undefined, typing = 'document', outline = 'overlay', refs = {}, report = {}, locale, viewOf = readView, settleMs = 240, planned = false } = {}) {
   let halted;
   // v1.1 (spec §7): status texts made from what each step does, when the caller names a locale.
   const statusOf = (step, geometry) => locale ? agentLabel(locale, pptStatus(step, { shape: geometry, conclusion: conclusions.has(step) })) : undefined;
@@ -651,12 +669,12 @@ export async function runSteps(api, steps, { overlay, document, animate = true, 
    * Outlines `geometry` of the step's slide with the cursor's `text`: on its edge for a chart (`kind` edge; the editor
    * reports the shape's type), around it for anything else.
    */
-  const frame = async (step, geometry, tone, text, lane, kind = isChart(geometry) ? 'edge' : 'text') => {
+  const frame = async (step, geometry, tone, text, lane, kind = 'edge') => {
     if (!overlay) return;
     // A box without size (a placeholder that only inherits its layout's position reads 0,0,0,0) has no place to point at.
-    if (!sized(geometry)) geometry = undefined;
+    if (!sized(geometry) && !geometry?.id) geometry = undefined;
     // A deletion always uses the overlay, so its "deleting" cursor shows; with `outline: 'editor'` the rest uses the editor's outline.
-    if (tone !== 'delete' && geometry && lane === MAIN && await attend(geometry)) overlay.frame(undefined);
+    if (tone !== 'delete' && sized(geometry) && lane === MAIN && await attend(geometry)) overlay.frame(undefined);
     else if (locale) {
       // v1.1: the cursor pulls the selection open; nothing is written before it is complete.
       await overlay.frame(geometry && { slideId: step.slideId, geometry }, { tone, text: statusOf(step, geometry) ?? text, kind, select: animate, selecting, ...(lane.key !== undefined && { key: lane.key }) });
@@ -679,11 +697,11 @@ export async function runSteps(api, steps, { overlay, document, animate = true, 
     // whole text last. A shape not created yet has nothing to write into: it is created with its first part.
     if (typing === 'chunks') {
       if (!shapeId) return;
-      const parts = textChunks(to);
+      const parts = planned ? textChunks(to, { min: 4 }) : textChunks(to);
       for (const part of parts.slice(0, -1)) {
         check();
         await run(ctx => { ctx.presentation.slides.getItem(slideId).shapes.getItem(shapeId).textFrame.textRange.text = part; });
-        await wait(60);
+        await wait(planned ? 110 : 60);
       }
       return;
     }
@@ -795,6 +813,10 @@ export async function runSteps(api, steps, { overlay, document, animate = true, 
     if (step.shapeRef !== undefined) step.shapeId = shapeRefs.get(step.shapeRef);
     await focus(step.slideId, lane);
     const geometry = step.shapeId ? geometryOf(step.slideId, step.shapeId) ?? born.get(`${step.slideId}/${step.shapeId}`) : undefined;
+    if (planned) {
+      await planned.selectModule(step, geometry ?? step.geometry, statusOf(step, geometry), animate, wait);
+      check();
+    }
     switch (step.op) {
       case 'setText':
         await frame(step, geometry, 'edit', marks.edit, lane);
@@ -898,7 +920,7 @@ export async function runSteps(api, steps, { overlay, document, animate = true, 
         await focus(step.slideId, lane);
         break;
     }
-    if (animate) await wait(160);
+    if (animate) await wait(planned ? 280 : 160);
   };
   const setView = viewSwitch(api);
   const viewNow = () => { try { return viewOf(document); } catch { return undefined; } };
@@ -1016,7 +1038,20 @@ export async function runSteps(api, steps, { overlay, document, animate = true, 
     if (at >= 0) conclusions.add(steps[at]);
   }
   report.together = playsTogether(steps, { animate, typing, outline });
-  if (report.together) await together();
+  if (planned) {
+    // One lane per returned page. Kit transactions share the serial API queue, animations can overlap.
+    const pages = new Map();
+    for (const step of steps) {
+      if (!pages.has(step.slideId)) pages.set(step.slideId, []);
+      pages.get(step.slideId).push(step);
+    }
+    let failure;
+    await Promise.allSettled([...pages].map(async ([id, work]) => {
+      try { for (const step of work) await runStep(step, { key: id, select: false }); }
+      catch (error) { if (!failure) failure = halted = error; }
+    }));
+    if (failure) throw failure;
+  } else if (report.together) await together();
   else if (locale) {
     // v1.1: one slide's targets on up to three tracks in turn; the slide is selected when the batch moves to it.
     let turn = 0;
@@ -1031,7 +1066,6 @@ export async function runSteps(api, steps, { overlay, document, animate = true, 
 
 const sized = geometry => Boolean(geometry && geometry.width > 0 && geometry.height > 0);
 /** A chart, as the editor reports a shape's type. */
-const isChart = geometry => String(geometry?.type ?? '').toLowerCase() === 'chart';
 
 const same = (left, right) => left.length === right.length && left.every((value, index) => value === right[index]);
 

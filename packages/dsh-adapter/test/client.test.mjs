@@ -45,6 +45,28 @@ function harness({ open, host = {}, locale } = {}) {
   return { controller, calls, posted, downloads, timers, tab, states, fromFrame, listeners, names: () => calls.map(([n]) => n) };
 }
 
+test('AI edit permission is private to the document and destructive operations still ask', async () => {
+  const { controller } = harness();
+  const { controller: other } = harness();
+  const first = controller.propose({ rows: [] });
+  controller.setAiPermission('always');
+  assert.equal(await first, true);
+  assert.equal(await controller.propose({ rows: [] }), true);
+  const dangerous = controller.propose({ rows: [], danger: true });
+  assert.equal(controller.state.proposal.danger, true);
+  controller.decide(false);
+  assert.equal(await dangerous, false);
+  const separate = other.propose({ rows: [] });
+  assert.ok(other.state.proposal);
+  other.decide(false);
+  assert.equal(await separate, false);
+  controller.setAiPermission('ask');
+  const reset = controller.propose({ rows: [] });
+  assert.ok(controller.state.proposal);
+  controller.decide(false);
+  assert.equal(await reset, false);
+});
+
 test('session addresses only; absolute addresses never borrow a Session', () => {
   assert.deepEqual(parseSource('dsh-resource://file/session/s1/docs/a%20b.docx'), { sessionId: 's1', path: 'docs/a b.docx' });
   assert.deepEqual(parseSource('dsh-resource://file/session/s1//etc/hosts.docx'), { sessionId: 's1', path: '/etc/hosts.docx' });
@@ -889,10 +911,10 @@ test('P toolbar: modules keep the fixed order and only those offered here appear
   assert.deepEqual(offeredModules({ mode: false, update: true }), ['update']);
 });
 
-test('P toolbar: Open (打开本地文件夹) is withdrawn from the plugin: never offered, the rest unchanged', () => {
-  assert.deepEqual(WITHDRAWN_MODULES, ['folder']);
+test('V3.1 toolbar: Open, Undo and Redo are withdrawn from quick access and customization', () => {
+  assert.deepEqual(WITHDRAWN_MODULES, ['folder', 'undo', 'redo']);
   const all = { undo: true, redo: true, save: true, saveAs: true, folder: true, print: true, mode: true, update: true, account: true };
-  assert.deepEqual(offeredModules(all), ['undo', 'redo', 'save', 'saveAs', 'print', 'mode', 'update', 'account']);
+  assert.deepEqual(offeredModules(all), ['save', 'saveAs', 'print', 'mode', 'update', 'account']);
   // The tab still supports it (the open flow stays); only the toolbar and its menu no longer show it.
   const kit = { backend: 'kit', format: 'docx', mode: 'edit', capabilities: { save: true } };
   assert.deepEqual(editButtons(kit).folder, { disabled: false });
@@ -912,14 +934,14 @@ test('P toolbar: shown/hidden choices are shared, persist, survive refusing stor
   const prefs = createToolbarPrefs(() => storage);
   let changes = 0;
   prefs.subscribe(() => { changes += 1; });
-  assert.deepEqual(prefs.hidden(), []);
+  assert.deepEqual(prefs.hidden(), ['print', 'update']);
   prefs.toggle('update');
-  assert.deepEqual(prefs.hidden(), ['update']);
-  assert.deepEqual(JSON.parse(store.get(prefs.key)), { hidden: ['update'] });
+  assert.deepEqual(prefs.hidden(), ['print']);
+  assert.deepEqual(JSON.parse(store.get(prefs.key)), { hidden: ['print'] });
   // A second header (another tab or suite) reads the same choice.
-  assert.deepEqual(createToolbarPrefs(() => storage).hidden(), ['update']);
+  assert.deepEqual(createToolbarPrefs(() => storage).hidden(), ['print']);
   prefs.toggle('update');
-  assert.deepEqual(prefs.hidden(), []);
+  assert.deepEqual(prefs.hidden(), ['print', 'update']);
   // Another window wrote the stored value; ids from a newer version survive this one's writes.
   store.set(prefs.key, JSON.stringify({ hidden: ['mode', 'futureModule', 7] }));
   prefs.reload();
@@ -931,9 +953,9 @@ test('P toolbar: shown/hidden choices are shared, persist, survive refusing stor
   // Private mode, quota or a refusal: the page keeps working in memory.
   const refusing = createToolbarPrefs(() => ({ getItem: () => { throw new Error('denied'); }, setItem: () => { throw new Error('denied'); } }));
   refusing.toggle('mode');
-  assert.deepEqual(refusing.hidden(), ['mode']);
-  assert.deepEqual(createToolbarPrefs(() => ({ getItem: () => '{not json' })).hidden(), []);
-  assert.deepEqual(createToolbarPrefs(() => undefined).hidden(), []);
+  assert.deepEqual(refusing.hidden(), ['print', 'update', 'mode']);
+  assert.deepEqual(createToolbarPrefs(() => ({ getItem: () => '{not json' })).hidden(), ['print', 'update']);
+  assert.deepEqual(createToolbarPrefs(() => undefined).hidden(), ['print', 'update']);
 });
 
 test('P toolbar: a popover sits under its trigger, right edges aligned, 8px inside the viewport, scrolling when short of room', () => {

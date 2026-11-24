@@ -9,7 +9,7 @@ import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typer
 import { withFileLock, writeFileAtomic } from '@deepseek-ai/dsh-atomic-write';
 import { writableRoots } from '@deepseek-ai/dsh-sandbox';
 import { dshHomePath } from '@deepseek-ai/dsh-home-paths';
-import { DEFAULT_LIMITS, NEW_SLIDES_MESSAGE, PPTX_LIMITS, SuiteError, checkRewriteText, checkRewriteValues, countNewSlides, SuiteService, createHttpHandler, selectionMessage, validateSelectionRequest } from '../../../core/src/index.mjs';
+import { DEFAULT_LIMITS, NEW_SLIDES_MESSAGE, PPTX_LIMITS, SuiteError, checkRewriteText, checkRewriteValues, countNewSlides, SuiteService, createHttpHandler, parallelEditMessage, selectionMessage, validateSelectionRequest } from '../../../core/src/index.mjs';
 import { KitDocuments, KitProcess, createKitHttpHandler } from '../../../kit-host/src/index.mjs';
 import { AgentHub } from './agent.mjs';
 import { createDocument, createSpreadsheet, nounOf } from './document.mjs';
@@ -26,13 +26,16 @@ import { readManifest } from './fetch/office-kit.mjs';
 import { readDownloadSources, selectProfile } from './fetch/download-sources.mjs';
 import { NO_CONVERTER, resolveKit, unsupportedError } from './kit-platform.mjs';
 import { WhatsNew } from './whats-new.mjs';
+import { ReviewStore } from './review-store.mjs';
 import { StyleMemory, styleCard, styleCards } from './style-catalog.mjs';
 import { StyleSuggestions, suggestionContext } from './style-suggest.mjs';
 import { BUILTIN_TEMPLATES, PICK_KINDS, TemplatePicks, pickContext } from './template-pick.mjs';
+import { PARALLEL_EDIT_COMMAND } from '../parallel-message.mjs';
+import { generateSelectionReplacement } from './parallel-rewrite.mjs';
 import { SelectionStore } from './selection.mjs';
 
 const packageRoot = fileURLToPath(new URL('../../', import.meta.url));
-const METHODS = ['open', 'engineStatus', 'skillsStatus', 'skillSetEnabled', 'skillPrefetch', 'skillClearCache', 'skillsCheckUpdates', 'release', 'renew', 'access', 'rebind', 'save', 'exportTo', 'probe', 'browse', 'resolveDiskChange', 'listDrafts', 'discardDraft', 'exportDraft', 'agentNext', 'agentAlive', 'agentReply', 'agentStop', 'updateStatus', 'updatePlugin', 'listStyles', 'rememberStyle', 'selectTemplate', 'templatePick', 'styleSuggestion', 'dismissStyleSuggestion', 'whatsNew', 'whatsNewSeen', 'selectionCreate', 'selectionUpdate'];
+const METHODS = ['open', 'engineStatus', 'skillsStatus', 'skillSetEnabled', 'skillPrefetch', 'skillClearCache', 'skillsCheckUpdates', 'release', 'renew', 'access', 'rebind', 'save', 'exportTo', 'probe', 'browse', 'resolveDiskChange', 'listDrafts', 'discardDraft', 'exportDraft', 'agentNext', 'agentAlive', 'agentReply', 'agentStop', 'updateStatus', 'updatePlugin', 'listStyles', 'rememberStyle', 'selectTemplate', 'templatePick', 'styleSuggestion', 'dismissStyleSuggestion', 'whatsNew', 'whatsNewSeen', 'selectionCreate', 'selectionUpdate', 'selectionParallel'];
 const initializers = [];
 for (const name of METHODS) Remote(undefined, {
   kind: 'method', name, private: false, static: false,
@@ -194,6 +197,7 @@ export default class ShimoPreview extends TypertRemoteService {
         warn: text => logger?.warn?.(text),
       });
       kitHandler = createKitHttpHandler({ documents: this.kitDocs, admit, allowedOrigin, prefix: '/shimo',
+        reviews:new ReviewStore(join(dataRoot,'pending-reviews'),environment.atomic ?? {withFileLock,writeFileAtomic}),
         staticRoots: environment.kitStaticRoots ?? staticRootsOf(packageRoot, this.officeKit),
         meta: view => ({ v: 1, id: view.id, suite: view.suite, mode: view.writer ? 'edit' : 'view', name: basename(view.path), diskChanged: view.diskChanged, user: editorUser(view.principal) }) });
       // Start the engine download soon after start-up, and drop other versions not used for 30 days.
@@ -645,8 +649,37 @@ export default class ShimoPreview extends TypertRemoteService {
       if (typeof path !== 'string' || !path) throw new SuiteError('invalid-path', 'path is required.');
       const request = validateSelectionRequest(selectionRequest);
       if (/\.([A-Za-z0-9]+)$/.exec(path)?.[1]?.toLowerCase() !== request.kind) throw new SuiteError('invalid-edit', 'The selection does not match the document type.');
-      const record = this.selections.create(workspaceFileScope.sessionId, { path, realPath: await this.realPathOf(workspaceFileScope, path), name: basename(path), request });
-      return { id: record.id, message: selectionMessage({ id: record.id, name: record.name, request, lang: selectionLanguage === 'en' ? 'en' : 'zh' }) };
+      const record = this.selections.create(workspaceFileScope.sessionId, { path, realPath: await this.realPathOf(workspaceFileScope, path), name: basename(path), request, lang: selectionLanguage === 'en' ? 'en' : 'zh' });
+      record.tracked = selectionRequest.trackRange===true;
+      return { id: record.id, message: selectionMessage(record) };
+    }, signal);
+  }
+  async selectionParallel(workspaceFileScope, id, signal) {
+    return this.remote(async peer => {
+      const sessionId = workspaceFileScope.sessionId;
+      const stop = AbortSignal.any([signal, peer.signal].filter(Boolean));
+      await this.suite.authorize(peer, workspaceFileScope, stop, 'edit', '', 0);
+      const record = this.selections.get(sessionId, id);
+      if (record.state !== 'pending' || record.generating) throw new SuiteError('busy', '这处修改已经提交。');
+      record.generating = true;
+      try {
+        const agent = await this.ctx.typert.lookups.get('agent')?.resolve(sessionId);
+        if (!agent?.session?.append) throw new SuiteError('unavailable', '无法连接当前对话，请重新打开会话后再发送。');
+        // One editor command, one durable transcript row. Log-only command events leave the
+        // main turn's model history and inbox intact while the selection worker runs.
+        const commandId = 'cmd-officesdk-' + id;
+        agent.session.append('command/run', { commandId, name: PARALLEL_EDIT_COMMAND, args: parallelEditMessage(record), source: { kind: 'user' } });
+        try {
+          const replacement = await generateSelectionReplacement(agent, record.request, stop);
+          await this.aiRewriteSelection(sessionId, {selection:id, ...replacement}, stop);
+        } catch (error) {
+          const text = error.message || String(error);
+          agent.session.append('command/done', { commandId, kind:'error', text });
+          return { recorded:true, error:text };
+        }
+        agent.session.append('command/done', { commandId, kind:'success' });
+        return { recorded:true };
+      } finally { record.generating = false; }
     }, signal);
   }
   /** The user cancelled a waiting selection, or kept / undid a rewritten one, in the tab. */
@@ -666,8 +699,8 @@ export default class ShimoPreview extends TypertRemoteService {
     const { kind, anchor, original, cells } = record.request;
     let payload;
     try {
-      if (kind === 'docx') {
-        if (values !== undefined) throw new SuiteError('invalid-edit', 'This selection is text in a Word document: give text, not values.');
+      if (kind !== 'xlsx') {
+        if (values !== undefined) throw new SuiteError('invalid-edit', 'This selection is a text range: give text, not values.');
         payload = { text: checkRewriteText(text) };
       } else {
         if (values === undefined) throw new SuiteError('invalid-edit', `This selection is ${anchor.rowCount}×${anchor.columnCount} spreadsheet cells: give values (rows of cell values), not text.`);
@@ -677,7 +710,7 @@ export default class ShimoPreview extends TypertRemoteService {
     try {
       const result = await this.whileAiWrites(sessionId, record.path, () => this.agents.request(sessionId, { kind: 'rewrite', path: record.path, selection: { id: record.id, kind, anchor, original, ...(cells && { cells }) }, ...payload }, signal));
       record.state = 'used';
-      return { ...result, selection: record.id, path: record.path, unsaved: true };
+      return { ...result, selection: record.id, path: record.path, unsaved: !result.pendingReview };
     } catch (error) {
       if (error?.code === 'source-changed') {
         record.state = 'stale';
@@ -747,9 +780,15 @@ export default class ShimoPreview extends TypertRemoteService {
    * workspace only with `approve`), then opened beside the conversation. The file is the model's to generate:
    * its edits apply without a card per batch until the user stops it or the budget runs out.
    */
-  async aiCreate(sessionId, { path, style }, { approve, signal } = {}) {
+  async aiCreate(sessionId, { path, style, slideCount, slideLayouts }, { approve, signal } = {}) {
     const scope = await this.scopeOf(sessionId);
     if (typeof path !== 'string' || !/\.pptx$/i.test(path)) throw new SuiteError('invalid-path', 'presentation_create makes .pptx files; give a path ending in .pptx.');
+    if (slideCount !== undefined && (!Number.isInteger(slideCount) || slideCount < 1 || slideCount > PPTX_LIMITS.maxPlannedSlides)) {
+      throw new SuiteError('invalid-edit', `slideCount must be between 1 and ${PPTX_LIMITS.maxPlannedSlides}.`);
+    }
+    if (slideLayouts !== undefined && (!Array.isArray(slideLayouts) || slideLayouts.length !== slideCount || slideLayouts.some(role => !['cover','content','title','closing','blank'].includes(role)))) {
+      throw new SuiteError('invalid-edit', 'Provide one valid slide layout role for each planned slide.');
+    }
     // No style named: the workspace's remembered one (the input box's PPT style picker), else default.
     // A named style may be a display name or alias (the inspiration library writes names); unknown ones fail in loadStyle.
     let styleRoot = await this.skillRoot('shimo-pptx', sessionId, 'styles', { signal });
@@ -772,10 +811,10 @@ export default class ShimoPreview extends TypertRemoteService {
     const real = created.absolutePath;
     const identity = await lstat(real).catch(() => undefined);
     const windowed = Boolean(identity?.isFile() && await this.realPathOf(scope, real) === real);
-    if (windowed) this.generations.set(`${sessionId}\0${real}`, { steps: 0, imageBytes: 0, reserved: { steps: 0, imageBytes: 0 }, stopped: false, dev: identity.dev, ino: identity.ino });
+    if (windowed) this.generations.set(`${sessionId}\0${real}`, { steps: slideCount ?? 0, imageBytes: 0, reserved: { steps: 0, imageBytes: 0 }, stopped: false, dev: identity.dev, ino: identity.ino });
     // A style is settled once a deck exists: the recommendation strip has nothing left to ask.
     this.styleSuggestions.dismiss(sessionId);
-    const read = await this.agents.request(sessionId, { kind: 'read', path }, signal);
+    const read = await this.agents.request(sessionId, { kind: 'read', path, ...(slideCount && {slideCount, slideLayouts}) }, signal);
     return { created: true, style: summary, styleSource: chosen.source, ...read, generating: windowed };
   }
 
@@ -835,9 +874,9 @@ export default class ShimoPreview extends TypertRemoteService {
   }
 
   /** AI tool: open the document beside the conversation and describe it. `callId` lets the Client label the chat row. */
-  async aiRead(sessionId, path, signal, { callId } = {}) {
+  async aiRead(sessionId, path, signal, { callId, editTarget } = {}) {
     await this.scopeOf(sessionId);
-    return this.agents.request(sessionId, { kind: 'read', path, ...(callId && { callId }) }, signal);
+    return this.agents.request(sessionId, { kind: 'read', path, ...(callId && { callId }), ...(editTarget && { editTarget }) }, signal);
   }
 
   /** The editing Kit view of `path` in this Session, if the document is open through Kit. */
@@ -857,7 +896,7 @@ export default class ShimoPreview extends TypertRemoteService {
   }
 
   /** AI tool: show the change for confirmation, apply it in the editor. The file is untouched until a save. */
-  async aiEdit(sessionId, { path, ops, summary, callId, readToken }, signal) {
+  async aiEdit(sessionId, { path, ops, summary, callId, readToken, completedSlideIds }, signal) {
     const scope = await this.scopeOf(sessionId);
     const editId = randomUUID();
     // Too many new slides fails before images are read or the editor is asked; the editor checks again.
@@ -871,7 +910,7 @@ export default class ShimoPreview extends TypertRemoteService {
     const auto = Boolean(generation && !generation.stopped && used.steps + steps <= GENERATION_LIMITS.maxSteps && used.imageBytes + loaded.imageBytes <= GENERATION_LIMITS.maxImageBytes);
     if (auto) { generation.reserved.steps += steps; generation.reserved.imageBytes += loaded.imageBytes; }
     let result;
-    try { result = await this.whileAiWrites(sessionId, path, () => this.agents.request(sessionId, { kind: 'edit', path, ops: loaded.ops, summary, editId, ...(callId && { callId }), ...(auto && { auto: true }), ...(typeof readToken === 'string' && { readToken }) }, signal)); }
+    try { result = await this.whileAiWrites(sessionId, path, () => this.agents.request(sessionId, { kind: 'edit', path, ops: loaded.ops, summary, editId, ...(completedSlideIds !== undefined && {completedSlideIds}), ...(callId && { callId }), ...(auto && { auto: true }), ...(typeof readToken === 'string' && { readToken }) }, signal)); }
     catch (error) {
       // Stopped from the tab while this batch ran: the window is over (a PPT batch is undone; Word keeps the steps it finished).
       if (generation && error?.code === 'cancelled') generation.stopped = true;
@@ -881,6 +920,7 @@ export default class ShimoPreview extends TypertRemoteService {
     }
     if (generation && auto && !result?.declined) { generation.steps += steps; generation.imageBytes += loaded.imageBytes; }
     if (result?.declined) return { declined: true };
+    if (result?.pendingReview) return { ...result, editId, unsaved: false };
     // Selections still waiting on this file no longer hold what the user selected.
     const real = await this.realPathOf(scope, path);
     if (real) this.selections.staleFor(sessionId, real);

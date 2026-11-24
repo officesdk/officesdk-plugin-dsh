@@ -58,15 +58,21 @@ test('the committed whats-new.json is what CHANGELOG.md makes (run node scripts/
   assert.ok(manifest.files.includes('whats-new.json'), 'the notes ship in every package');
 });
 
-test('the open-source CHANGELOG has one initial section, 0.0.1-rc.1; updates from 0.0.0-alpha.3 and new installs show it', async () => {
+test('the first stable release and the original RC show the right notes for upgrades and new installs', async () => {
   const notes = JSON.parse(await readFile(join(adapter, 'whats-new.json'), 'utf8'));
-  assert.deepEqual(notes.entries.map(entry => entry.version), ['0.0.1-rc.1']);
-  assert.equal(notes.latestReleased, '0.0.1-rc.1', 'the dated section is the latest release');
-  const { highlights: points, highlightsEn: pointsEn } = notes.entries[0];
+  assert.deepEqual(notes.entries.map(entry => entry.version), ['0.0.1', '0.0.1-rc.1']);
+  assert.equal(notes.latestReleased, '0.0.1', 'the dated section is the latest release');
+  const { highlights: points, highlightsEn: pointsEn } = notes.entries[1];
   assert.equal(points.length, 2);
   assert.equal(pointsEn.length, 2);
   assert.ok(points[0].startsWith('初始开源版本'), 'the entry says it is the initial open-source version');
   const shipped = readNotes(join(adapter, 'whats-new.json'));
+  const stable = notes.entries[0];
+  assert.equal(stable.highlights.length, 4);
+  assert.equal(stable.highlights.length, stable.highlightsEn.length);
+  assert.deepEqual(notesBetween(shipped, '0.0.1-rc.1', '0.0.1'), [stable]);
+  assert.deepEqual(notesBetween(shipped, undefined, '0.0.1'), [stable]);
+  assert.deepEqual(notesBetween(shipped, '0.0.1', '0.0.1'), []);
   const section = [{ version: '0.0.1-rc.1', highlights: points, highlightsEn: pointsEn }];
   assert.deepEqual(notesBetween(shipped, undefined, '0.0.1-rc.1'), section, 'a new install shows the points');
   assert.deepEqual(notesBetween(shipped, '0.0.0-alpha.3', '0.0.1-rc.1'), section, 'an update from 0.0.0-alpha.3 shows them once');
@@ -74,7 +80,7 @@ test('the open-source CHANGELOG has one initial section, 0.0.1-rc.1; updates fro
   assert.deepEqual(notesBetween({ latestReleased: '0.0.0-alpha.3', entries: [{ version: 'unreleased', highlights: ['n'] }, { version: '0.0.0-alpha.3', highlights: ['a3'] }] }, '0.0.0-alpha.3', '0.0.0-alpha.4'), [{ version: '0.0.0-alpha.4', highlights: ['n'] }], 'a later alpha takes the 未发布 points');
   assert.deepEqual(notesBetween({ latestReleased: '0.0.0-alpha.3', entries: [{ version: '0.0.0-beta.1', highlights: ['b'] }, { version: '0.0.0-alpha.4', highlights: ['a4'] }] }, '0.0.0-alpha.3', '0.0.0-beta.1').map(entry => entry.version), ['0.0.0-beta.1', '0.0.0-alpha.4'], 'previews are sections of their own, in stage order');
   const changelog = await readFile(join(adapter, 'CHANGELOG.md'), 'utf8');
-  assert.equal(changelog.match(/^## /gm).length, 1, 'history is not kept');
+  assert.equal(changelog.match(/^## /gm).length, 2, 'both public release sections are available');
 });
 
 test('highlights come from ### 更新要点 only, as plain text; versions without them are left out', () => {

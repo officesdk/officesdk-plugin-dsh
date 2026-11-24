@@ -63,7 +63,7 @@ export function keptStyle(cell) {
  * Runs validated steps one at a time; `onStep(number, range?, worksheet?, tone)` draws where it acts. With `rowByRow`,
  * values go in a row at a time, or a cell at a time when the range has at most `cellByCell` cells (spec 261109 §4B).
  */
-export async function runXlsxSteps(sheetApi, steps, { signal, onStep = () => {}, onSelect = async () => {}, onFinish = () => {}, rowByRow = false, cellByCell = 0, cellPause = 0, wait = () => Promise.resolve(), pause = 0, track = {} } = {}) {
+export async function runXlsxSteps(sheetApi, steps, { signal, onStep = () => {}, onSelect = async () => {}, onWrite = () => {}, onFinish = () => {}, local = false, rowByRow = false, cellByCell = 0, cellPause = 0, wait = () => Promise.resolve(), pause = 0, track = {} } = {}) {
   const book = () => sheetApi.workbook;
   const worksheet = name => {
     const found = Array.from(book().getWorksheets() ?? []).find(sheet => sheet.name === name);
@@ -71,7 +71,7 @@ export async function runXlsxSteps(sheetApi, steps, { signal, onStep = () => {},
     return found;
   };
   /** The user sees the sheet being written: switch to it first. */
-  const show = async sheet => { if (!sheet.isActive) await book().setActiveWorksheet(sheet.id); };
+  const show = async sheet => { if (!local && !sheet.isActive) await book().setActiveWorksheet(sheet.id); };
   const rangeIn = (sheet, { row, column, rowCount, columnCount }) => sheet.getRange({ type: 'cells', row, column, rowCount, columnCount });
   track.done = 0;
   const stopped = () => { if (signal?.aborted) throw agentError('cancelled', 'Stopped by the user.'); };
@@ -98,13 +98,14 @@ export async function runXlsxSteps(sheetApi, steps, { signal, onStep = () => {},
         const cells = step.values.reduce((sum, row) => sum + row.length, 0);
         if (rowByRow && cells <= cellByCell) {
           // A small range fills one cell at a time, each selected first: the Sheet's own selection is the highlight of
-          // the cell being written, while the agent's frame stays on the whole range.
+          // the cell being written, and the agent follows that same cell.
           let written = 0;
           for (const [r, row] of step.values.entries()) {
             for (const [c, value] of row.entries()) {
               if (written) stopped();
               const cell = rangeIn(sheet, { row: step.range.row + r, column: step.range.column + c, rowCount: 1, columnCount: 1 });
-              try { cell.select(); } catch {}
+              if (!local) { try { cell.select(); } catch {} }
+              onWrite(number, cell);
               if (typeof value === 'string' && value.startsWith('=')) sheet.getCell(step.range.row + r, step.range.column + c).setCellFormula(value);
               else cell.setValue([[primitive(value)]]);
               // From the first cell on, a stop leaves this step partly written.
@@ -115,7 +116,9 @@ export async function runXlsxSteps(sheetApi, steps, { signal, onStep = () => {},
           // One real write per row, formulas cell by cell (spec §7.6), so the table fills while the user watches.
           for (const [r, row] of step.values.entries()) {
             if (r) stopped();
-            rangeIn(sheet, { row: step.range.row + r, column: step.range.column, rowCount: 1, columnCount: row.length }).setValue([plainRow(row)]);
+            const rowRange = rangeIn(sheet, { row: step.range.row + r, column: step.range.column, rowCount: 1, columnCount: row.length });
+            onWrite(number, rowRange);
+            rowRange.setValue([plainRow(row)]);
             formulas(row, r);
             // From the first row on, a stop leaves this step partly written.
             if (r < step.values.length - 1) track.partial = number;
@@ -199,7 +202,7 @@ export async function runXlsxSteps(sheetApi, steps, { signal, onStep = () => {},
       }
     }
     track.done = number + 1;
-    if (target) { try { target.select(); } catch {} }
+    if (!local && target) { try { target.select(); } catch {} }
     onStep(number, target, tone);
     onFinish(number);
     if (number < steps.length - 1) await wait(pause);
@@ -234,10 +237,10 @@ export function createKitSheetAgent({ editor, document, animate = () => true, lo
     get applying() { return applying; },
     handOff() {},
     inspect: async () => inspectWorkbook(api()),
-    async apply({ ops }, signal) {
+    async apply({ ops }, signal, local = false) {
       if (applying) throw agentError('busy', 'Another edit is still running.');
       applying = true;
-      overlay.busy(true, labels.editing);
+      if (!local) overlay.busy(true, labels.editing);
       const track = { done: 0 };
       let total = Array.isArray(ops) ? ops.length : 0;
       try {
@@ -246,12 +249,14 @@ export function createKitSheetAgent({ editor, document, animate = () => true, lo
         total = steps.length;
         const key = number => `t${number % 3}`;
         await runXlsxSteps(sheetApi, steps, {
-          signal, wait, pause: animate() ? pauseMs : 0, track, rowByRow: animate(), cellByCell: animate() ? XLSX_ANIM_CELLS : 0, cellPause: animate() ? cellPauseMs : 0,
+          signal, wait, local, pause: animate() ? pauseMs : 0, track, rowByRow: animate(), cellByCell: animate() ? XLSX_ANIM_CELLS : 0, cellPause: animate() ? cellPauseMs : 0,
           onSelect: async (number, range, step) => {
+            if (local) return;
             overlay.say(labels.step(number + 1, total));
             await overlay.select(key(number), range ? rangeLocator(range) : () => undefined, { label: agentLabel(locale, xlsxStatus(step)), selecting: agentLabel(locale, 'selecting'), edge: true });
           },
-          onFinish: number => overlay.release(key(number)),
+          onWrite: (number, range) => !local && overlay.point(key(number), rangeLocator(range)),
+          onFinish: number => !local && overlay.release(key(number)),
         });
         return { applied: steps.length };
       } catch (error) {
@@ -263,14 +268,14 @@ export function createKitSheetAgent({ editor, document, animate = () => true, lo
         try { await editor.prepare?.(); } catch {}
         await wait(100);
         applying = false;
-        overlay.busy(false);
+        if (!local) overlay.busy(false);
       }
     },
     async undo() { throw agentError('unsupported-operation', 'Spreadsheet edits cannot be undone by the AI (there is no rollback); change the cells back with another spreadsheet_edit.'); },
     dispose() { overlay.dispose(); },
   };
   // Selection rewrite (spec 261109-selection-ai-edit): read the user's cells, replace them, take them back.
-  Object.assign(agent, sheetSelectionMethods({ api, locked, applying: () => applying, apply: (args, signal) => agent.apply(args, signal) }));
+  Object.assign(agent, sheetSelectionMethods({ api, locked, overlay, locale, applying: () => applying, apply: (...args) => agent.apply(...args) }));
   return agent;
 }
 

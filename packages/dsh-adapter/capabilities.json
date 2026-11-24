@@ -302,11 +302,11 @@
   "skills": [
     {
       "name": "shimo-docx",
-      "version": "0.0.5"
+      "version": "0.0.6"
     },
     {
       "name": "shimo-pptx",
-      "version": "0.0.9"
+      "version": "0.0.10"
     }
   ],
   "skillsBaseline": true,

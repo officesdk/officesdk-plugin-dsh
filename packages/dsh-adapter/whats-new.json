@@ -1,7 +1,22 @@
 {
   "v": 1,
-  "latestReleased": "0.0.1-rc.1",
+  "latestReleased": "0.0.1",
   "entries": [
+    {
+      "version": "0.0.1",
+      "highlights": [
+        "在 Word、Excel 或 PPT 中选中内容即可发起局部修改。聊天消息显示文档名，悬停可查看引用原文。",
+        "可以同时修改不同位置，或在处理期间切换文件。修改详情按文档保留，直到你采纳或撤销。",
+        "专注模式下可在编辑器右下角继续对话、回答 Agent 的问题。",
+        "创建多页 PPT 时，可以在幻灯片浏览视图中看到各页逐个生成标题、文字和其他元素。"
+      ],
+      "highlightsEn": [
+        "Select content in Word, Excel or PowerPoint to request an edit. Chat messages show the filename. Hover over it to read the original selection.",
+        "Edit several passages at once and switch files while edits are in progress. Each document keeps its changes for review until you accept or undo them.",
+        "In focus mode, continue the conversation and answer the agent’s questions in the lower-right chat panel.",
+        "When creating a presentation, watch titles, text and other elements appear on each slide in Slide Sorter view."
+      ]
+    },
     {
       "version": "0.0.1-rc.1",
       "highlights": [

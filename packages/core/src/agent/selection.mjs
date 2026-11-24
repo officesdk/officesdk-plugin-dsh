@@ -1,3 +1,4 @@
+import { resolvedSelectionInstruction } from './chat-edit-target.mjs';
 import { SuiteError } from '../errors.mjs';
 import { DOCX_LIMITS } from './docx.mjs';
 import { XLSX_LIMITS, columnLetters } from './xlsx.mjs';
@@ -15,7 +16,7 @@ export const SELECTION_LIMITS = Object.freeze({
   maxText: 2_000, maxParagraphs: 20, maxCells: 200, maxCellText: 2_000,
   maxInstruction: 500, maxRewrite: 4_000, maxRewriteParagraphs: 50,
 });
-export const SELECTION_KINDS = Object.freeze(['docx', 'xlsx']);
+export const SELECTION_KINDS = Object.freeze(['docx', 'xlsx', 'pptx']);
 export const SELECTION_ID = /^sel-[0-9a-f]{8}$/;
 
 const invalid = message => { throw new SuiteError('invalid-edit', message); };
@@ -84,6 +85,14 @@ export function validateSelectionRequest(request) {
     if (lines(request.original).length !== anchor.paragraphs[1] - anchor.paragraphs[0] + 1) invalid('original does not match the paragraphs of the anchor.');
     return { kind, anchor, original: request.original, instruction };
   }
+  if (kind === 'pptx') {
+    const {slideId, shapeId, start, end} = request.anchor ?? {};
+    if (![slideId, shapeId].every(id => typeof id === 'string' && id.length && id.length <= 256) ||
+        !whole(start) || !whole(end, start) || typeof request.original !== 'string' || !request.original.trim() ||
+        request.original.length !== end - start || cpLength(request.original) > SELECTION_LIMITS.maxText)
+      invalid('Choose a text range within one slide shape.');
+    return {kind, anchor:{slideId, shapeId, start, end}, original:request.original, instruction};
+  }
   const anchor = checkSheetAnchor(request.anchor);
   const cells = request.cells;
   if (!Array.isArray(cells) || cells.length !== anchor.rowCount || cells.some(row => !Array.isArray(row) || row.length !== anchor.columnCount)) invalid('cells must match the size of the selection.');
@@ -104,18 +113,35 @@ function sheetOriginalText(cells) { return cells.map(row => row.map(cellShown).j
 const quote = text => lines(text).map(line => `> ${line}`).join('\n');
 const tableCell = text => String(text).replace(/\|/g, '\\|').replace(/\n/g, ' ');
 
+function paragraphLocation([first, last], en) {
+  if (first === last) return en ? `paragraph ${first + 1}` : `第 ${first + 1} 段`;
+  return en ? `paragraphs ${first + 1}–${last + 1}` : `第 ${first + 1}–${last + 1} 段`;
+}
+
+// DSH renders a consecutive Markdown blockquote as one inline reference. Record
+// the resolved passage now so replay does not consult the currently open file.
+export function parallelEditMessage({ name, path, request, lang }) {
+  const en = lang === 'en';
+  const location = request.kind === 'docx' ? paragraphLocation(request.anchor.paragraphs, en)
+    : request.kind === 'pptx' ? `${request.anchor.slideId} / ${request.anchor.shapeId}`
+    : `${request.anchor.sheet}!${sheetAddress(request.anchor)}`;
+  const body = [en ? `Editing target: ${name}` : `编辑目标：${name}`, location, request.original];
+  if (path && path !== name) body.push(path);
+  return `${request.instruction}\n\n${quote(body.join('\n'))}`;
+}
+
 /**
  * The user's message that carries the request into the conversation (spec §3.2): visible, complete (the model writes
  * the replacement from it) and naming the selection id selection_rewrite takes.
  */
 export function selectionMessage({ id, name, request, lang = 'zh' }) {
   const en = lang === 'en';
-  if (request.kind === 'docx') {
-    const [first, last] = request.anchor.paragraphs;
-    const where = first === last ? (en ? `paragraph ${first + 1}` : `第 ${first + 1} 段`) : (en ? `paragraphs ${first + 1}–${last + 1}` : `第 ${first + 1}–${last + 1} 段`);
+  if (request.kind !== 'xlsx') {
+    const where = request.kind === 'pptx' ? `${request.anchor.slideId} / ${request.anchor.shapeId}` : paragraphLocation(request.anchor.paragraphs, en);
+    const instruction = resolvedSelectionInstruction(request);
     return en
-      ? `Rewrite the text I selected in "${name}" (selection ${id}, ${where}):\n${quote(request.original)}\nRequest: ${request.instruction}\n(Answer with selection_rewrite.)`
-      : `修改「${name}」里我选中的文字（选区 ${id}，${where}）：\n${quote(request.original)}\n要求：${request.instruction}\n（用 selection_rewrite 修改）`;
+      ? `Rewrite the text I selected in "${name}" (selection ${id}, ${where}):\n${quote(request.original)}\nRequest: ${instruction}\n(Answer with selection_rewrite.)`
+      : `修改「${name}」里我选中的文字（选区 ${id}，${where}）：\n${quote(request.original)}\n要求：${instruction}\n（用 selection_rewrite 修改）`;
   }
   const { anchor, cells } = request;
   const address = `${anchor.sheet}!${sheetAddress(anchor)}`;

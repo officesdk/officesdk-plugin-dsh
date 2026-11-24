@@ -354,6 +354,34 @@ test('the agent applies a batch, returns refs and a fresh readToken, and is the 
   assert.equal(result.readToken, docxReadToken(await agent.inspect()));
 });
 
+test('concurrent results share a read and commit in ready order without rereading the other paragraph', async () => {
+  const fake = fakeWord({ paragraphs: ['Alpha old', 'Beta old'] });
+  const { agent } = agentFor(fake);
+  const readToken = docxReadToken(await agent.inspect());
+  const edit = (paragraph, text) => ({ ops: [{ op: 'setText', paragraph, text }], readToken });
+  const second = agent.apply(edit(1, 'Beta ready'));
+  const first = agent.apply(edit(0, 'Alpha ready'));
+  await Promise.all([second, first]);
+  assert.deepEqual(fake.doc.map(p => p.text), ['Alpha ready', 'Beta ready']);
+  await assert.rejects(agent.inspect({ checkEdit: edit(0, 'stale') }), { code: 'source-changed' });
+  await assert.rejects(agent.apply(edit(0, 'stale')), { code: 'source-changed' });
+});
+
+test('a late target declaration and replacement preserve a disjoint edit within a paragraph', async () => {
+  const fake = fakeWord({ paragraphs: ['morning / evening', 'untouched'] });
+  const { agent } = agentFor(fake);
+  const readToken = docxReadToken(await agent.inspect());
+  const replace = (find, replace) => ({ ops: [{ op: 'replaceText', paragraph: 0, find, replace }], readToken });
+  await agent.apply(replace('morning', 'early sunrise'));
+  const doc = await agent.inspect({ checkEdit: replace('evening', 'sunset') });
+  const ref = agent.modelEditRange(doc, { paragraph: 0, find: 'evening', readToken });
+  assert.equal(ref.anchor.start, 'early sunrise / '.length);
+  await agent.apply(replace('evening', 'sunset'));
+  assert.equal(fake.doc[0].text, 'early sunrise / sunset');
+  await assert.rejects(agent.apply(replace('morning', 'stale')), { code: 'source-changed' });
+  await assert.rejects(agent.apply({ ops: [{ op: 'deleteParagraph', paragraph: 1 }], readToken }), { code: 'source-changed' });
+});
+
 test('a stale readToken is refused on the page before any step', async () => {
   const fake = fakeWord({ paragraphs: ['旧'] });
   const { agent } = agentFor(fake);
@@ -427,9 +455,19 @@ test('v1.1: each step selects before writing; new paragraphs grow in parts, up t
     'select 0 after 已有', 'write 0 A1', 'select 1 after A1', 'write 1 B1', 'select 2 after B1', 'write 2 C1',
     'write 0 A1A2', 'write 1 B1B2', 'write 2 C1C2', 'done 0', 'done 1', 'done 2',
     'select 3 after C1C2', 'write 3 D1', 'write 3 D1D2', 'done 3',
-    'select 4', 'done 4',
+    'select 4', 'write 4 改', 'done 4',
   ], 'a fourth paragraph waits for the first three; another kind of step finishes them first');
   assert.deepEqual(fake.doc.map(item => item.text), ['改', 'A1A2', 'B1B2', 'C1C2', 'D1D2']);
+});
+
+test('a substring replacement reports only the old and new character spans, in code points', async () => {
+  const fake = fakeWord({ paragraphs: ['🙂开始这里结束'] });
+  const doc = await readOf(fake);
+  const { steps } = validateDocxOps([{ op: 'replaceText', paragraph: 0, find: '这里', replace: '了' }], doc);
+  const ranges = [];
+  const capture = (_, target) => ranges.push([target.block, target.text, target.start, target.end]);
+  await runDocxSteps(fake.Word, steps, doc, { onSelect: capture, onWrite: capture });
+  assert.deepEqual(ranges, [[0, '🙂开始这里结束', 3, 5], [0, '🙂开始了结束', 3, 4]]);
 });
 
 test('v1.1: stopping while paragraphs grow counts only the finished ones and names the one left half written', async () => {

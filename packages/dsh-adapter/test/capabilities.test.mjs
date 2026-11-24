@@ -77,7 +77,7 @@ async function packageDir({ listed = true, withFile = true } = {}) {
 
 test('packaging stamps the version, the channel and this version\'s highlights; promotion re-stamps only those', async () => {
   const notes = await readJson(join(adapter, 'whats-new.json'));
-  // The committed CHANGELOG's only section is 0.0.1-rc.1: that build takes its (Chinese) points.
+  // The first public release section is 0.0.1-rc.1: that build takes its (Chinese) points.
   const released = notes.entries.find(entry => entry.version === '0.0.1-rc.1')?.highlights ?? [];
   assert.equal(released.length, 2, '0.0.1-rc.1 has two highlights');
   // A 未发布 section goes to whichever version is built from it (a test build takes its release's, 0.0.50-test.3 → 0.0.50).

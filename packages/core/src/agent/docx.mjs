@@ -88,6 +88,40 @@ export function checkDocxToken(ops, doc, readToken) {
   if (readToken !== docxReadToken(doc)) throw new SuiteError('source-changed', 'The document changed since it was read (the user may have edited it). Read it again with document_read and build the edit on that.');
 }
 
+// Keep read revisions inside this editor instance. Only simple text operations can use a
+// previous revision, and only when the addressed passage can still be identified.
+export function createDocxReadHistory() {
+  const reads = new Map();
+  function remember(doc) {
+    const token = docxReadToken(doc);
+    reads.delete(token);
+    reads.set(token, { paragraphs: doc.paragraphs.map(p => ({ text: p.text, table: !!p.table })), tables: doc.tables?.length ?? 0 });
+    if (reads.size > 16) reads.delete(reads.keys().next().value);
+    return token;
+  }
+  function check(ops, doc, token) {
+    const before = reads.get(token);
+    if (before && before.paragraphs.length === doc.paragraphs.length && before.tables === (doc.tables?.length ?? 0) &&
+        ops?.length && Array.isArray(ops) && ops.every(op => targetUnchanged(op, before.paragraphs, doc.paragraphs))) return;
+    checkDocxToken(ops, doc, token);
+  }
+  return { remember, check };
+}
+
+function targetUnchanged(op, previous, current) {
+  if (!op || !['setText', 'replaceText'].includes(op.op) || !Number.isInteger(op.paragraph)) return false;
+  const index = op.paragraph, old = previous[index], live = current[index];
+  if (!old || !live || old.table || live.table) return false;
+  if (old.text === live.text) return true;
+  if (op.op !== 'replaceText' || !op.find || typeof op.find !== 'string') return false;
+  // A unique match entirely inside an unchanged prefix or suffix survives an edit
+  // elsewhere in this paragraph. A moved, ambiguous or overwritten match needs a new read.
+  const find = op.find, a = old.text.indexOf(find), b = live.text.indexOf(find);
+  if (a < 0 || b < 0 || a !== old.text.lastIndexOf(find) || b !== live.text.lastIndexOf(find)) return false;
+  return old.text.slice(0, a) === live.text.slice(0, b) ||
+    old.text.slice(a + find.length) === live.text.slice(b + find.length);
+}
+
 function formatOf(op, index) {
   const format = {};
   for (const key of FORMAT_KEYS) if (op[key] !== undefined) format[key] = op[key];

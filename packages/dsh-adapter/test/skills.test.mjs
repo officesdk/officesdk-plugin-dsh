@@ -52,21 +52,21 @@ test('261109: the docx skill writes red letterhead live and keeps the script for
   assert.doesNotMatch(docx, /要红头（发文机关标志、红线、发文字号、版记）/, 'red letterhead is no longer a reason to go offline');
 });
 
-test('skill versions follow the plugin rule (shimo-pptx 0.0.9, shimo-docx 0.0.5) and the old names are gone from the shipped skills', () => {
-  const versions = { 'shimo-pptx': '0.0.9', 'shimo-docx': '0.0.5' };
+test('skill versions follow the plugin rule (shimo-pptx 0.0.10, shimo-docx 0.0.6) and the old names are gone from the shipped skills', () => {
+  const versions = { 'shimo-pptx': '0.0.10', 'shimo-docx': '0.0.6' };
   assert.deepEqual(Object.keys(versions).toSorted(), [...SKILL_NAMES].toSorted());
   for (const name of SKILL_NAMES) assert.match(readFileSync(join(ROOT, name, 'SKILL.md'), 'utf8'), new RegExp(`\\n {2}version: ${versions[name].replaceAll('.', '\\.')}\\n`), name);
-  // The live way builds in batches of new slides drawn together, no longer one call per slide.
+  // Plan the whole deck before page content is available.
   const pptx = readFileSync(join(ROOT, 'shimo-pptx', 'SKILL.md'), 'utf8');
-  assert.match(pptx, /最多新建 4 页/);
-  assert.match(pptx, /封面单独一次/);
+  assert.match(pptx, /确定页数后立即新建/);
+  assert.match(pptx, /completedSlideIds/);
   assert.match(pptx, /整批撤回/);
   assert.doesNotMatch(pptx, /一页一次调用|每页一次/);
   // The chat keeps a short result; the slides keep content only; city pictures go full width, not into 312×270.
   assert.match(pptx, /不要往聊天里写进度/);
   assert.match(pptx, /只回两三句/);
   assert.match(pptx, /不要贴 `sources\.md` 全文/);
-  assert.match(pptx, /同时给 `title` 和 `subtitle`/);
+  assert.match(pptx, /标题和副标题占位符/);
   assert.match(pptx, /每行 2–6 个汉字/);
   assert.match(pptx, /内容页的页标题只占一行/, 'two-line titles are for the large title boxes only');
   assert.match(pptx, /default 样式里城市、风景这类横图用全幅图文/, 'photo-statement is a default slot');

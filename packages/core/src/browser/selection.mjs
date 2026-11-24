@@ -6,6 +6,9 @@
  */
 export const SELECTION_TIMING = Object.freeze({ leadMs: 150, dragMs: 500, tailMs: 200 });
 
+// Tracks are appended independently. Every cursor (arrow and label) paints above every selection.
+export const AGENT_LAYER = Object.freeze({ selection: '2147483646', cursor: '2147483647' });
+
 export const smoothstep = value => { const p = Math.max(0, Math.min(1, value)); return p * p * (3 - 2 * p); };
 
 /**

@@ -1,4 +1,5 @@
 import { runningOf } from './style-flows.mjs';
+import { documentQuoteSummary } from './document-context.mjs';
 
 /**
  * Selection rewrite, the DSH side (spec 261109-selection-ai-edit §3.3). The editor page asks for a rewrite of the user's
@@ -23,6 +24,7 @@ export function composerState(entry) {
 export function createComposerRegistry() {
   const entries = new Map();
   const listeners = new Set();
+  const entriesChanged = new Set();
   const changed = sessionId => { for (const listener of listeners) listener(sessionId); };
   return {
     get: sessionId => entries.get(sessionId)?.at(-1),
@@ -31,10 +33,12 @@ export function createComposerRegistry() {
     set(sessionId, token, entry) {
       const list = entries.get(sessionId) ?? [];
       const at = list.findIndex(item => item.token === token);
-      const before = JSON.stringify(composerState(list.at(-1)));
+      const prev=list.at(-1);
+      if (prev?.token===token && Object.keys(entry).every(key=>entry[key]===prev[key])) return;
       if (at >= 0) list[at] = { ...entry, token }; else list.push({ ...entry, token });
       entries.set(sessionId, list);
-      if (JSON.stringify(composerState(list.at(-1))) !== before) changed(sessionId);
+      for (const listener of entriesChanged) listener(sessionId);
+      if (JSON.stringify(composerState(prev)) !== JSON.stringify(composerState(list.at(-1)))) changed(sessionId);
     },
     remove(sessionId, token) {
       const list = entries.get(sessionId);
@@ -42,8 +46,10 @@ export function createComposerRegistry() {
       if (at < 0) return;
       list.splice(at, 1);
       if (!list.length) entries.delete(sessionId);
+      for (const listener of entriesChanged) listener(sessionId);
       changed(sessionId);
     },
+    subscribeEntries(listener) { entriesChanged.add(listener); return () => entriesChanged.delete(listener); },
     subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
   };
 }
@@ -51,20 +57,23 @@ export function createComposerRegistry() {
 /** The hidden slot component: keeps this input box's entry current. */
 export function createComposerProbe({ React, registry }) {
   const { useEffect, useRef } = React;
-  return function SelectionComposer({ sessionId, inputActions, useInput, useSessionStatus, session, input: zoneInput }) {
-    const token = useRef(undefined);
+  return function SelectionComposer({ sessionId, inputActions, useInput, useSessionStatus, useProjection, useChat, session, input: zoneInput }) {
+    const token = useRef(undefined), marker=useRef(null);
     token.current ??= {};
     const input = useInput?.(value => value) ?? zoneInput;
     const running = runningOf({ sessionId, useSessionStatus, session });
     const draft = typeof input?.draft === 'string' ? input.draft : '';
+    const title = useProjection?.('title') ?? '';
+    const snapshot = useChat?.(value=>value);
+    const chat = snapshot?.legacy;
     const attachments = Array.isArray(input?.attachmentIds) ? input.attachmentIds.length : 0;
     useEffect(() => {
-      if (!sessionId) return undefined;
-      registry.set(sessionId, token.current, { actions: inputActions, draft, attachments, running });
+      if (!sessionId || marker.current?.closest('.office-chat-decisions')) return undefined;
+      registry.set(sessionId, token.current, { actions: inputActions, draft, attachments, running, title, chat, snapshot });
       return undefined;
     });
     useEffect(() => () => { if (sessionId) registry.remove(sessionId, token.current); }, [sessionId]);
-    return null;
+    return React.createElement('span',{ref:marker,hidden:true});
   };
 }
 
@@ -84,7 +93,96 @@ export async function handleSelectionRequest({ controller, message, registry, la
   const entry = registry.get(sessionId);
   const state = composerState(entry);
   const draftOnly = message.draftOnly === true;
+  const reportFailure = error => controller.set?.({parallelError:error?.message || (typeof error==='string' && error) || (lang==='en'?'Could not send. Please try again.':'发送失败，请重试。')});
+  if (controller.state?.parallelError) controller.set?.({parallelError:undefined});
   if (!entry || state.reason === 'no-composer') return reply({ ok: false, reason: 'no-composer' });
+  if (message.kind === 'region-batch') {
+    const parallel = message.parallel === true || state.reason === 'running';
+    const ownsDraft = current => message.fromChat === true && !current?.attachments && current?.draft?.trim() === message.instruction;
+    if (!state.canSend && !parallel && !ownsDraft(entry)) return reply({ ok: false, reason:state.reason });
+    const instruction = String(message.instruction ?? '').trim();
+    const refs = message.references;
+    if (!instruction || instruction.length>500 || !Array.isArray(refs) || refs.length!==1) return reply({ok:false, reason:'failed'});
+    const ids = [], parts = [];
+    let wrote = false;
+    const cleanup = () => Promise.allSettled(ids.map(item=>controller.call('selectionUpdate',{id:item.id,selectionState:'cancelled'})));
+    const path = controller.source.path;
+    try {
+      for (const ref of refs) {
+        if (ref.kind==='document-context') { parts.push(String(ref.original).slice(0,2000)); continue; }
+        const created = await controller.call('selectionCreate',{path, selectionRequest:{
+          kind:ref.kind,anchor:ref.anchor,original:ref.original,trackRange:true,...(ref.cells && {cells:ref.cells}),instruction
+        },selectionLanguage:lang});
+        if (!created?.id || !created.message) throw new Error('Missing selection');
+        ids.push({number:ref.number,id:created.id});
+        parts.push(created.message);
+      }
+      if ((parallel || registry.get(sessionId)?.running) && ids.length===1) {
+        const id=ids[0].id;
+        controller.set?.({parallelError:undefined});
+        await reply({ok:true,ids,independent:true});
+        try {
+          const result=await controller.call('selectionParallel',{id});
+          if (result?.error) {
+            reportFailure(result.error);
+            await cleanup();
+            await reply({dropped:id});
+          }
+        } catch (error) {
+          await cleanup();
+          const missingRoute = /\/shimoPreview\/selectionParallel.*HTTP 404\b/i.test(error.message ?? '');
+          const detail = missingRoute
+            ? (lang === 'en' ? 'Restart DSH to load parallel editing, then select this passage and send again.' : '请重启 DSH 以加载并行编辑，再选中这段文字重新发送。')
+            : error.message;
+          controller.set?.({parallelError:detail});
+          await reply({dropped:id});
+        }
+        return;
+      }
+      if (!composerState(registry.get(sessionId)).canSend && !ownsDraft(registry.get(sessionId))) { await cleanup(); return reply({ok:false,reason:'draft'}); }
+      const target = lang==='en' ? 'Editing target: '+path : '编辑目标：'+path;
+      const quote = [target,...parts].join('\n\n');
+      const label = refs.map(r=>Array.isArray(r.original)?r.original.join(' · '):r.original).filter(Boolean).join(' · ') || path;
+      entry.actions.setDraft(instruction);
+      if (!entry.actions.insertQuote?.(quote,documentQuoteSummary(quote,path,label))) entry.actions.setDraft([quote,instruction].join('\n\n'));
+      wrote = true;
+      await new Promise(resolve=>defer(resolve));
+      const submitted=entry.actions.submit();
+      void Promise.resolve(submitted).catch(async error => {
+        reportFailure(error);
+        await cleanup();
+        for(const item of ids) void controller.agent('selectionStatus',{requestId:message.requestId,dropped:item.id}).catch(()=>{});
+      });
+      return reply({ok:true,ids});
+    } catch (error) {
+      reportFailure(error);
+      await cleanup();
+      if (wrote) entry.actions.setDraft(entry.draft ?? '');
+      return reply({ok:false,reason:'failed'});
+    }
+  }
+  if (message.kind === 'document-context') {
+    const instruction = typeof message.instruction === 'string' && message.instruction.length <= 500 ? message.instruction.trim() : '';
+    if (!instruction) return reply({ ok: false, reason: 'failed' });
+    if (state.reason === 'running') return reply({ ok: false, reason: 'running' });
+    const path = controller.source.path;
+    const name = lang === 'en' ? `Editing target: ${path}` : `编辑目标：${path}`;
+    const selected = typeof message.original === 'string' ? message.original.slice(0, 2_000).trim() : '';
+    const target = selected ? `${name}\n${selected}` : name;
+    try {
+      if (!state.canSend || draftOnly) {
+        const position = entry.actions.captureInsertion?.();
+        const prompt = `\n${target}\n${instruction}`;
+        if (!position || !entry.actions.insertText?.(prompt, position)) return reply({ ok: false, reason: 'draft' });
+        return reply({ ok: true, drafted: true });
+      }
+      entry.actions.setDraft(instruction);
+      if (!entry.actions.insertQuote?.(target, documentQuoteSummary(target, path, path))) entry.actions.setDraft(`${target}\n${instruction}`);
+      await new Promise(resolve => defer(resolve));
+      void Promise.resolve(entry.actions.submit()).catch(reportFailure);
+      return reply({ ok: true });
+    } catch { return reply({ ok: false, reason: 'failed' }); }
+  }
   if (!draftOnly && !state.canSend) return reply({ ok: false, reason: state.reason });
   const { kind, anchor, original, cells, instruction } = message;
   let created;
@@ -112,7 +210,8 @@ export async function handleSelectionRequest({ controller, message, registry, la
   // DSH's submit settles only when the turn it starts is over: the page hears at once, so the user can still cancel
   // while the model works. A send that fails later cancels the selection (the model never got it), and the page takes
   // its waiting mark down.
-  void Promise.resolve(submitted).catch(() => {
+  void Promise.resolve(submitted).catch(error => {
+    reportFailure(error);
     cancel();
     void controller.agent('selectionStatus', { dropped: created.id }).catch(() => {});
   });
@@ -124,6 +223,8 @@ export function pushComposerState(controllers, registry, sessionId) {
   const state = registry.state(sessionId);
   for (const controller of controllers) {
     if (controller.source?.sessionId !== sessionId || !controller.state?.ready || controller.state.mode !== 'edit') continue;
-    void controller.agent('composer', state).catch(() => {});
+    const chatEdit=state.reason==='running'?controller.pendingChatEdit:undefined;
+    if(chatEdit)controller.pendingChatEdit=undefined;
+    void controller.agent('composer', chatEdit?{...state,chatEdit}:state).catch(() => {});
   }
 }

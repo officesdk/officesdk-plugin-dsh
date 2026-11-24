@@ -149,6 +149,15 @@ test('tools: document_* call the service with the agent Session and pass readTok
   assert.match(edit.description, /never change the file with any other tool/);
 });
 
+test('a targeted Word read conveys its passage from the model tool through the host without an edit', async t => {
+  const {service,client}=await load(t),tools=new Map();
+  applyTools({tools:{register:tool=>tools.set(tool.name,tool)},shimoPreview:service,get:()=>undefined});
+  const editTarget={paragraph:3,find:'原文',readToken:'revision'};
+  const result=tools.get('document_read').execute({path:'draft.docx',editTarget},{agent:{session:{id:'s1'}},callId:'target-read'});
+  const command=await client(()=>({ok:true,result:{document:{readToken:'revision'}}}));
+  assert.equal(command.kind,'read');assert.deepEqual(command.editTarget,editTarget);
+  assert.equal(command.callId,'target-read');assert.equal((await result).document.readToken,'revision');
+});
 /** A tab for a Word document: inspect gives `doc`, apply answers what the page would. */
 function wordController({ doc = { paragraphs: [{ text: '旧' }], tables: [] }, approve = true, apply } = {}) {
   const calls = [];
@@ -187,6 +196,17 @@ test('client: a Word read is summarised with numbers and a readToken, and record
   assert.equal(result.format, 'docx');
   assert.deepEqual(views.get(callKey('c1')), { outline: { paragraphs: 2, tables: 1, first: '通知' }, unsaved: false });
   assert.deepEqual(documentOutline({ paragraphs: [{ text: ' ' }, { text: 'x'.repeat(90) }] }).first.length, 80);
+});
+
+test('declaring a located passage returns just that passage at its document index', async () => {
+  const doc = { paragraphs: [{ text: 'Other passage' }, { text: 'Located passage' }], tables: [] };
+  const { bridge, replies } = bridgeFor(wordController({ doc }));
+  const editTarget = { paragraph: 1, readToken: docxReadToken(doc) };
+  await bridge.serve('s1', { requestId: 'r1', kind: 'read', path: 'a.docx', editTarget });
+  const { document } = replies[0].result;
+  assert.deepEqual(document.paragraphs, [{ index: 1, text: 'Located passage' }]);
+  assert.equal(document.scope, 'editTarget');
+  assert.equal(document.readToken, editTarget.readToken);
 });
 
 test('client: a Word edit shows the document card, applies with the readToken, and a decline never applies', async () => {

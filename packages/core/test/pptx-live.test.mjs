@@ -406,7 +406,7 @@ test('Kit agent (v1.1): new slides are filled page by page, each selected in tur
   assert.ok(failing.calls.some(call => call[0] === 'addSlide'), 'it had written before it failed');
 });
 
-test('the agent cursor says what it does; a chart is outlined on its edge, a background change and a deleted slide outline the whole slide', async () => {
+test('the agent cursor says what it does; objects are outlined on their edges, a background change and a deleted slide outline the whole slide', async () => {
   const deck = { slides: [
     { id: 's1', shapes: [{ id: 'x', type: 'TextBox', text: '旧', left: 10, top: 10, width: 100, height: 20 }, { id: 'c', type: 'Chart', left: 10, top: 60, width: 200, height: 120 }] },
     { id: 's2', shapes: [] },
@@ -428,10 +428,10 @@ test('the agent cursor says what it does; a chart is outlined on its edge, a bac
   await runSteps(pp.api, steps, { animate: true, wait: async () => {}, overlay: tracked, document: {}, typing: 'overlay', labels: LABELS.zh, geometryOf: (slideId, shapeId) => shapes.get(`${slideId}/${shapeId}`) });
   const shown = framed.filter(([target]) => target).map(([target, text, kind]) => [target.whole ? `${target.slideId} whole` : `${target.slideId} ${target.geometry.left}`, text, kind]);
   assert.deepEqual(shown, [
-    ['s1 10', 'Agent · 修改中', 'text'],
     ['s1 10', 'Agent · 修改中', 'edge'],
-    ['s1 1', 'Agent · 新增中', 'text'],
-    ['s1 10', 'Agent · 删除中', 'text'],
+    ['s1 10', 'Agent · 修改中', 'edge'],
+    ['s1 1', 'Agent · 新增中', 'edge'],
+    ['s1 10', 'Agent · 删除中', 'edge'],
     ['s1 whole', 'Agent · 修改中', 'edge'],
     ['s2 whole', 'Agent · 删除中', 'edge'],
   ]);

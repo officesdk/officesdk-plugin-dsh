@@ -14,7 +14,7 @@
 | `body` | 结束页 | 主色底，细横线，左下大字 THANKS（与封面标题同一框） |
 | 无 | 空白 | 白底空页；`photo-statement` 先把本页背景设成主色 |
 
-用版式的 `id` 作为 `addSlide.layout`。下面的版式和位置也在 `presentation_create` 返回的 `style.layouts` 里（`layouts` 是各版式占位符的位置，`slots` 是常用的文字区和图片框，单位 pt），两处出自同一份 `layouts.json`。常用位置：
+新建时用 `slideLayouts` 指定各页角色。创建返回的每一页已带有所选模板的占位符，用形状 ID 填写。下面的版式和位置也在 `presentation_create` 返回的 `style.layouts` 里（`layouts` 是各版式占位符的位置，`slots` 是常用的文字区和图片框，单位 pt），两处出自同一份 `layouts.json`。常用位置：
 
 | 元素 | left, top, width, height |
 |---|---|

@@ -25,12 +25,12 @@ export class SelectionStore {
   }
 
   /** A new pending selection; the oldest ones go beyond `maxPerSession`. */
-  create(sessionId, { path, realPath, name, request }) {
+  create(sessionId, { path, realPath, name, request, lang = 'zh' }) {
     const records = this.sweep(sessionId);
     this.bySession.set(sessionId, records);
     let id;
     do id = `sel-${this.random()}`; while (records.has(id));
-    const record = { id, sessionId, path, realPath, name, request, state: 'pending', createdAt: this.now() };
+    const record = { id, sessionId, path, realPath, name, request, lang, state: 'pending', createdAt: this.now() };
     records.set(id, record);
     while (records.size > this.maxPerSession) records.delete(records.keys().next().value);
     return record;
@@ -74,7 +74,7 @@ export class SelectionStore {
   /** Another edit landed on `realPath`: the selections still waiting there no longer hold what the user selected. */
   staleFor(sessionId, realPath) {
     let count = 0;
-    for (const record of this.sweep(sessionId).values()) if (record.state === 'pending' && record.realPath === realPath) { record.state = 'stale'; count++; }
+    for (const record of this.sweep(sessionId).values()) if (record.state === 'pending' && !record.tracked && record.realPath === realPath) { record.state = 'stale'; count++; }
     return count;
   }
 }

@@ -77,6 +77,20 @@ test('presentation_create ends the Session\'s style recommendation: the strip ha
   assert.equal(service.styleSuggestions.bySession.has('s1'), false);
 });
 
+test('a slide plan reaches the opening tab before the first content batch', async t => {
+  const { service, client, created } = await load(t);
+  await assert.rejects(service.aiCreate('s1',{path:'bad.pptx',slideCount:2,slideLayouts:['cover']}), {code:'invalid-edit'});
+  assert.equal(created.length,0);
+  const opening = service.aiCreate('s1',{path:'planned.pptx',slideCount:2,slideLayouts:['cover','closing']});
+  const open = await client(() => read);
+  assert.deepEqual([open.kind,open.slideCount,open.slideLayouts],['read',2,['cover','closing']]);
+  await opening;
+  const writing = service.aiEdit('s1',{path:'planned.pptx',ops:[{op:'setText',slideId:'s1',shapeId:'title',text:'Title'}],completedSlideIds:[]});
+  const edit = await client(() => applied);
+  assert.deepEqual(edit.completedSlideIds,[]);
+  await writing;
+});
+
 test('presentation_create writes a style pack template, opens it, and the file is generated without a card per batch', async t => {
   const { service, workspace, created, client } = await load(t);
   const creating = service.aiCreate('s1', { path: 'new.pptx' });
@@ -239,8 +253,8 @@ test('tools: presentation_create calls the Host with the agent Session and asks 
   const service = { aiCreate: async (sessionId, args, { approve }) => { calls.push([sessionId, args]); return { outcome: await approve('create it') }; } };
   applyTools({ tools: { register: tool => tools.set(tool.name, tool) }, shimoPreview: service, get: name => name === 'approval' ? { request: async request => { asked.push(request); return 'allowed-once'; } } : undefined });
   const exec = { agent: { session: { id: 's9' } }, name: 'presentation_create', callId: 'c1', signal: new AbortController().signal };
-  assert.deepEqual(await tools.get('presentation_create').execute({ path: '/far/a.pptx' }, exec), { outcome: 'allowed-once' });
-  assert.deepEqual(calls, [['s9', { path: '/far/a.pptx', style: undefined }]], 'no style is left for the Host to choose (the workspace default)');
+  assert.deepEqual(await tools.get('presentation_create').execute({ path: '/far/a.pptx', slideCount: 6 }, exec), { outcome: 'allowed-once' });
+  assert.deepEqual(calls, [['s9', { path: '/far/a.pptx', style: undefined, slideCount: 6 }]], 'no style is left for the Host to choose (the workspace default)');
   const create = tools.get('presentation_create');
   assert.doesNotMatch(create.parameters.properties.style.description, /default "default"/);
   assert.match(create.description, /Pass it only when the user named a style/);
@@ -249,9 +263,9 @@ test('tools: presentation_create calls the Host with the agent Session and asks 
   const edit = tools.get('presentation_edit');
   assert.ok(!edit.parameters.properties.operations.items.properties.op.enum.includes('addTable'), 'tables stay held back (K6)');
   assert.ok(edit.parameters.properties.operations.items.properties.op.enum.includes('addImage'));
-  assert.match(edit.description, /at most 4 new slides/);
-  assert.match(edit.description, /cover alone first/);
-  for (const tool of [create, edit]) assert.match(tool.description, /do not narrate progress in the chat/);
+  assert.match(edit.description, /at most 200 operations and 4 new slides/i);
+  assert.match(edit.description, /sorter/);
+  for (const tool of [create, edit]) assert.match(tool.description, /without narrating progress/);
   assert.match(edit.description, /whole or not at all/);
   assert.doesNotMatch(edit.description, /once per slide/);
 });

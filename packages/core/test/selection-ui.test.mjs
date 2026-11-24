@@ -1,201 +1,233 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SELECTION_TEXTS, createSelectionFeature, isSend, isShortcut, placeNear } from '../src/browser/selection-ui.mjs';
-import { replaceInParagraph } from '../src/browser/selection-edit.mjs';
+import { createSelectionFeature, isSend, isShortcut, SELECTION_TEXTS } from '../src/browser/selection-ui.mjs';
+import { docxReadToken } from '../src/agent/docx.mjs';
+import { modelEditRange, replaceInParagraph } from '../src/browser/selection-edit.mjs';
 import { textChunks } from '../src/browser/selection.mjs';
 
-/** The drawing, recorded: what is shown and the handlers the feature installs. */
-function fakeUi() {
-  const ui = { handlers: {}, texts: SELECTION_TEXTS.zh, calls: [], chipShown: false, panelOpen: false, resultShown: false, pending: undefined, hintText: undefined, draftOffered: false, resultText: undefined };
-  Object.assign(ui, {
-    owns: target => target === 'ui',
-    showChip(point, options = {}) { ui.chipShown = true; ui.chip = { point, ...options }; ui.calls.push('chip'); },
-    hideChip() { ui.chipShown = false; },
-    openPanel() { ui.panelOpen = true; ui.chipShown = false; ui.hintText = undefined; ui.calls.push('panel'); },
-    closePanel() { ui.panelOpen = false; },
-    busy(on) { ui.busyNow = on; },
-    hint(text, { draft = false } = {}) { ui.hintText = text; ui.draftOffered = draft; },
-    showPending(box) { ui.pending = box; },
-    showResult(point, text = SELECTION_TEXTS.zh.done) { ui.resultShown = true; ui.resultText = text; },
-    hideResult() { ui.resultShown = false; },
-    dispose() { ui.disposed = true; },
-  });
-  return ui;
-}
-function fakeDocument() {
-  const listeners = [];
-  return {
-    listeners,
-    addEventListener: (type, run) => listeners.push({ type, run }),
-    removeEventListener: (type, run) => { const at = listeners.findIndex(item => item.type === type && item.run === run); if (at >= 0) listeners.splice(at, 1); },
-    fire(type, event = {}) { const full = { type, target: 'doc', preventDefault() { full.prevented = true; }, stopImmediatePropagation() {}, ...event }; for (const item of listeners.filter(entry => entry.type === type)) item.run(full); return full; },
-  };
-}
-/** Timers run by hand. */
-function clock() {
-  const timers = new Map(); let next = 1;
-  return { schedule: (run, ms) => { timers.set(next, { run, ms }); return next++; }, unschedule: id => timers.delete(id), async flush(max = Infinity) { for (const [id, timer] of [...timers]) if (timer.ms <= max) { timers.delete(id); await timer.run(); } await new Promise(resolve => setImmediate(resolve)); } };
-}
-const SELECTION = { kind: 'docx', anchor: { paragraphs: [1, 1], start: 0, end: 3 }, original: '第一句', view: { first: 1, texts: ['第一句。第二句。'] } };
-
-function setup({ selection = SELECTION, agent: extra = {} } = {}) {
-  const ui = fakeUi(), document = fakeDocument(), time = clock(), sent = [];
-  const agent = { applying: false, readSelection: async () => selection, locate: () => ({ left: 10, top: 20, width: 100, height: 20 }), rewriteSelection: async () => ({ reply: { applied: true }, revert: { anchor: 'after' }, located: {} }), revertSelection: async () => {}, ...extra };
-  const feature = createSelectionFeature({ ui, agent, document, window: {}, notify: (event, payload) => sent.push({ event, ...payload }), schedule: time.schedule, unschedule: time.unschedule });
-  return { ui, document, time, sent, agent, feature };
+function setup() {
+  const ui = { handlers:{},texts:SELECTION_TEXTS.zh,render(state){this.state=structuredClone(state);},showChip(point){this.point=point;},hideChip(){},openPanel(){},closePanel(){},busy(){},hint(){},dispose(){} };
+  const win={setTimeout,clearTimeout,addEventListener(){},removeEventListener(){},innerHeight:600};
+  const doc={addEventListener(){},removeEventListener(){}};
+  const selected={kind:'docx',anchor:{paragraphs:[0,0],start:0,end:3},original:'测试字',box:{left:20,top:50,width:30,height:10}};
+  const events=[],writes=[];
+  const agent={readSelection:async()=>selected,rewriteSelection:async args=>{writes.push(args);return {reply:{applied:true}};}};
+  const feature=createSelectionFeature({ui,agent,window:win,document:doc,notify:(name,data)=>events.push({name,data})});
+  return {feature,ui,selected,events,writes,agent};
 }
 
-test('a selection shows the button; it opens the box; Esc and the box closing send nothing', async () => {
-  const { ui, document, time, sent } = setup();
-  document.fire('pointerup', { clientX: 300, clientY: 200 });
-  await time.flush();
-  assert.equal(ui.chipShown, true);
-  assert.deepEqual(ui.chip.point.x, 300);
+test('submitted Word work belongs to this request from send to its matching answer, including before the acknowledgement', async () => {
+  const {feature,ui,selected,events,agent} = setup();
+  let disposed=0, passed;
+  const handle={dispose(){disposed++;}};
+  agent.beginSelectionWork=()=>handle;
+  agent.rewriteSelection=async (_args,_signal,work)=>{passed=work;return {reply:{applied:true}};};
+  await feature.refresh();ui.handlers.open();ui.handlers.submit('扩写');
+  const request=events.at(-1).data;
+  await feature.rewrite({...selected,id:'unrelated',original:'其他原文'});
+  assert.equal(passed,undefined);
+  assert.equal(disposed,0);
+  await feature.rewrite({...selected,id:'sel-0000000a'});
+  assert.equal(passed,handle);
+  assert.equal(disposed,1);
+  feature.status({requestId:request.requestId,ok:true,ids:[{number:request.references[0].number,id:'sel-0000000a'}]});
+  assert.equal(ui.state.pending.length,0);
+  feature.dispose();assert.equal(disposed,1);
+});
+
+test('an idle snapshot during dispatch keeps the placeholder, and a completed turn without a rewrite removes it', async () => {
+  const {feature,ui,agent,events}=setup();
+  let disposed=0;
+  agent.beginSelectionWork=()=>({dispose(){disposed++;}});
+  await feature.refresh();ui.handlers.open();ui.handlers.submit('润色');
+  const request=events.at(-1).data;
+  feature.composer({canSend:true});
+  feature.status({requestId:request.requestId,ok:true,ids:[{number:request.references[0].number,id:'sel-0000000b'}]});
+  feature.composer({canSend:false,reason:'running'});
+  feature.composer({canSend:false,reason:'no-composer'});
+  assert.equal(disposed,0);
+  feature.composer({canSend:true});
+  assert.equal(disposed,1);assert.equal(ui.state.pending.length,0);
+  assert.ok(events.some(({name,data})=>name==='selection-update' && data.selection==='sel-0000000b' && data.state==='cancelled'));
+});
+
+test('local edit sends only the latest confirmed selection and consumes it after sending', async () => {
+  const {feature,ui,selected,events} = setup();
+  await feature.refresh();
+  assert.deepEqual(ui.point,{x:35,y:50});
   ui.handlers.open();
-  assert.equal(ui.panelOpen, true);
+  ui.handlers.draft('缩短');
+  selected.anchor = {paragraphs:[1,1],start:0,end:3};
+  selected.original = '另一处';
+  await feature.refresh();
+  ui.handlers.open();
+  assert.equal(ui.state.draft,'');
+  ui.handlers.submit('');
+  assert.ok(!events.some(e => e.name === 'selection-request'));
+  ui.handlers.draft('扩写');
+  ui.handlers.submit('扩写');
+  const request = events.at(-1).data;
+  assert.equal(request.instruction,'扩写');
+  assert.deepEqual(request.references.map(r => r.original),['另一处']);
+  assert.deepEqual(request.references[0].anchor,selected.anchor);
+  feature.status({requestId:request.requestId,ok:true,ids:[{number:request.references[0].number,id:'sel-00000002'}]});
+  assert.equal(ui.state.pending[0].id,'sel-00000002');
+  assert.equal(ui.state.draft,'');
+  ui.handlers.submit('下一条输入');
+  assert.equal(events.filter(e => e.name === 'selection-request').length,1);
+});
+
+test('cancel and remount detach the range, including old multi-region drafts', async () => {
+  const {feature,ui,selected,events} = setup();
+  await feature.refresh();
+  ui.handlers.open();
+  ui.handlers.draft('简化');
+  const snapshot = events.at(-1).data.draftState;
+  assert.deepEqual(snapshot.references,[]);
   ui.handlers.close();
-  assert.equal(ui.panelOpen, false);
-  // An empty request is not sent either.
+  ui.handlers.submit('简化');
+  assert.ok(!events.some(e => e.name === 'selection-request'));
+  const next = setup();
+  assert.equal(snapshot.draft,'');
+  next.feature.hydrate({state:{...snapshot,draft:'旧指令',references:[{...selected,number:1},{...selected,number:2}]}});
+  assert.equal(next.ui.state.draft,'');
+  assert.deepEqual(next.ui.state.references,[]);
+  next.ui.handlers.submit('简化');
+  assert.ok(!next.events.some(e => e.name === 'selection-request'));
+  assert.ok(isSend({key:'Enter'}) && !isSend({key:'Enter',shiftKey:true}) && !isSend({key:'Enter',keyCode:229}) && !isSend({key:'Enter',isComposing:true}));
+  assert.ok(isShortcut({key:'J',metaKey:true}));
+});
+
+test('a host refresh and a failed dispatch preserve the current instruction for retry', async () => {
+  const {feature,ui,events,agent} = setup();
+  agent.beginSelectionWork = () => ({dispose(){}});
+  await feature.refresh();
   ui.handlers.open();
-  await ui.handlers.submit('   ');
-  assert.deepEqual(sent, []);
+  const snapshot = events.at(-1).data.draftState;
+  ui.handlers.draft('扩写当前句');
+  feature.hydrate({state:{...snapshot,draft:'过期指令'}});
+  assert.equal(ui.state.draft,'扩写当前句');
+  ui.handlers.submit(ui.state.draft);
+  feature.status({requestId:events.at(-1).data.requestId,ok:false,reason:'failed'});
+  feature.hydrate({state:snapshot});
+  assert.equal(ui.state.draft,'扩写当前句');
+  ui.handlers.submit(ui.state.draft);
+  assert.equal(events.at(-1).data.instruction,'扩写当前句');
 });
 
-test('⌘J opens the box only while a selection can be rewritten; Enter during IME composition does not send', async () => {
-  const { ui, document, time } = setup();
-  assert.equal(document.fire('keydown', { key: 'j', metaKey: true }).prevented, undefined, 'no selection yet: the editor keeps the key');
-  document.fire('pointerup', { clientX: 1, clientY: 1 });
-  await time.flush();
-  assert.equal(document.fire('keydown', { key: 'j', metaKey: true }).prevented, true);
-  assert.equal(ui.panelOpen, true);
-  assert.ok(isShortcut({ ctrlKey: true, key: 'J' }) && !isShortcut({ key: 'j' }) && !isShortcut({ metaKey: true, altKey: true, key: 'j' }));
-  assert.ok(isSend({ key: 'Enter' }) && !isSend({ key: 'Enter', isComposing: true }) && !isSend({ key: 'Enter', keyCode: 229 }) && !isSend({ key: 'Enter', shiftKey: true }));
-});
-
-test('sending hands the selection to the parent and marks it waiting; × cancels it', async () => {
-  const { ui, document, time, sent, feature } = setup();
-  document.fire('pointerup', { clientX: 1, clientY: 1 });
-  await time.flush();
+test('an acknowledgement for the first range cannot clear the next prompt', async () => {
+  const {feature,ui,selected,events} = setup();
+  await feature.refresh();
   ui.handlers.open();
-  const sending = ui.handlers.submit('改得更正式');
-  assert.equal(sent.length, 1);
-  const [request] = sent;
-  assert.equal(request.event, 'selection-request');
-  assert.deepEqual({ kind: request.kind, anchor: request.anchor, original: request.original, instruction: request.instruction }, { kind: 'docx', anchor: SELECTION.anchor, original: '第一句', instruction: '改得更正式' });
-  assert.equal(request.view, undefined, 'drawing data stays in the page');
-  feature.status({ requestId: request.requestId, ok: true, id: 'sel-00000001' });
-  await sending;
-  assert.equal(ui.panelOpen, false);
-  assert.deepEqual(ui.pending, { left: 10, top: 20, width: 100, height: 20 });
-  assert.equal(feature.pending.id, 'sel-00000001');
-  // A dropped send for another selection leaves this one waiting; its own takes the mark down.
-  feature.status({ dropped: 'sel-0000ffff' });
-  assert.equal(feature.pending.id, 'sel-00000001');
-  ui.handlers.cancelPending();
-  assert.deepEqual(sent.at(-1), { event: 'selection-update', selection: 'sel-00000001', state: 'cancelled' });
-  assert.equal(ui.pending, undefined);
-});
-
-test('a send that fails after the page heard it takes the waiting mark down', async () => {
-  const { ui, document, time, sent, feature } = setup();
-  document.fire('pointerup', {});
-  await time.flush();
+  ui.handlers.draft('改标题');
+  ui.handlers.submit('改标题');
+  const first = events.at(-1).data;
+  ui.handlers.close();
+  selected.anchor = {paragraphs:[1,1],start:0,end:2};
+  selected.original = '正文';
+  await feature.refresh();
   ui.handlers.open();
-  const sending = ui.handlers.submit('更简洁');
-  feature.status({ requestId: sent.at(-1).requestId, ok: true, id: 'sel-00000009' });
-  await sending;
-  assert.ok(ui.pending);
-  feature.status({ dropped: 'sel-00000009' });
-  assert.equal(ui.pending, undefined);
-  assert.equal(feature.pending, undefined);
+  ui.handlers.draft('改正文');
+  feature.status({requestId:first.requestId,ok:true,ids:[{number:first.references[0].number,id:'sel-00000001'}]});
+  assert.equal(ui.state.draft,'改正文');
+  ui.handlers.submit('改正文');
+  assert.deepEqual(events.at(-1).data.references.map(r => r.original),['正文']);
+});
+test('a card follow-up targets its current revision and waits for dispatch acknowledgement', async () => {
+  const {feature,ui,agent,events,selected}=setup();
+  const record={id:'sel-00000001',before:'旧标题',after:'测试字'};
+  feature.hydrate({state:{...ui.state,changes:[record]}});
+  let selectedTimes=0;
+  agent.selectChange=async card=>{assert.equal(card.id,record.id);selectedTimes++;return selected;};
+  await feature.changeDetail({id:record.id,action:'select'});
+  const send=()=>feature.changeDetail({id:record.id,action:'followup',instruction:'润色'});
+  const first=send();
+  await Promise.resolve();
+  const sent=events.at(-1).data;
+  assert.equal(selectedTimes,2);
+  assert.deepEqual(sent.references.map(({original})=>original),[record.after]);
+  await assert.rejects(send());
+  feature.status({requestId:sent.requestId,ok:false,reason:'running'});
+  await assert.rejects(first,/AI 正在回复/);
+  const retry=send();
+  await Promise.resolve();
+  const next=events.at(-1).data;
+  feature.status({requestId:next.requestId,ok:true,ids:[{number:next.references[0].number,id:'sel-00000002'}]});
+  assert.deepEqual(await retry,{sent:true});
+  agent.selectChange=async()=>{throw Error('原文位置已改变');};
+  await assert.rejects(send(),/原文位置已改变/);
+  assert.equal(events.filter(({name})=>name==='selection-request').length,2);
 });
 
-test('a refused send keeps the box open with the reason; a draft in the chat box offers to put the request there', async () => {
-  const { ui, document, time, sent, feature } = setup();
-  document.fire('pointerup', {});
-  await time.flush();
-  ui.handlers.open();
-  let sending = ui.handlers.submit('更简洁');
-  feature.status({ requestId: sent.at(-1).requestId, ok: false, reason: 'draft' });
-  await sending;
-  assert.equal(ui.panelOpen, true);
-  assert.equal(ui.hintText, SELECTION_TEXTS.zh.reasons.draft);
-  assert.equal(ui.draftOffered, true);
-  assert.equal(feature.pending, undefined);
-  sending = ui.handlers.submit('更简洁', { draftOnly: true });
-  assert.equal(sent.at(-1).draftOnly, true);
-  feature.status({ requestId: sent.at(-1).requestId, ok: true, id: 'sel-00000002', drafted: true });
-  await sending;
-  assert.equal(ui.resultText, SELECTION_TEXTS.zh.drafted);
-  assert.equal(feature.pending.id, 'sel-00000002');
-  // No answer at all: the request times out as failed.
-  document.fire('pointerup', {});
-  await time.flush(1000);
-  ui.handlers.open();
-  sending = ui.handlers.submit('翻成英文');
-  await time.flush();
-  await sending;
-  assert.equal(ui.hintText, SELECTION_TEXTS.zh.reasons.failed);
+test('chat sends hold the same work handle across a model wait and discard it if no edit arrives',async()=>{
+  const {feature,agent,selected}=setup(), handles=[];
+  agent.chatSelection=async()=>selected;
+  agent.beginSelectionWork=()=>{const h={dispose(){h.ended=true;}};handles.push(h);return h;};
+  agent.rewriteSelection=async(args,signal,handle)=>{assert.equal(handle,handles[0]);return {reply:{applied:true}};};
+  const running={reason:'running',chatEdit:{instruction:'润色这段'}};
+  feature.composer(running);await Promise.resolve();
+  feature.composer({reason:'running'});
+  assert.equal(handles.length,1);assert.ok(!handles[0].ended);
+  await feature.rewrite({...selected,id:'change',text:'新内容'});
+  assert.equal(handles[0].ended,true);
+  feature.composer({canSend:true});feature.composer(running);await Promise.resolve();
+  feature.composer({canSend:true});assert.equal(handles[1].ended,true);
+  feature.dispose();
 });
-
-test('while the conversation runs the button is shown disabled; unsupported selections say why', async () => {
-  const running = setup();
-  running.feature.composer({ canSend: false, reason: 'running' });
-  running.document.fire('pointerup', {});
-  await running.time.flush();
-  assert.equal(running.ui.chip.disabled, true);
-  running.ui.handlers.open();
-  assert.equal(running.ui.panelOpen, false);
-  const table = setup({ selection: { unsupported: 'table' } });
-  table.document.fire('pointerup', {});
-  await table.time.flush();
-  assert.deepEqual([table.ui.chip.disabled, table.ui.chip.reason], [true, 'table']);
-  table.ui.handlers.open();
-  assert.equal(table.ui.hintText, SELECTION_TEXTS.zh.reasons.table);
-  await table.ui.handlers.submit('x');
-  assert.deepEqual(table.sent, []);
-  // While the AI writes nothing is offered.
-  const busy = setup({ agent: { applying: true } });
-  busy.document.fire('pointerup', {});
-  await busy.time.flush();
-  assert.equal(busy.ui.chipShown, false);
+test('model locations supersede late guesses, survive repeat reads and are consumed by their own result', async () => {
+  const {feature,agent,selected,writes}=setup();
+  const doc={paragraphs:[{text:'😀甲乙丙'},{text:'另一个位置'}],tables:[]};
+  const readToken=docxReadToken(doc);
+  const jobs=[];
+  Object.assign(agent,{inspect:async()=>doc,modelEditRange,beginSelectionWork(ref){
+    const handle={ref,dispose(){handle.closed=true;}};
+    jobs.push(handle);return handle;
+  }});
+  let resolveGuess;
+  agent.chatSelection=()=>new Promise(resolve=>{resolveGuess=resolve;});
+  feature.composer({reason:'running',chatEdit:{instruction:'修改文章中提到的那件事'}});
+  const mark=(paragraph,find)=>feature.inspectEditTarget({paragraph,find,readToken});
+  assert.equal(await mark(0,'乙'),doc);
+  await mark(1);await mark(0,'乙');
+  resolveGuess(selected);await Promise.resolve();
+  assert.equal(jobs.length,2);
+  assert.deepEqual(jobs[0].ref.anchor,{paragraphs:[0,0],start:2,end:3});
+  assert.deepEqual(writes,[]);
+  agent.rewriteSelection=async(args,signal,handle)=>{assert.equal(handle,jobs[1]);return {reply:{applied:true}};};
+  await feature.rewrite({...jobs[1].ref,id:'second',text:'新句'});
+  assert.ok(jobs[1].closed);assert.ok(!jobs[0].closed);
+  const claimed=feature.takeChatPreview().claim(jobs[0].ref);
+  assert.ok(claimed);claimed.dispose();assert.ok(jobs[0].closed);
+  await mark(1);feature.composer({canSend:true});assert.ok(jobs[2].closed);
+  feature.dispose();
 });
-
-test('a rewrite clears the waiting mark and offers Keep / Undo; Undo reverts once, typing keeps', async () => {
-  let reverted = 0;
-  const { ui, feature, sent, document, time } = setup({ agent: { revertSelection: async revert => { assert.equal(revert.anchor, 'after'); reverted++; } } });
-  const reply = await feature.rewrite({ id: 'sel-00000003', anchor: SELECTION.anchor, original: '第一句', text: '首句' });
-  assert.deepEqual(reply, { applied: true });
-  assert.equal(ui.resultShown, true);
-  await ui.handlers.revert();
-  assert.equal(reverted, 1);
-  assert.deepEqual(sent.at(-1), { event: 'selection-update', selection: 'sel-00000003', state: 'reverted' });
-  assert.equal(ui.resultText, SELECTION_TEXTS.zh.reverted);
-  await ui.handlers.revert();
-  assert.equal(reverted, 1, 'only once');
-  await time.flush();
-  await feature.rewrite({ id: 'sel-00000004' });
-  document.fire('keydown', { key: 'a' });
-  assert.deepEqual(sent.at(-1), { event: 'selection-update', selection: 'sel-00000004', state: 'kept' });
-  assert.equal(ui.resultShown, false);
+test('a stale, ambiguous or non-body location cannot start a chat work frame',async()=>{
+  const {feature,agent}=setup();
+  const doc={paragraphs:[{text:'甲甲'},{text:'表格',table:true}],tables:[]};
+  const readToken=docxReadToken(doc);
+  agent.inspect=async()=>doc;agent.modelEditRange=modelEditRange;
+  agent.beginSelectionWork=()=>assert.fail('Unexpected frame');
+  for (const target of [{paragraph:2},{paragraph:1},{paragraph:0,find:'甲'},{paragraph:0,find:'无'},{paragraph:0,readToken:'old'}]) {
+    await assert.rejects(feature.inspectEditTarget({readToken,...target}));
+  }
+  feature.dispose();
 });
-
-test('an undo the document no longer allows says so; a failed rewrite offers no undo', async () => {
-  const failing = setup({ agent: { revertSelection: async () => { throw Object.assign(new Error('changed'), { code: 'source-changed' }); } } });
-  await failing.feature.rewrite({ id: 'sel-00000005' });
-  await failing.ui.handlers.revert();
-  assert.equal(failing.ui.resultText, SELECTION_TEXTS.zh.revertFailed);
-  const stopped = setup({ agent: { rewriteSelection: async () => { throw Object.assign(new Error('Stopped by the user.'), { code: 'cancelled' }); } } });
-  await assert.rejects(stopped.feature.rewrite({ id: 'sel-00000006' }), error => error.code === 'cancelled');
-  assert.equal(stopped.ui.resultShown, false);
-  assert.equal(stopped.feature.result, undefined);
+test('accepting a change republishes its review state without rewriting the original',async()=>{
+  const {feature,ui,events,writes}=setup();
+  feature.hydrate({state:{...ui.state,changes:[{id:'a',after:'改文'},{id:'b',after:'另一处'}]}});
+  assert.deepEqual(await feature.changeDetail({id:'a',action:'accept'}),{accepted:true});
+  assert.deepEqual(events.at(-1).data.draftState.changes,[{id:'b',after:'另一处'}]);
+  assert.deepEqual(writes,[]);
 });
-
-test('boxes stay inside the window', () => {
-  assert.deepEqual(placeNear({ x: 990, y: 750 }, { width: 120, height: 30 }, { innerWidth: 1000, innerHeight: 768 }), { left: 872, top: 712 });
-  assert.deepEqual(placeNear({ x: 100, y: 100 }, { width: 120, height: 30 }, { innerWidth: 1000, innerHeight: 768 }), { left: 108, top: 108 });
+test('ask mode stages each answer without a write until explicit approval, including after a tab remount',async()=>{
+  const {feature,ui,writes}=setup();
+  feature.hydrate({permission:'ask'});
+  for(const id of ['sel-00000001','sel-00000002'])assert.equal((await feature.rewrite({id,kind:'docx',text:'候选'})).pendingReview,true);
+  assert.equal(writes.length,0);const next=setup();next.feature.hydrate({state:ui.state});
+  await next.ui.handlers.decide('sel-00000001','restore');assert.equal(next.writes.length,0);
+  await next.ui.handlers.decide('sel-00000002','always');assert.equal(next.writes.length,1);assert.equal(next.ui.state.candidates.length,0);
+  await next.feature.rewrite({id:'sel-00000003',text:'另一个'});assert.equal(next.writes.length,2);
 });
-
 /** One paragraph's text and its Writer subranges (code points), every write recorded. */
 function fakeWordParagraph(text) {
   const state = { text, writes: [] };

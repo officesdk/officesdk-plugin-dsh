@@ -66,12 +66,12 @@ on:
         description: Version (publish — the version packages/dsh-adapter/package.json is set to; dist-tag — one on npm)
         type: string
         required: true
-        default: '0.0.1-rc.1'
+        default: '0.0.1'
       tag:
         description: npm dist-tag (publish — the version's stage; dist-tag — the tag to point at the version, e.g. latest)
         type: choice
         options: [alpha, beta, rc, next, latest]
-        default: rc
+        default: latest
       dry_run:
         description: Dry run (nothing is sent to npm, no tag moves)
         type: boolean

@@ -12,7 +12,7 @@ export const TOOL_VIEW_TOOLS = Object.freeze(['presentation_create', 'presentati
 
 const ZH = {
   'create.running': '正在新建演示文稿', 'create.ok': '新建了演示文稿', 'create.error': '新建演示文稿失败', 'create.declined': '没有新建演示文稿',
-  style: '风格 {name}', generatingNote: '边生成边在右侧显示，可在标签页里停止',
+  style: '风格 {name}', wordGeneratingNote: '生成内容会显示在右侧文档中', generatingNote: '在右侧幻灯片浏览视图中逐页生成',
   'read.running': '正在读取演示文稿', 'read.ok': '读取了演示文稿', 'read.error': '读取演示文稿失败',
   'edit.running': '正在修改演示文稿', 'edit.ok': '修改了演示文稿', 'edit.error': '修改演示文稿失败', 'edit.declined': '没有修改演示文稿',
   'undo.running': '正在撤销修改', 'undo.ok': '撤销了修改', 'undo.error': '撤销修改失败',
@@ -47,7 +47,7 @@ const ZH = {
 };
 const EN = {
   'create.running': 'Creating presentation', 'create.ok': 'Created presentation', 'create.error': 'Could not create presentation', 'create.declined': 'Presentation not created',
-  style: 'style {name}', generatingNote: 'Shown beside the chat as it is built; it can be stopped in the tab',
+  style: 'style {name}', wordGeneratingNote: 'Content appears in the document as it is written', generatingNote: 'Slides are built in the sorter beside the chat',
   'read.running': 'Reading presentation', 'read.ok': 'Read presentation', 'read.error': 'Could not read presentation',
   'edit.running': 'Editing presentation', 'edit.ok': 'Edited presentation', 'edit.error': 'Could not edit presentation', 'edit.declined': 'Presentation not changed',
   'undo.running': 'Undoing edit', 'undo.ok': 'Undid edit', 'undo.error': 'Could not undo edit',
@@ -379,7 +379,7 @@ export function toolViewModel(t, { toolName, callId, phase, block }, recall = ()
   Object.assign(model, { state: 'ok', title: format(t, key(`${kind}.ok`)) });
   if (doc && kind === 'create') {
     if (typeof result.template === 'string') model.summary = format(t, 'template', { name: result.template });
-    if (result.generating === true) model.lines.push(format(t, 'generatingNote'));
+    if (result.generating === true) model.lines.push(format(t, 'wordGeneratingNote'));
   } else if (sheet && kind === 'read') {
     const outline = isObject(result.workbook) && Array.isArray(result.workbook.sheets) ? { sheets: result.workbook.sheets.length, active: str((result.workbook.sheets.find(item => item?.active) ?? result.workbook.sheets[0])?.name) ?? '', used: str((result.workbook.sheets.find(item => item?.active) ?? result.workbook.sheets[0])?.used) ?? '' } : recorded?.outline ?? {};
     const unsaved = typeof result.unsaved === 'boolean' ? result.unsaved : recorded?.unsaved === true;

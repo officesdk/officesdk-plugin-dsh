@@ -28,8 +28,7 @@ const formatOf = path => /\.([A-Za-z0-9]+)$/.exec(path)?.[1]?.toLowerCase();
 const failure = (code, message) => Object.assign(new Error(message), { code: `officesdk/${code}` });
 
 /**
- * Serves the Host's AI document commands for the Session on screen. Each command opens (or focuses)
- * the document tab, works through that tab's controller, and answers with a result or a coded error.
+ * Routes AI commands to the document that owns the edit, including when another file is visible.
  * `platform`: the Host's, as a value or a getter (a lease says it); a command that carries its own wins.
  */
 export class AgentBridge {
@@ -74,7 +73,8 @@ export class AgentBridge {
     if (command.kind === 'cancel') { this.running.get(command.target)?.abort(); return; }
     // One-way: the Host saved this file for the AI, so the tab must not treat the new revision as foreign.
     if (command.kind === 'saved') {
-      const controller = this.controllers.byAddress.get(this.address(sessionId, command.path, command));
+      const address = await this.documentAddress(sessionId, command.path, command);
+      const controller = this.controllers.byAddress.get(address);
       controller?.markSaved(command.version, command.editRevision);
       // A save marks the end of a generation: an idle "generating · Stop" goes now instead of after its spell.
       const idle = controller?.state.generating;
@@ -105,14 +105,31 @@ export class AgentBridge {
     return fileAddress(sessionId, path, platform);
   }
 
+  /** The picker uses workspace-relative paths; models may name that very tab by its absolute path. */
+  async documentAddress(sessionId, path, command) {
+    const address = this.address(sessionId, path, command);
+    const open = this.controllers.byAddress;
+    if (open.has(address)) return address;
+    const tab = Array.from(open.values()).find(item => item.source?.sessionId === sessionId && item.probe);
+    if (!tab) return address;
+    try {
+      const target = await tab.probe(path);
+      for (const alias of [target.path, target.realPath]) {
+        if (!alias) continue;
+        const existing = this.address(sessionId, alias, command);
+        if (open.has(existing)) return existing;
+      }
+    } catch { /* Opening the requested path will surface missing-file and access errors. */ }
+    return address;
+  }
+
   /** The tab for `path`, open in the mode the AI needs and rendered. */
   async document(sessionId, path, signal, command) {
     const format = formatOf(path);
     const mode = AGENT_FORMATS[format];
     if (!mode) throw failure('unsupported-operation', `AI editing supports ${Object.keys(AGENT_FORMATS).join(', ')} files for now.`);
-    const address = this.address(sessionId, path, command);
-    this.openResource(address);
-    const controller = await this.controllers.wait(address, signal);
+    const address = await this.documentAddress(sessionId, path, command);
+    const controller = await this.controllers.wait(address, signal, () => this.openResource(address));
     await controller.ensureMode(mode, signal);
     return { controller, format };
   }
@@ -128,6 +145,7 @@ export class AgentBridge {
     if (format === 'docx') return runDocumentCommand(this, sessionId, command, controller, signal);
     if (format === 'xlsx') return runSpreadsheetCommand(this, sessionId, command, controller, signal);
     if (command.kind === 'read') {
+      if (command.slideCount) await controller.agent('apply', {prepareSlideCount:command.slideCount, slideLayouts:command.slideLayouts}, signal);
       const deck = await controller.agent('inspect', {}, signal);
       const result = { format, path: command.path, version: controller.savedVersion, unsaved: controller.state.dirty === true, editRevision: controller.editRevision, deck: summarizeDeck(deck) };
       // The chat row reads this when the result it shows was cut short.
@@ -160,7 +178,7 @@ export class AgentBridge {
       if (!approved) return { declined: true };
     }
     try {
-      const result = await controller.agent('apply', { ops: command.ops, editId: command.editId }, signal);
+      const result = await controller.agent('apply', { ops: command.ops, editId: command.editId, ...(command.completedSlideIds !== undefined && {completedSlideIds:command.completedSlideIds}) }, signal);
       controller.set({ edits: [...(controller.state.edits ?? []), { editId: command.editId, summary: command.summary }].slice(-20) });
       record?.settle(controller, result);
       return result;
@@ -227,16 +245,28 @@ export class ControllerRegistry {
     this.waiters.delete(address);
     return () => { if (this.byAddress.get(address) === controller) this.byAddress.delete(address); };
   }
-  wait(address, signal) {
+  wait(address, signal, open) {
+    if (signal?.aborted) return Promise.reject(signal.reason ?? failure('cancelled', 'Cancelled.'));
     const current = this.byAddress.get(address);
     if (current) return Promise.resolve(current);
     return new Promise((resolve, reject) => {
       const list = this.waiters.get(address) ?? new Set();
-      const done = controller => { this.scheduler.clearTimeout(timer); resolve(controller); };
-      const timer = this.scheduler.setTimeout(() => { list.delete(done); reject(failure('no-editor', 'The document did not open in the side panel.')); }, this.timeoutMs);
+      const cleanup = () => {
+        list.delete(done);
+        if (!list.size && this.waiters.get(address) === list) this.waiters.delete(address);
+        this.scheduler.clearTimeout(timer);
+        signal?.removeEventListener('abort', cancel);
+      };
+      const done = controller => { cleanup(); resolve(controller); };
+      const cancel = () => { cleanup(); reject(signal.reason ?? failure('cancelled', 'Cancelled.')); };
+      const timer = this.scheduler.setTimeout(() => { cleanup(); reject(failure('no-editor', 'The document did not open in the side panel.')); }, this.timeoutMs);
+      const first = !list.size;
       list.add(done);
       this.waiters.set(address, list);
-      signal?.addEventListener('abort', () => { list.delete(done); this.scheduler.clearTimeout(timer); reject(signal.reason ?? failure('cancelled', 'Cancelled.')); }, { once: true });
+      signal?.addEventListener('abort', cancel, { once: true });
+      if (first && open) {
+        try { open(); } catch (error) { cleanup(); reject(error); }
+      }
     });
   }
 }

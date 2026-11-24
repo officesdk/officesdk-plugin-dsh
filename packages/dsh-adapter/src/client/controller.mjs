@@ -66,7 +66,7 @@ export class DocumentController {
     this.controller = new AbortController();
     const { signal } = this.controller;
     this.set({ mode, dirty: false, diverged: false, loading: true, ready: false, error: undefined, engine: undefined, url: undefined, fallback: undefined, handEdited: undefined, autosaveFailed: undefined, modeBlocked: undefined, history: undefined,
-      saveState: undefined, saveFailed: undefined, saveFailedSeen: undefined, authorizePrompt: undefined, pendingOpen: undefined });
+      saveState: undefined, saveFailed: undefined, saveFailedSeen: undefined, authorizePrompt: undefined, pendingOpen: undefined, changeAnchors:undefined });
     this.scheduler.clearTimeout(this.savedTick);
     // The mode a retry or reopen returns to; a preview is only ever a fallback from it.
     if (mode !== 'preview') this.editorMode = mode;
@@ -200,7 +200,29 @@ export class DocumentController {
     }
     // Selection rewrite (spec 261109-selection-ai-edit): the page's request goes to the conversation (selection-bridge.mjs);
     // its later fate (cancelled, kept, reverted) is the Host's to know.
+    else if (message.event === 'open-website') this.onOpenWebsite?.();
     else if (message.event === 'selection-request') { if (this.state.mode === 'edit' && /^[A-Za-z0-9_-]{1,64}$/.test(message.requestId ?? '')) void this.onSelectionRequest?.(message); }
+    else if (message.event === 'document-ui' && this.documentUi && this.state.mode === 'edit') {
+      if (message.permission === 'always' || message.permission === 'ask') this.setAiPermission(message.permission);
+      if ('chatSelection' in message) this.chatSelection=message.chatSelection ?? undefined;
+      if (Array.isArray(message.restoredChanges)) {
+        this.documentUi.changes=message.restoredChanges;
+        this.set({changes:message.restoredChanges});
+      }
+      if (typeof message.reviewSaveFailed==='boolean') this.set({reviewSaveFailed:message.reviewSaveFailed});
+      if (message.revealChange === null || (typeof message.revealChange === 'string' && this.documentUi.changes?.some(r=>r.id===message.revealChange))) {
+        this.set({revealedChange:{id:message.revealChange}});
+      }
+      if (Number.isFinite(message.dockBottom)) this.set({ dockBottom: message.dockBottom });
+      if (message.changeAnchors?.height>0 && Array.isArray(message.changeAnchors.items)) this.set({changeAnchors:message.changeAnchors});
+      if (message.draftState) {
+        const { draft, references, pending, candidates, changes = [], next } = message.draftState;
+        if (typeof draft === 'string' && [references, pending, candidates].every(Array.isArray) && Number.isSafeInteger(next)) {
+          Object.assign(this.documentUi, { draft, references, pending, candidates, next, changes });
+          this.set({ changes });
+        }
+      }
+    }
     else if (message.event === 'selection-update') { if (/^sel-[0-9a-f]{8}$/.test(message.selection ?? '') && typeof message.state === 'string') void this.call('selectionUpdate', { id: message.selection, selectionState: message.state }).catch(() => {}); }
     // A press inside the editor page: the header closes its open menus (the page is cross-origin, so no outside click reaches it).
     else if (message.event === 'press') { for (const listener of this.pressListeners ?? []) listener(); }
@@ -299,7 +321,7 @@ export class DocumentController {
     if (!this.lease) return Promise.reject(Object.assign(new Error('The document is not open'), { code: 'officesdk/no-editor' }));
     const requestId = `a${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
     const { id } = this.lease, revision = this.revision;
-    const writes = AI_WRITES.has(op);
+    const writes = AI_WRITES.has(op) || (op==='changeDetail' && args.action==='remove');
     if (writes && this.accountHold) return Promise.reject(accountRefusal());
     if (writes) this.set({ aiBusy: (this.aiWrites = (this.aiWrites ?? 0) + 1) > 0 });
     const done = () => { if (writes) this.set({ aiBusy: (this.aiWrites -= 1) > 0 }); };
@@ -316,15 +338,35 @@ export class DocumentController {
 
   /** Shows a proposed change in the tab and waits for Apply (true) or Discard (false). */
   propose(proposal, signal) {
+    if (signal?.aborted) return Promise.reject(signal.reason ?? new Error('Cancelled'));
     this.decision?.resolve(false);
+    if (this.state.aiPermission === 'always' && !proposal.danger) return Promise.resolve(true);
     return new Promise((resolve, reject) => {
-      const finish = value => { this.decision = undefined; this.set({ proposal: undefined }); resolve(value); };
+      const clear = () => {
+        signal?.removeEventListener('abort', abort);
+        this.decision = undefined;
+        this.set({ proposal: undefined });
+      };
+      const finish = value => { clear(); resolve(value); };
+      const abort = () => { clear(); reject(signal.reason ?? new Error('Cancelled')); };
       this.decision = { resolve: finish };
       this.set({ proposal });
-      signal?.addEventListener('abort', () => { if (this.decision?.resolve === finish) { this.decision = undefined; this.set({ proposal: undefined }); reject(signal.reason ?? new Error('Cancelled')); } }, { once: true });
+      signal?.addEventListener('abort', abort, { once: true });
     });
   }
   decide(approved) { this.decision?.resolve(approved === true); }
+  syncDocumentUi() {
+    if (this.documentUi && this.state.ready && this.state.mode === 'edit') {
+      void this.agent('documentUi', { state: this.documentUi, permission: this.state.aiPermission ?? 'ask', focusMode: Boolean(this.state.focusMode) }).catch(() => {});
+    }
+  }
+  setAiPermission(mode) {
+    if (mode !== 'ask' && mode !== 'always') return;
+    this.onAiPermission?.(mode);
+    this.set({ aiPermission: mode });
+    if (mode === 'always' && !this.state.proposal?.danger) this.decide(true);
+    if (this.state.ready) void this.agent('documentUi', { permission: mode }).catch(() => {});
+  }
 
   /**
    * Writes the staged edits to the file. Outside the workspace the Host refuses with `outside`;

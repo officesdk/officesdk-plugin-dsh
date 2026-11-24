@@ -140,8 +140,8 @@ publish job 总有 OIDC 环境，不设 `NPM_TOKEN` 就由 npm CLI 做 OIDC 交�
 Actions → **npm-publish** → Run workflow（分支选 `main`），填：
 
 - `mode`：`publish`（默认；`dist-tag` 见「移动 dist-tag」）
-- `version`：要发的版本（默认 `0.0.1-rc.1`，须等于 `packages/dsh-adapter/package.json`）
-- `tag`：dist-tag（alpha / beta / rc / next / latest，默认 `rc`，须是版本的阶段）
+- `version`：要发的版本（默认 `0.0.1`，须等于 `packages/dsh-adapter/package.json`）
+- `tag`：dist-tag（alpha / beta / rc / next / latest，默认 `latest`，须是版本的阶段）
 - `dry_run`：默认开。先开着跑一次，确认通过后关掉再跑一次正式发布。第一次演练时顺便看一眼运行日志：
   每一步开头的 env 里 `NPM_GATE_INTERNAL_HOSTS` 显示为 `***`，日志里不出现任何组织域名。
 
@@ -160,13 +160,13 @@ Actions → **npm-publish** → Run workflow（分支选 `main`），填：
 
 ### C：本机手动发
 
-在仓库根目录出包、先演练、再发布（以 0.0.1-rc.1 为例；组织域名清单照上节给）：
+在仓库根目录出包、先演练、再发布（以 0.0.1 为例；组织域名清单照上节给）：
 
 ```sh
-node tooling/suite/pack-universal.mjs --version 0.0.1-rc.1 --sources public --obfuscate light \
+node tooling/suite/pack-universal.mjs --version 0.0.1 --sources public --obfuscate light \
   --repository https://github.com/officesdk/officesdk-plugin-dsh --out artifacts/npm
-node scripts/npm-release.mjs publish --version 0.0.1-rc.1 --tag rc --dry-run   # 不要 token、不发布，跑同样的选包与门禁
-NPM_TOKEN=<你的 token> node scripts/npm-release.mjs publish --version 0.0.1-rc.1 --tag rc
+node scripts/npm-release.mjs publish --version 0.0.1 --tag latest --dry-run   # 不要 token、不发布，跑同样的选包与门禁
+NPM_TOKEN=<你的 token> node scripts/npm-release.mjs publish --version 0.0.1 --tag latest
 ```
 
 token 只经环境变量传入，写在用完即删的临时 userconfig 里；没有 token（也不在 GitHub Actions 的 OIDC 环境里）时只打 WARNING、什么都不发、退出码 0。

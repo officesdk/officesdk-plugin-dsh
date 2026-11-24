@@ -1,30 +1,24 @@
-/**
- * The selection rewrite on a Kit page (spec 261109-selection-ai-edit §2, §5, §6): after the user selects text (Word) or a
- * block of cells (Sheet), a small "AI rewrite" button appears next to it; it opens a one-line box for what to change.
- * Sending hands the request to the parent (the DSH tab), which puts it into the conversation as the user's message;
- * the selection then shows as waiting until the model's selection_rewrite arrives, and after the rewrite a Keep / Undo
- * bar offers to take it back. Everything drawn is the plugin's own elements on the page body with inline styles: no
- * CSS is injected and the SDK's DOM is only read.
- *
- * createSelectionUi draws; createSelectionFeature decides (and is tested with a stand-in for the drawing).
- */
+import { recordChange, restoreChangeHistory, sameChangeAnchor } from './change-history.mjs';
+import {createChangeLinks} from './change-links.mjs';
+import { PROMPT_CSS } from './prompt-style.mjs';
+
 export const SELECTION_TEXTS = {
   zh: {
-    chip: 'AI 改写', chipTitle: '让 AI 只改选中的内容（⌘J）', placeholder: '告诉 AI 怎么改，例如：改得更正式', send: '发送',
+    chip: '局部编辑', chipTitle: '让 AI 只改选中的内容（⌘J）', placeholder: '输入修改要求…', send: '发送', chat: '编辑文档', close: '收起',
     suggestions: ['更正式', '更简洁', '改错别字', '翻成英文'], pending: '已发给 AI', cancel: '取消这次修改', done: 'AI 已改写', keep: '保留', revert: '撤回',
     reverting: '正在撤回…', reverted: '已撤回', revertFailed: '内容已被改动，无法撤回', sending: '正在发送…', toDraft: '写进对话输入框', drafted: '已写进对话输入框，请在对话里发送',
     reasons: {
-      running: 'AI 正在回复，完成后再试', draft: '对话输入框里还有内容，请先发送或清空', 'no-composer': '请先打开这个文档所在的对话', failed: '发送失败，请重试',
+      'no-target': '此处没有可继续修改的文字', running: 'AI 正在回复，完成后再试', draft: '对话输入框里还有内容，请先发送或清空', 'no-composer': '请先打开这个文档所在的对话', failed: '发送失败，请重试',
       table: '暂不支持改写表格里的文字', 'too-long': '选中的内容太长（最多 2000 字、20 段）', multiple: '只支持一块连续单元格', 'not-cells': '只支持一块连续单元格（不支持整行、整列）',
       'too-many': '最多选 200 个单元格', merged: '暂不支持含合并单元格的区域', busy: 'AI 正在编辑，稍后再试', 'read-only': '只读打开时不能改写',
     },
   },
   en: {
-    chip: 'AI rewrite', chipTitle: 'Let AI change only the selection (⌘J)', placeholder: 'Tell AI what to change, e.g. make it more formal', send: 'Send',
+    chip: 'Local edit', chipTitle: 'Let AI change only the selection (⌘J)', placeholder: 'Enter editing instructions…', send: 'Send', chat: 'Edit document', close: 'Collapse',
     suggestions: ['More formal', 'More concise', 'Fix typos', 'Translate to Chinese'], pending: 'Sent to AI', cancel: 'Cancel this change', done: 'AI rewrote this', keep: 'Keep', revert: 'Undo',
     reverting: 'Undoing…', reverted: 'Undone', revertFailed: 'The text changed since; cannot undo', sending: 'Sending…', toDraft: 'Put it in the chat box', drafted: 'Put in the chat box; send it there',
     reasons: {
-      running: 'AI is replying; try again when it is done', draft: 'The chat box has text in it; send or clear it first', 'no-composer': 'Open the conversation of this document first', failed: 'Could not send; try again',
+      'no-target': 'There is no text here to edit', running: 'AI is replying; try again when it is done', draft: 'The chat box has text in it; send or clear it first', 'no-composer': 'Open the conversation of this document first', failed: 'Could not send; try again',
       table: 'Text inside tables cannot be rewritten yet', 'too-long': 'The selection is too long (at most 2000 characters, 20 paragraphs)', multiple: 'Select one block of cells', 'not-cells': 'Select one block of cells (not whole rows or columns)',
       'too-many': 'Select at most 200 cells', merged: 'Ranges with merged cells are not supported yet', busy: 'AI is editing; try again shortly', 'read-only': 'Open for editing to rewrite',
     },
@@ -35,271 +29,533 @@ export const isShortcut = event => (event.metaKey || event.ctrlKey) && !event.al
 /** Enter sends unless an input method is still composing. */
 export const isSend = event => event.key === 'Enter' && !event.shiftKey && !event.isComposing && event.keyCode !== 229;
 const MARK = 'data-shimo-selection';
-const FONT = '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif';
-const Z = '2147483000';
-const BLUE = '#2f6bff';
+const SEND_ICON = '<svg width="23" height="23" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5m-7 7 7-7 7 7"/></svg>';
 
-/** Where a box `size` goes next to `point` without leaving the window. */
-export function placeNear(point, size, view) {
-  const width = view?.innerWidth ?? 1024, height = view?.innerHeight ?? 768;
-  let left = point.x + 8, top = point.y + 8;
-  if (left + size.width > width - 8) left = Math.max(8, width - size.width - 8);
-  if (top + size.height > height - 8) top = Math.max(8, point.y - size.height - 8);
-  return { left: Math.round(left), top: Math.round(top) };
-}
+const CSS = `
+:root[data-office-submitted-selection] rect[data-paint-key^="overlay:selection:"]{visibility:hidden}
+.office-region{box-sizing:border-box;position:fixed;z-index:2147483000;color:#202124;font:13px/1.45 system-ui,sans-serif}
+.office-region[hidden],.office-region [hidden]{display:none!important}
+.office-region button,button.office-region{font:inherit;color:inherit;cursor:pointer}
+.office-chip,.office-review button{background:#fff;border:1px solid #dadde0;box-shadow:0 2px 6px #20232712}
+button.office-chip{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:28px;padding:0 12px 0 10px;border-radius:9999px;corner-shape:round;color:#292d33;white-space:nowrap;font:400 13px/18px system-ui,sans-serif}
+.office-chip .office-selection-sparkles{display:block;width:15px;height:16px;flex:none;overflow:visible;color:#a1a3a6}
+.office-selection-sparkles path{transform-box:fill-box;transform-origin:center}
+.office-selection-sparkles path:nth-child(1){--spark-delay:240ms;--spark-scale:1.5;--spark-rotate:20deg}
+.office-selection-sparkles path:nth-child(2){--spark-delay:120ms;--spark-scale:1.4;--spark-rotate:10deg}
+.office-selection-sparkles path:nth-child(3){--spark-delay:0ms;--spark-scale:1.25;--spark-rotate:0deg}
+@keyframes office-spark-pop{50%{transform:scale(var(--spark-scale)) rotate(var(--spark-rotate))}}
+@media(prefers-reduced-motion:no-preference){.office-chip:not(:disabled):is(:hover,:focus-visible) .office-selection-sparkles path{animation:office-spark-pop .5s ease-in-out var(--spark-delay) 1}}
+.office-panel{width:min(232px,calc(100vw - 12px));transform-origin:center bottom;animation:office-open .17s ease-out}
+@keyframes office-open{from{transform:scale(.72,.93);opacity:.4}to{transform:none;opacity:1}}
+@media(prefers-reduced-motion:reduce){.office-panel{animation:none}}
+[data-office-over-change] #editor-root :is(.writer-document-preview__scroll,.writer-document-preview__scroll *){cursor:pointer!important}
+:root{--office-writer-selection-blue:#1a73e8}
+@media screen{[data-office-change-ink]{fill:var(--office-change-paint)!important}}
+.office-change-links{position:fixed;inset:0;z-index:3;pointer-events:none;overflow:hidden}
+.office-change-links i{position:absolute;box-sizing:border-box;border-bottom:1px solid var(--office-writer-selection-blue);pointer-events:none}
+.office-writer-change-line{stroke:var(--office-writer-selection-blue);stroke-width:1px;vector-effect:non-scaling-stroke;pointer-events:none}
+@media print{.office-change-links,.office-writer-change-line{display:none}}
+${PROMPT_CSS}
+.office-candidate{cursor:pointer;background:#fff;color:inherit;white-space:pre-wrap;overflow-wrap:anywhere;border:0;border-bottom:1px solid #afbac8;padding:0;text-align:start;box-shadow:0 1px 4px #0001}
+.office-candidate b{display:inline-grid;place-items:center;position:relative;vertical-align:super;background:#202124;color:white;border-radius:6px;min-width:18px;height:18px;font:11px/18px system-ui;margin-inline-start:3px}
+.office-review{display:flex;gap:0;background:white;box-shadow:0 2px 8px #0002;border-radius:6px;transform:translateY(-100%)}
+.office-review button{box-shadow:none}
+.office-region-error:not(:empty){width:fit-content;margin:3px auto;padding:2px 8px;border-radius:6px;background:white;color:#9f302b;font-size:12px}
+`;
 
 export function createSelectionUi(document, { locale = 'zh' } = {}) {
-  const view = document.defaultView;
+  const en = locale === 'en';
   const texts = SELECTION_TEXTS[locale] ?? SELECTION_TEXTS.zh;
-  const make = (tag, style = {}, attrs = {}) => {
-    const node = document.createElement(tag);
-    node.setAttribute(MARK, attrs.mark ?? '');
-    for (const [name, value] of Object.entries(attrs)) if (name !== 'mark') node.setAttribute(name, value);
-    Object.assign(node.style, { boxSizing: 'border-box', font: `13px/20px ${FONT}`, ...style });
-    return node;
-  };
-  const show = (node, on) => { node.hidden = !on; node.style.display = on ? (node.dataset.display ?? 'flex') : 'none'; };
-  const button = (label, style = {}, attrs = {}) => {
-    const node = make('button', { border: '1px solid #d0d5dd', borderRadius: '14px', background: '#fff', color: '#1f2329', padding: '2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', ...style }, { type: 'button', ...attrs });
-    node.textContent = label;
-    return node;
-  };
-
-  const chip = button(`✦ ${texts.chip}`, { position: 'fixed', zIndex: Z, display: 'none', background: BLUE, color: '#fff', borderColor: BLUE, boxShadow: '0 2px 8px rgba(0,0,0,.18)', fontWeight: '500' }, { mark: 'chip', title: texts.chipTitle });
-  chip.dataset.display = 'block';
-
-  const panel = make('div', { position: 'fixed', zIndex: Z, display: 'none', flexDirection: 'column', gap: '6px', width: '340px', padding: '8px', background: '#fff', border: '1px solid #d0d5dd', borderRadius: '10px', boxShadow: '0 8px 24px rgba(0,0,0,.16)' }, { mark: 'panel', role: 'dialog' });
-  const row = make('div', { display: 'flex', gap: '6px' });
-  const input = make('input', { flex: '1', minWidth: '0', height: '30px', padding: '4px 8px', border: `1px solid ${BLUE}`, borderRadius: '6px', outline: 'none' }, { mark: 'input', type: 'text', placeholder: texts.placeholder, maxlength: '500', 'aria-label': texts.chip });
-  const send = button(texts.send, { background: BLUE, color: '#fff', borderColor: BLUE, borderRadius: '6px' }, { mark: 'send' });
-  row.append(input, send);
-  const ideas = make('div', { display: 'flex', gap: '6px', flexWrap: 'wrap' });
-  const suggestionButtons = texts.suggestions.map(text => button(text, { fontSize: '12px' }, { mark: 'suggestion' }));
-  ideas.append(...suggestionButtons);
-  const hint = make('div', { display: 'none', gap: '8px', alignItems: 'center', color: '#b42318', fontSize: '12px' }, { mark: 'hint', role: 'status' });
-  const hintText = make('span');
-  const toDraft = button(texts.toDraft, { fontSize: '12px', display: 'none' }, { mark: 'to-draft' });
-  hint.append(hintText, toDraft);
-  panel.append(row, ideas, hint);
-
-  const frame = make('div', { position: 'fixed', zIndex: Z, display: 'none', pointerEvents: 'none', border: `1.5px dashed ${BLUE}`, borderRadius: '4px', background: 'rgba(47,107,255,.06)' }, { mark: 'pending' });
-  frame.dataset.display = 'block';
-  const tag = make('div', { position: 'fixed', zIndex: Z, display: 'none', alignItems: 'center', gap: '4px', padding: '0 4px 0 8px', height: '24px', fontSize: '12px', color: '#fff', background: BLUE, borderRadius: '12px' }, { mark: 'pending-tag' });
-  const tagText = make('span');
-  tagText.textContent = texts.pending;
-  const tagCancel = button('×', { border: 'none', background: 'transparent', color: '#fff', padding: '0 4px', fontSize: '14px' }, { mark: 'pending-cancel', title: texts.cancel, 'aria-label': texts.cancel });
-  tag.append(tagText, tagCancel);
-
-  const bar = make('div', { position: 'fixed', zIndex: Z, display: 'none', alignItems: 'center', gap: '6px', padding: '4px 6px 4px 10px', fontSize: '12px', background: '#fff', border: `1px solid ${BLUE}`, borderRadius: '14px', boxShadow: '0 2px 8px rgba(0,0,0,.14)' }, { mark: 'result', role: 'status' });
-  const barText = make('span');
-  const keep = button(`✓ ${texts.keep}`, { fontSize: '12px' }, { mark: 'keep' });
-  const revert = button(`↶ ${texts.revert}`, { fontSize: '12px' }, { mark: 'revert' });
-  bar.append(barText, keep, revert);
-  document.body.append(chip, panel, frame, tag, bar);
-
   const handlers = {};
-  const on = (node, type, run) => node.addEventListener(type, event => { event.stopPropagation(); run(event); });
-  on(chip, 'click', () => handlers.open?.());
-  on(send, 'click', () => handlers.submit?.(input.value));
-  for (const item of suggestionButtons) on(item, 'click', () => handlers.submit?.(item.textContent));
-  on(toDraft, 'click', () => handlers.submit?.(input.value, { draftOnly: true }));
-  on(input, 'keydown', event => {
-    if (isSend(event)) { event.preventDefault(); handlers.submit?.(input.value); }
-    else if (event.key === 'Escape') { event.preventDefault(); handlers.close?.(); }
-  });
-  on(tagCancel, 'click', () => handlers.cancelPending?.());
-  on(keep, 'click', () => handlers.keep?.());
-  on(revert, 'click', () => handlers.revert?.());
-  // Presses on our own elements must not reach the editor (it would move its selection away).
-  for (const node of [chip, panel, tag, bar]) for (const type of ['pointerdown', 'mousedown', 'pointerup', 'mouseup']) node.addEventListener(type, event => event.stopPropagation());
-  const place = (node, point) => { const rect = node.getBoundingClientRect(); const at = placeNear(point, { width: rect.width || 120, height: rect.height || 30 }, view); node.style.left = `${at.left}px`; node.style.top = `${at.top}px`; };
+  const node = (tag, css, parent = document.body) => {
+    const el = document.createElement(tag);
+    el.className = css;
+    parent.append(el);
+    return el;
+  };
+  const button = (css, label, parent) => {
+    const el = node('button', css, parent);
+    el.type = 'button';
+    el.textContent = label;
+    return el;
+  };
+  const style = node('style', '', document.head);
+  style.textContent = CSS;
+  const chip = button('office-region office-chip', texts.chip);
+  chip.setAttribute(MARK,'chip');
+  chip.hidden = true;
+  chip.insertAdjacentHTML('afterbegin','<svg class="office-selection-sparkles" viewBox="0 0 24 26" fill="currentColor" aria-hidden="true"><path d="M11.5 1c.5 2.1 1.2 2.9 3.3 3.4-2.1.5-2.8 1.3-3.3 3.4-.5-2.1-1.3-2.9-3.4-3.4 2.1-.5 2.9-1.3 3.4-3.4Z"/><path d="M5.7 5.8c.7 3.5 1.9 4.9 5.5 5.6-3.6.7-4.8 2.1-5.5 5.7-.7-3.6-2-5-5.5-5.7 3.5-.7 4.8-2.1 5.5-5.6Z"/><path d="M15.1 8.6c1 5.4 3 7.5 8.4 8.4-5.4 1-7.4 3-8.4 8.5-1-5.5-3-7.5-8.5-8.5 5.5-.9 7.5-3 8.5-8.4Z"/></svg>');
+  const panel = node('section','office-region office-panel');
+  panel.setAttribute('role','dialog');
+  panel.setAttribute(MARK,'panel');
+  panel.hidden = true;
+  const foot = node('footer','office-prompt',panel);
+  const input = node('textarea','',foot);
+  input.setAttribute(MARK,'input');
+  input.setAttribute('aria-label',texts.chip);
+  input.rows = 1;
+  input.wrap = 'off';
+  input.maxLength = 500;
+  input.placeholder = texts.placeholder;
+  const send = button('office-send office-prompt-send',texts.send,foot);
+  send.setAttribute(MARK,'send');
+  send.setAttribute('aria-label',texts.send);
+  send.innerHTML = SEND_ICON;
+  const hint = node('div','office-region-error',panel);
+  hint.setAttribute('role','status');
+  const review = node('div','office-region office-review');
+  review.hidden = true;
+  let selectedId;
+  for (const [action, label] of [['restore',en?'Restore':'恢复'],['apply',en?'Apply':'应用'],['always',en?'Always apply':'始终应用']]) {
+    button('',label,review).onclick = () => handlers.decide(selectedId,action);
+  }
+  const candidateNodes = new Map();
+  input.oninput = () => { send.disabled = !input.value.trim(); handlers.draft(input.value); };
+  input.onkeydown = event => {
+    if (isSend(event)) { event.preventDefault(); handlers.submit(input.value); }
+    else if (event.key === 'Escape') handlers.close();
+  };
+  send.onclick = () => handlers.submit(input.value);
+  chip.onmousedown = event => event.preventDefault();
+  chip.onclick = () => handlers.open();
 
+  const removeNodes = [style,chip,panel,review];
+  function updateReview(el, id) {
+    selectedId = id;
+    const rect = el.getBoundingClientRect();
+    review.hidden = false;
+    review.style.left = Math.max(3,Math.min(rect.left,document.defaultView.innerWidth-review.offsetWidth-3))+'px';
+    review.style.top = Math.max(review.offsetHeight+3,rect.top-8)+'px';
+  }
+  let anchor, placeAnchor;
+  const place = (element, box, gap = 8) => {
+    if (!box) return;
+    const w = document.defaultView;
+    const left = box.left + (box.width - element.offsetWidth) / 2;
+    const above = box.top - gap - element.offsetHeight;
+    element.style.left = Math.max(4,Math.min(left,w.innerWidth-element.offsetWidth-4))+'px';
+    element.style.top = Math.max(4,Math.min(above >= 4 ? above : box.top+box.height+gap,w.innerHeight-element.offsetHeight-4))+'px';
+  };
   return {
-    owns: target => Boolean(target?.closest?.(`[${MARK}]`)),
-    handlers,
-    showChip(point, { disabled = false, reason } = {}) {
-      show(chip, true);
-      chip.style.opacity = disabled ? '0.55' : '1';
-      chip.title = disabled && reason ? (texts.reasons[reason] ?? texts.chipTitle) : texts.chipTitle;
-      chip.setAttribute('aria-disabled', String(disabled));
-      place(chip, point);
+    handlers, texts, owns: target => !!target?.closest?.('.office-region'),
+    showChip(point,{ disabled, reason, box } = {}) {
+      chip.hidden = false;
+      chip.disabled = !!disabled;
+      chip.title = texts.reasons[reason] || texts.chipTitle;
+      place(chip,box ?? {left:point.x,width:0,top:point.y,height:0},4);
     },
-    hideChip() { show(chip, false); },
-    get chipShown() { return chip.style.display !== 'none'; },
-    openPanel(point) {
-      show(chip, false);
-      show(panel, true);
-      input.value = '';
-      this.hint();
-      place(panel, point);
-      input.focus();
+    hideChip() { chip.hidden = true; },
+    muteNativeSelection(on) { document.documentElement.toggleAttribute('data-office-submitted-selection',on); },
+    openPanel(ref, locate) { anchor = ref; placeAnchor = locate; panel.hidden = false; place(panel,locate?.(ref)); input.focus(); },
+    closePanel() { panel.hidden = true; anchor = undefined; },
+    get panelOpen() { return !panel.hidden; },
+    busy(busy) { input.disabled = busy; send.disabled = busy || !input.value.trim(); },
+    hint: message => { hint.textContent = message ?? ''; },
+    render(state, locate) {
+      if (input.value !== state.draft) input.value = state.draft;
+      send.disabled = input.disabled || !input.value.trim();
+      this.position(state,locate);
     },
-    closePanel() { show(panel, false); },
-    get panelOpen() { return panel.style.display !== 'none'; },
-    busy(on) { input.disabled = on; send.disabled = on; for (const item of suggestionButtons) item.disabled = on; if (on) this.hint(texts.sending, { tone: 'info' }); },
-    hint(text, { tone = 'error', draft = false } = {}) {
-      show(hint, Boolean(text));
-      hint.style.color = tone === 'error' ? '#b42318' : '#475467';
-      hintText.textContent = text ?? '';
-      toDraft.style.display = draft ? 'inline-block' : 'none';
+    position(state,locate) {
+      if (anchor && !panel.hidden) place(panel,(placeAnchor ?? locate)(anchor));
+      const alive = new Set();
+      for (const ref of state.candidates) {
+        const key = ref.id ?? ref.number;
+        alive.add(key);
+        let el = candidateNodes.get(key);
+        if (!el) {
+          el = button('office-region office-candidate','');
+          candidateNodes.set(key,el);
+          node('span','',el).textContent = ref.preview;
+          node('b','',el).textContent = ref.number;
+          el.onclick = () => updateReview(el,ref.id);
+        }
+        const box = locate(ref);
+        const win = document.defaultView;
+        el.hidden = !box || box.top+box.height<0 || box.top>win.innerHeight || box.left+box.width<0 || box.left>win.innerWidth;
+        if (el.hidden) continue;
+        el.style.left = box.left+'px'; el.style.top = box.top+'px';
+        el.style.maxWidth = Math.max(45,win.innerWidth-box.left-16)+'px';
+        if(ref.typography) Object.assign(el.style,ref.typography);
+        if (selectedId === ref.id) updateReview(el,ref.id);
+      }
+      for (const [key,el] of candidateNodes) if (!alive.has(key)) { el.remove(); candidateNodes.delete(key); }
+      if (!state.candidates.some(ref => ref.id===selectedId && !candidateNodes.get(ref.id ?? ref.number)?.hidden)) review.hidden = true;
     },
-    showPending(box) {
-      if (!box) { show(frame, false); show(tag, false); return; }
-      show(frame, true);
-      Object.assign(frame.style, { left: `${box.left - 3}px`, top: `${box.top - 3}px`, width: `${box.width + 6}px`, height: `${box.height + 6}px` });
-      show(tag, true);
-      Object.assign(tag.style, { left: `${box.left - 3}px`, top: `${Math.max(4, box.top - 30)}px` });
-    },
-    showResult(point, text = texts.done) {
-      barText.textContent = text;
-      show(bar, true);
-      keep.style.display = revert.style.display = text === texts.done ? 'inline-block' : 'none';
-      place(bar, point);
-    },
-    hideResult() { show(bar, false); },
-    get resultShown() { return bar.style.display !== 'none'; },
-    texts,
-    dispose() { for (const node of [chip, panel, frame, tag, bar]) node.remove(); },
+    dispose() { for (const el of [...removeNodes,...candidateNodes.values()]) el.remove(); },
   };
 }
 
-/**
- * The logic around the drawing. `agent` is the suite's AI agent (readSelection / rewriteSelection / revertSelection /
- * applying / locate); `notify(event, payload)` posts to the parent tab. Returns the handlers kit-page serves:
- * `composer(state)`, `status(reply)` and `rewrite(args, signal)`.
- */
-export function createSelectionFeature({ ui, agent, notify, window, document, editable = () => true, debounceMs = 220, statusTimeoutMs = 15_000, schedule = (run, ms) => window.setTimeout(run, ms), unschedule = id => window.clearTimeout(id) }) {
-  const texts = ui.texts;
-  let current, timer, lastPoint, composer = { canSend: true }, pending, result, sending, counter = 0;
-  const waiting = new Map();
-  const reasonText = reason => texts.reasons[reason] ?? texts.reasons.failed;
-  const anchorPoint = selection => {
-    const box = selection?.box ?? agent.locate?.(selection);
-    if (lastPoint && Date.now() - lastPoint.at < 1500) return lastPoint;
-    return box ? { x: box.left + box.width, y: box.top + box.height } : lastPoint ?? { x: 40, y: 40 };
+export function createSelectionFeature({ ui, agent, notify, window, document, reviews, editable = () => true, allowSelection = true, debounceMs = 120 }) {
+  let state = { draft:'', references:[], pending:[], candidates:[], changes:reviews?.current ?? [], next:1 };
+  let mode = 'always', current, timer, tick, epoch = 0, disposed = false, deciding = false;
+  const locate = ref => agent.locate?.(ref) ?? ref.box;
+  // Local instructions live only as long as the open selection prompt.
+  let promptDraft = '';
+  const paint = () => ui.render({...state,draft:promptDraft},locate);
+  const links=agent.changeLocations && createChangeLinks(document,window,records=>agent.changeLocations(records),
+    id=>notify('document-ui',{revealChange:id}),changeAnchors=>notify('document-ui',{changeAnchors}));
+  const save = () => {
+    reviews?.stage(state.changes);
+    notify('document-ui',{ draftState:structuredClone(state) });
+    void links?.sync(state.changes);
+    paint();
+  };
+  let activeRef, dragPointer, muted, running;
+  let chatEpoch=0, chatCycle=0, nextPreviewNumber=0, chatTurn=false, chatPreview, lastChatSelection;
+  const declaredPreviews = new Set();
+  const working = new Map(), submissions = new Map();
+  const sameRange = (a,b) => !!a && a.kind === b?.kind && sameChangeAnchor(a.anchor,b.anchor) &&
+    (a.kind === 'xlsx' || a.original === b.original);
+  const mute = (ref,hideNative=!!ref) => { muted=ref; ui.muteNativeSelection?.(hideNative); };
+  function beginWork(ref) {
+    if (mode!=='always' || !ref.anchor || !agent.beginSelectionWork) return;
+    const job = { ref, handle:agent.beginSelectionWork(ref) };
+    working.set(ref.number,job);
+    return job;
+  }
+  function endWork(job) {
+    if (!job || working.get(job.ref.number)!==job) return;
+    working.delete(job.ref.number);
+    declaredPreviews.delete(job);
+    if (chatPreview === job) chatPreview = undefined;
+    job.handle.dispose();
+  }
+  async function updateWaitingRanges() {
+    const list=[...working.values()].filter(job=>job.ref.kind==='docx' && !job.writing && job.handle.point);
+    if (!list.length || !agent.changeLocations) return;
+    const records=list.map(({ref})=>({id:ref.number,kind:ref.kind,revert:{anchor:ref.anchor,original:ref.original},located:ref}));
+    try {
+      const locators=await agent.changeLocations(records,true);
+      for(const job of list) {
+        if(!job.writing && working.get(job.ref.number)===job) job.handle.point(locators.get(job.ref.number) ?? (()=>undefined));
+      }
+    } catch { /* Retry on the next committed change. */ }
+  }
+  function clearChatPreview() {
+    ++chatEpoch;
+    if(chatPreview && !chatPreview.writing)endWork(chatPreview);
+    chatPreview=undefined;
+  }
+  async function previewChat({instruction,selection}) {
+    if (declaredPreviews.size) return;
+    clearChatPreview();
+    const token=chatEpoch;
+    let ref;
+    try {ref=await agent.chatSelection?.(instruction,selection ?? current);} catch {return;}
+    if(token!==chatEpoch || disposed || !running || !ref || ref.unsupported || !editable() || agent.applying || [...working.values()].some(job=>sameRange(job.ref,ref)))return;
+    chatPreview=beginWork({...ref,number:--nextPreviewNumber});
+    if(chatPreview){++epoch;hide();mute(ref);}
+  }
+  function resumePending() {
+    for (const ref of state.pending) {
+      if ((!running && !ref.independent) || !ref.requestId || working.has(ref.number)) continue;
+      const job=beginWork(ref);
+      if (job) { job.id=ref.id; job.independent=!!ref.independent; mute(ref); }
+    }
+  }
+  const close = () => { activeRef = undefined; promptDraft = ''; ui.closePanel(); ui.hint(); void agent.focusEditor?.(true); };
+  const hide = () => { current = undefined; ui.hideChip(); };
+  const showChip = () => {
+    if (sameRange(current,muted) || [...working.values()].some(job => sameRange(job.ref,current))) { ui.hideChip(); return; }
+    const box = current && (agent.locateActiveSelection?.(current) ?? locate(current));
+    if (!box || box.top+box.height < 0 || box.top > window.innerHeight) { ui.hideChip(); return; }
+    ui.showChip({ x:box.left+box.width/2, y:box.top },{ box, disabled:!!current.unsupported, reason:current.unsupported });
   };
   const refresh = async () => {
-    timer = undefined;
-    if (!editable() || agent.applying || ui.panelOpen || sending) return;
+    const token = ++epoch;
+    if (dragPointer !== undefined || (ui.panelOpen && ui.owns(document.activeElement))) return;
+    if (!allowSelection || !editable() || agent.applying) return hide();
     let selection;
-    try { selection = await agent.readSelection(); } catch { selection = undefined; }
-    if (!editable() || agent.applying || ui.panelOpen || sending) return;
-    if (!selection) { current = undefined; ui.hideChip(); return; }
-    const point = anchorPoint(selection);
-    if (selection.unsupported) ui.showChip(point, { disabled: true, reason: selection.unsupported });
-    else ui.showChip(point, { disabled: composer.canSend === false && composer.reason === 'running', reason: composer.reason });
-    current = selection.unsupported ? { unsupported: selection.unsupported, point } : { ...selection, point };
+    try { selection = await agent.readSelection(); } catch {}
+    if (token !== epoch || disposed) return;
+    current = selection;
+    const ref=selection?.anchor && !selection.unsupported ? {kind:selection.kind,original:selection.original,anchor:selection.anchor,...(selection.cells && {cells:selection.cells})} : null;
+    if (JSON.stringify(ref)!==JSON.stringify(lastChatSelection)) {
+      lastChatSelection=ref;notify('document-ui',{chatSelection:ref});
+    }
+    showChip();
   };
-  const later = () => { if (timer !== undefined) unschedule(timer); timer = schedule(() => { void refresh(); }, debounceMs); };
-  // The editor may hold the keyboard (the Sheet takes focus back from anything else): it lets go while the box is open.
-  const openPanel = point => { void agent.focusEditor?.(false); ui.openPanel(point); };
-  const closePanel = () => { if (!ui.panelOpen) return; ui.closePanel(); void agent.focusEditor?.(true); };
-  const open = () => {
-    if (!current) return;
-    if (current.unsupported) { openPanel(current.point); ui.hint(reasonText(current.unsupported)); return; }
-    if (composer.canSend === false && composer.reason === 'running') { ui.showChip(current.point, { disabled: true, reason: 'running' }); return; }
-    openPanel(current.point);
+  const later = () => {
+    window.clearTimeout(timer);
+    if (dragPointer === undefined) timer = window.setTimeout(refresh,debounceMs);
   };
-  const close = () => { closePanel(); later(); };
-  const submit = async (value, { draftOnly = false } = {}) => {
-    const instruction = String(value ?? '').trim();
-    if (!instruction || !current || current.unsupported || sending) return;
-    const requestId = `q${Date.now().toString(36)}${(counter++).toString(36)}`;
-    const { point, box, view, ...request } = current;
-    sending = { requestId, selection: current };
-    ui.busy(true);
-    let reply;
+  function open() {
+    if (!current || current.unsupported || sameRange(current,muted) || [...working.values()].some(job => sameRange(job.ref,current))) return;
+    promptDraft = '';
+    activeRef = { ...current, number:state.next++ };
+    hide();
+    void agent.focusEditor?.(false);
+    ui.hint();
+    ui.busy(false);
+    ui.openPanel(activeRef,agent.locateActiveSelection ?? locate);
+    save();
+  }
+  function submit(input) {
+    const instruction = String(input).trim();
+    if (!instruction || !activeRef || [...submissions.values()].some(s=>s.ref===activeRef)) return;
+    dispatch(instruction,activeRef);
+  }
+  function dispatch(instruction,ref,onResult) {
+    const requestId = 'q'+Date.now().toString(36)+'-'+ref.number;
+    const independent = !!(running || submissions.size || state.pending.length || working.size);
+    const job = beginWork(ref);
+    if (job) job.independent=independent;
+    submissions.set(requestId,{ref,job,onResult});
+    const {number,kind,anchor,original,cells} = ref;
+    if (!onResult) { ui.busy(true); ui.hint(ui.texts.sending); }
+    if (job) {
+      ++epoch; hide(); mute(ref); ui.closePanel();
+    }
+    notify('selection-request',{kind:'region-batch',requestId,instruction,...(independent && {parallel:true}),...(onResult && {fromChat:true}),references:[{number,kind,anchor,original,cells}]});
+  }
+  async function decide(id,action) {
+    const candidate = state.candidates.find(item=>item.id===id);
+    if (!candidate || deciding) return;
+    deciding = true;
     try {
-      reply = await new Promise(resolve => {
-        const timeout = schedule(() => { waiting.delete(requestId); resolve({ ok: false, reason: 'failed' }); }, statusTimeoutMs);
-        waiting.set(requestId, value => { unschedule(timeout); resolve(value); });
-        notify('selection-request', { requestId, ...request, instruction, ...(draftOnly && { draftOnly: true }) });
-      });
-    } finally { ui.busy(false); }
-    const selection = sending.selection;
-    sending = undefined;
-    if (!reply?.ok) { ui.hint(reasonText(reply?.reason), { draft: reply?.reason === 'draft' && reply?.drafted !== false }); return; }
-    closePanel();
-    ui.hideChip();
-    if (reply.drafted) { ui.showResult(selection.point, texts.drafted); schedule(() => ui.hideResult(), 4000); }
-    pending = { id: reply.id, selection };
-    ui.showPending(agent.locate?.(selection) ?? selection.box);
-  };
-  const cancelPending = () => {
-    if (!pending) return;
-    notify('selection-update', { selection: pending.id, state: 'cancelled' });
-    pending = undefined;
-    ui.showPending(undefined);
-  };
-  const keep = () => {
-    if (!result) return;
-    notify('selection-update', { selection: result.id, state: 'kept' });
-    result = undefined;
-    ui.hideResult();
-  };
-  const revert = async () => {
-    if (!result || agent.applying) return;
-    const done = result;
-    ui.showResult(done.point, texts.reverting);
-    try {
-      await agent.revertSelection(done.revert);
-      result = undefined;
-      notify('selection-update', { selection: done.id, state: 'reverted' });
-      ui.showResult(done.point, texts.reverted);
+      if (action !== 'restore') {
+        await agent.rewriteSelection(candidate.args);
+        if (action==='always') { mode='always'; notify('document-ui',{permission:'always'}); }
+      }
+      notify('selection-update',{selection:id,state:action==='restore'?'reverted':'kept'});
+      state.candidates = state.candidates.filter(item=>item!==candidate);
+      save();
     } catch (error) {
-      result = undefined;
-      console.warn('officesdk: selection undo refused', error?.code ?? '', error?.message ?? error);
-      ui.showResult(done.point, texts.revertFailed);
+      void agent.focusEditor?.(false);
+      ui.openPanel(activeRef ?? candidate,locate);
+      ui.hint(error.message || ui.texts.revertFailed);
     }
-    schedule(() => { if (!result) ui.hideResult(); }, 2500);
-  };
-  Object.assign(ui.handlers, { open, close, submit, cancelPending, keep, revert });
-
-  const pointer = event => {
-    if (ui.owns(event.target)) return;
-    if (event.type === 'pointerup') lastPoint = { x: event.clientX, y: event.clientY, at: Date.now() };
-    if (event.type === 'pointerdown') { if (!ui.panelOpen) ui.hideChip(); return; }
-    if (ui.panelOpen) closePanel();
+    finally { deciding=false; }
+  }
+  Object.assign(ui.handlers,{open,close,submit,decide,
+    draft(value) { if (activeRef) promptDraft=value; },
+  });
+  function beginPointer(event) {
+    if (event.isPrimary === false || ui.owns(event.target)) return;
+    if (event.target?.closest?.('#editor-root')) mute(undefined);
+    dragPointer = event.pointerId;
+    ++epoch;
+    window.clearTimeout(timer);
+    hide();
+    if (ui.panelOpen || activeRef) close();
+  }
+  function endPointer(event) {
+    if (dragPointer === undefined || (event.pointerId !== undefined && event.pointerId !== dragPointer)) return;
+    dragPointer = undefined;
     later();
-  };
-  const key = event => {
+  }
+  // Recover when a mouse was released outside the editor iframe.
+  function pointerMove(event) { if (event.buttons === 0) endPointer(event); }
+  function key(event) {
     if (ui.owns(event.target)) return;
-    if (event.type === 'keydown') {
-      if (isShortcut(event) && current && !ui.panelOpen) { event.preventDefault(); event.stopImmediatePropagation?.(); open(); return; }
-      // Typing in the document: the Keep / Undo bar counts as kept, the button goes until the next selection.
-      if (!['Shift', 'Meta', 'Control', 'Alt'].includes(event.key)) { if (result) keep(); if (!event.shiftKey) ui.hideChip(); }
-      return;
-    }
-    if (event.shiftKey || event.key === 'Shift' || /^Arrow|^(Home|End)$/.test(event.key)) later();
+    if (event.type==='keydown' && event.target?.closest?.('.writer-next-workbench__viewport') && (event.shiftKey && /^(Arrow|Home|End)/.test(event.key) ||
+        (event.metaKey || event.ctrlKey) && event.key.toLowerCase()==='a')) mute(undefined);
+    if (event.type==='keydown' && current && isShortcut(event)) { event.preventDefault(); event.stopImmediatePropagation(); open(); }
+    else if (event.type==='keyup') later();
+  }
+  const position = () => {
+    if (tick !== undefined) return;
+    tick=window.requestAnimationFrame(()=>{ tick=undefined; showChip(); ui.position(state,locate); });
   };
-  const wheel = () => { if (!ui.panelOpen) ui.hideChip(); };
-  const listeners = [['pointerdown', pointer], ['pointerup', pointer], ['keydown', key], ['keyup', key], ['wheel', wheel]];
-  for (const [type, run] of listeners) document.addEventListener(type, run, { capture: true, passive: type !== 'keydown' });
-
+  const events=[['pointerdown',beginPointer],['pointermove',pointerMove],['pointerup',endPointer],['pointercancel',endPointer],['keydown',key],['keyup',key],['scroll',position],['selectionchange',later]];
+  for(const [type,fn] of events) document.addEventListener(type,fn,true);
+  window.addEventListener('blur',endPointer);
+  window.addEventListener('resize',position);
+  if (reviews) {
+    notify('document-ui',{restoredChanges:state.changes});
+    void links?.sync(state.changes);
+  }
+  paint();
   return {
-    /** The parent's word on whether the conversation can take a message now. */
-    composer(state) { composer = { canSend: state?.canSend !== false, ...(state?.reason && { reason: state.reason }) }; if (ui.chipShown && current) later(); return { ok: true }; },
-    /** The parent's answer to a selection-request. */
+    refresh, layoutChanged:()=>links?.schedule(), contentChanged:()=>Promise.all([links?.sync(state.changes,true),updateWaitingRanges()]), composer(data) {
+      if (data?.reason==='no-composer') return {ok:true};
+      const wasRunning = running;
+      running = data?.reason==='running';
+      if(running && data.chatEdit){chatTurn=true;void previewChat(data.chatEdit);}
+      resumePending();
+      if (!running && (wasRunning || chatTurn)) {
+        ++chatCycle;chatTurn=false;clearChatPreview();
+        for (const job of working.values()) {
+          if (job.writing || job.independent) continue;
+          job.ended = true;
+          endWork(job);
+          if (job.id) {
+            state.pending=state.pending.filter(r=>r.id!==job.id);
+            notify('selection-update',{selection:job.id,state:'cancelled'});
+          }
+        }
+        save();
+      }
+      return {ok:true};
+    },
+    async inspectEditTarget(target, signal) {
+      const cycle = chatCycle;
+      const doc = await agent.inspect();
+      const ref = agent.modelEditRange(doc, target);
+      if (disposed || signal?.aborted || cycle !== chatCycle) throw new Error('The editing turn ended.');
+      if (!editable() || mode !== 'always') return doc;
+      const existing = [...working.values()].find(job => sameRange(job.ref, ref));
+      if (existing && existing !== chatPreview && !declaredPreviews.has(existing)) throw new Error(ui.texts.reasons.busy);
+      // A tool names the actual passage. A slower guess from the submitted message must never replace it.
+      ++chatEpoch;
+      chatTurn = true;
+      if (chatPreview && existing !== chatPreview) clearChatPreview();
+      const job = existing ?? beginWork({ ...ref, number: --nextPreviewNumber });
+      if (job) {
+        declaredPreviews.add(job);
+        chatPreview = undefined;
+        ++epoch;hide();mute(ref);
+      }
+      return doc;
+    },
+    async submitChatRegion({instruction,selection}) {
+      if (!editable() || !instruction?.trim()) return {handled:false};
+      const ref = await agent.chatSelection?.(instruction,selection);
+      if (!ref || ref.unsupported || (ref.original?.length ?? 0)>2000 || (ref.kind==='docx' && ref.anchor.paragraphs[1]-ref.anchor.paragraphs[0]>=20)) return {handled:false};
+      if ([...working.values()].some(job=>sameRange(job.ref,ref))) throw new Error(ui.texts.reasons.busy);
+      const reply=await new Promise(resolve=>dispatch(instruction,{...ref,number:state.next++},resolve));
+      if (!reply.ok) throw new Error(ui.texts.reasons[reply.reason] || ui.texts.reasons.failed);
+      return {handled:true};
+    },
+    takeChatPreview() {
+      if(!chatTurn)return;
+      ++chatEpoch;
+      return {
+        claim(ref) {
+          const job = [...declaredPreviews, chatPreview].find(item => item && !item.writing && sameRange(item.ref, ref));
+          if (chatPreview && job !== chatPreview) clearChatPreview();
+          if (!job) return;
+          job.writing = true;
+          return { ...job.handle, dispose: () => endWork(job) };
+        },
+        get changes() { return state.changes; },
+        record(change,previousId) { state.changes=recordChange(state.changes,change,previousId);save(); },
+      };
+    },
+    hydrate(data) {
+      if (data?.state) {
+        state={...structuredClone(data.state),draft:'',references:[]};
+        const count=state.changes?.length ?? 0;
+        state.changes=reviews?.current ?? restoreChangeHistory((state.changes ?? []).filter(card=>!card.accepted));
+        if (state.changes.length !== count) save();
+      }
+      if (data?.permission) mode=data.permission;
+      if (data?.state) { resumePending(); void links?.sync(state.changes); }
+      paint();return {ok:true};
+    },
     status(reply) {
-      // A send that failed after the page heard it went: the selection waits for nothing now.
-      if (typeof reply?.dropped === 'string') { if (pending?.id === reply.dropped) { pending = undefined; ui.showPending(undefined); } return { ok: true }; }
-      const resolve = waiting.get(reply?.requestId); waiting.delete(reply?.requestId); resolve?.(reply); return { ok: Boolean(resolve) };
+      if (reply.dropped) {
+        const job=submissions.get(reply.requestId)?.job ?? [...working.values()].find(job=>job.id===reply.dropped);
+        if (job && !job.writing) { job.ended=true; endWork(job); }
+        state.pending=state.pending.filter(ref=>ref.id!==reply.dropped);
+        ui.hint(ui.texts.reasons.failed);save();return {ok:true};
+      }
+      const sent=submissions.get(reply.requestId);
+      if (!sent) return {ok:false};
+      submissions.delete(reply.requestId);
+      const {ref,job,onResult}=sent;
+      if (!onResult && (!activeRef || activeRef===ref)) ui.busy(false);
+      if (!reply.ok) {
+        endWork(job);
+        if (muted===ref) mute(undefined);
+        if (activeRef === ref) {
+          if (job) ui.openPanel(ref,agent.locateActiveSelection ?? locate);
+          ui.hint(ui.texts.reasons[reply.reason] || ui.texts.reasons.failed);
+        }
+      } else {
+        const id = reply.ids?.find(item => item.number === ref.number)?.id;
+        if (job) { job.id=id; job.independent=!!reply.independent; }
+        if (id && !job?.ended && !job?.writing && !state.candidates.some(c => c.id === id)) state.pending.push({...ref,id,requestId:reply.requestId,...(reply.independent && {independent:true})});
+        else if (id && job?.ended && !job.writing) notify('selection-update',{selection:id,state:'cancelled'});
+        if (activeRef === ref) close();
+        save();
+      }
+      onResult?.(reply);return {ok:true};
     },
-    /** The model's selection_rewrite, delivered by the parent: rewrite, then offer Keep / Undo. */
-    async rewrite(args, signal) {
-      ui.hideChip();
-      closePanel();
-      if (pending?.id === args.id) { pending = undefined; ui.showPending(undefined); }
-      if (result) keep();
-      const outcome = await agent.rewriteSelection(args, signal);
-      const point = (() => { const box = agent.locate?.(outcome.located); return box ? { x: box.left + box.width, y: box.top + box.height } : lastPoint ?? { x: 40, y: 40 }; })();
-      if (outcome.revert) { result = { id: args.id, revert: outcome.revert, point }; ui.showResult(point); }
-      return outcome.reply;
+    async changeDetail({ id,action,instruction },signal) {
+      const index=state.changes.findIndex(item=>item.id===id);
+      if (index<0 || deciding || agent.applying) throw new Error(ui.texts.reasons.busy);
+      const record=state.changes[index];
+      if (action==='select') {
+        const source=links?.locationFor(id) ?? id;
+        const ref=await agent.selectChange(source===id?record:state.changes.find(r=>r.id===source) ?? record);
+        if (activeRef) close();
+        ++epoch; hide(); mute(ref,false);
+        return {selected:true};
+      }
+      if (action==='accept') {
+        state.changes=state.changes.filter(r=>r.id!==id);
+        save();return {accepted:true};
+      }
+      if (action==='followup') {
+        const text=String(instruction ?? '').trim();
+        if (!text || text.length>500) throw new Error(ui.texts.reasons.failed);
+        if (!editable()) throw new Error(ui.texts.reasons['read-only']);
+        deciding=true;
+        try {
+          // Resolve again on send: typing in the card can outlast a selection change or a document edit.
+          const ref=await agent.selectChange(record);
+          if (ref?.unsupported) throw new Error(ui.texts.reasons[ref.unsupported]);
+          if (!ref || (ref.kind==='docx' && !ref.original?.trim())) throw new Error(ui.texts.reasons['no-target']);
+          if (disposed || signal?.aborted) throw new Error(ui.texts.reasons.busy);
+          const reply=await new Promise(resolve=>dispatch(text,{...ref,number:state.next++},resolve));
+          if (!reply.ok) throw new Error(ui.texts.reasons[reply.reason] || ui.texts.reasons.failed);
+          return {sent:true};
+        } finally { deciding=false; }
+      }
+      if (action!=='remove') throw new Error('Unknown change action');
+      deciding=true;
+      try {
+        await agent.revertSelection(record.revert,signal,record.located);
+        state.changes=state.changes.filter(r=>r.id!==id);
+        notify('selection-update',{selection:record.latestId ?? id,state:'reverted'});
+        save();return {removed:true};
+      } finally { deciding=false; }
     },
-    /** The selection waiting for the model, if any (for tests and the page's own checks). */
-    get pending() { return pending; },
-    get result() { return result; },
-    refresh,
-    dispose() { for (const [type, run] of listeners) document.removeEventListener(type, run, { capture: true }); if (timer !== undefined) unschedule(timer); ui.dispose(); },
+    async rewrite(args,signal) {
+      let job=[...working.values()].find(item=>item.id===args.id) ??
+        [...working.values()].find(item=>!item.id && sameRange(item.ref,args));
+      if (!job?.independent && !state.pending.some(r=>r.id===args.id)) {
+        ++chatEpoch;
+        if(chatPreview && !sameRange(chatPreview.ref,args))clearChatPreview();
+      }
+      const ref=state.pending.find(item=>item.id===args.id || (job && item.number===job.ref.number)) ?? job?.ref;
+      if (mode==='always') {
+        if (!job && chatTurn && agent.describeSelection && agent.beginSelectionWork) {
+          const actual=await agent.describeSelection(args);
+          job=beginWork({...actual,number:state.next++});
+        }
+        if (job?.writing) throw new Error(ui.texts.reasons.busy);
+        if (job) job.writing=true;
+        let outcome;
+        try { outcome=await agent.rewriteSelection(args,signal,job?.handle,ref,state.changes); }
+        finally {
+          endWork(job);
+          if(chatPreview===job)chatPreview=undefined;
+          state.pending=state.pending.filter(item=>item.id!==args.id && (!job || item.number!==job.ref.number));
+          if (!outcome) save();
+        }
+        if (outcome.reply.applied && outcome.revert) {
+          const display = value => Array.isArray(value) ? value.map(row=>Array.isArray(row)?row.join(' · '):row).join('\n') : String(value ?? '');
+          state.changes=recordChange(state.changes,{id:args.id,kind:args.kind,appliedAt:Date.now(),before:display(outcome.reply.before),after:display(outcome.reply.after),
+            revert:outcome.revert,located:outcome.located},outcome.previousId);
+        }
+        save();return outcome.reply;
+      }
+      // Even if the tab was remounted or the request came from another composer, resolve its actual target.
+      const located=ref ?? await agent.describeSelection?.(args) ?? args;
+      const candidate={...located,args,id:args.id,number:ref?.number ?? state.next++,preview:args.text ?? args.values?.map(row=>row.join(' · ')).join('\n') ?? ''};
+      const box=locate(candidate);
+      if (box && args.kind==='docx') {
+        const glyph=document.elementsFromPoint?.(box.left+1,box.top+box.height/2)?.find(el=>el.closest?.('text[data-writer-document-content]'));
+        if(glyph) { const css=window.getComputedStyle(glyph);candidate.typography={fontFamily:css.fontFamily,fontSize:Math.max(9,Math.min(70,box.height/Math.max(1,args.anchor.paragraphs[1]-args.anchor.paragraphs[0]+1)*0.85))+'px',fontWeight:css.fontWeight}; }
+      }
+      state.pending=state.pending.filter(item=>item.id!==args.id);
+      state.candidates.push(candidate);
+      save();
+      return {applied:false,pendingReview:true,after:candidate.preview};
+    },
+    dispose() { disposed=true; links?.dispose(); for(const sent of submissions.values())sent.onResult?.({ok:false,reason:'failed'}); submissions.clear(); ++epoch;for(const job of working.values()) endWork(job);mute(undefined);window.clearTimeout(timer);if(tick!==undefined)window.cancelAnimationFrame(tick);for(const [type,fn] of events)document.removeEventListener(type,fn,true);window.removeEventListener('resize',position);window.removeEventListener('blur',endPointer);ui.dispose(); },
   };
 }

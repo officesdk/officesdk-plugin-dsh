@@ -1,3 +1,6 @@
+import { PROMPT_CSS } from '../../../core/src/browser/prompt-style.mjs';
+import { WORK_BORDER_CSS } from '../../../core/src/browser/work-border.mjs';
+
 /**
  * The P area's stylesheet. Colors follow DSH's effective theme: DSH marks `body[data-ds-dark-theme]` from its theme
  * snapshot (its own "system" preference already resolved), so a theme switch only swaps CSS variables — nothing
@@ -14,6 +17,116 @@ const DARK = '--sbp-icon:#d5d8dc;--sbp-disabled:#ffffff42;--sbp-hover:#ffffff18;
 const FONT = '-apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",sans-serif';
 
 export const CSS = `
+.office-edit-reference{display:block;max-width:100%;min-width:0;white-space:normal}
+.office-edit-reference-target{display:flex;align-items:baseline;gap:6px;width:fit-content;max-width:100%;min-width:0;margin:0;padding:0;border:0;background:transparent;font:inherit;font-size:13px;line-height:1.5;text-align:start;cursor:pointer;color:var(--dsw-alias-link,#4778af)}
+body[data-ds-dark-theme] .office-edit-reference-target{color:#93baff}
+.office-focus-chat .office-edit-reference-target{color:#4778af}
+.office-edit-reference-prefix{flex:none;color:var(--dsw-alias-label-secondary,#81868d)}
+.office-focus-chat .office-edit-reference-prefix{color:#747a81}
+.office-edit-reference-name{position:relative;display:block;min-width:0;overflow:hidden;white-space:nowrap}
+.office-edit-reference-name>span:first-child{visibility:hidden}
+.office-edit-reference-visible{position:absolute;inset:0}
+.office-edit-reference-target:focus-visible{outline:1px solid currentColor;outline-offset:2px;border-radius:3px}
+.office-edit-instruction{display:block;margin-block-start:4px;white-space:pre-wrap;overflow-wrap:anywhere}
+.office-edit-reference-tip{position:fixed;inset:auto;box-sizing:border-box;width:max-content;max-width:min(320px,calc(100vw - 16px));max-height:min(220px,45vh);margin:0;padding:8px 10px;overflow:auto;border:1px solid #dce0e5;border-radius:9px;box-shadow:0 3px 14px #17191e20;background:#fff;color:#292d33;white-space:pre-wrap;overflow-wrap:anywhere;text-align:start;font:13px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.office-edit-reference-tip small{display:block;margin-bottom:2px;color:#737982}
+.office-deck-chat{margin:6px 0 12px;color:inherit;font:inherit;min-width:0}
+.office-deck-chat details{font-size:13px;color:var(--dsw-alias-label-secondary,#85878d)}
+.office-deck-chat summary{display:flex;align-items:center;gap:7px;min-height:28px;width:fit-content;cursor:pointer;list-style:none}
+.office-deck-chat summary::-webkit-details-marker{display:none}
+.office-deck-chat details[open]>summary span{transform:rotate(180deg)}
+.office-deck-chat ul{margin:3px 0 8px;padding-inline-start:20px;overflow-wrap:anywhere}
+.office-deck-file{display:flex;gap:10px;align-items:center;width:100%;min-width:0;padding:12px;margin:8px 0 0;border:1px solid var(--dsw-alias-border,color-mix(in srgb,currentColor 15%,transparent));border-radius:12px;background:var(--dsw-alias-bg-layer-2,color-mix(in srgb,currentColor 5%,transparent));font:inherit;color:inherit;text-align:start;cursor:pointer}
+.office-deck-file span:first-of-type{flex:1;overflow-wrap:anywhere}.office-deck-file span:last-child{opacity:.65}
+.office-focus-chat .office-deck-file{background:#f7f7f8;border-color:#e3e4e7;color:#25292e}
+.office-focus-chat .office-deck-chat details{color:#626770}
+
+.office-editor-pane{flex:1 1 0;min-width:0;height:100%;position:relative;overflow:hidden}
+.office-change-rail,.office-focus-chat{color-scheme:light;color:#25292e;background:#fff;font:13px/1.5 -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;box-sizing:border-box}
+.office-change-rail{width:clamp(150px,26%,280px);container:office-changes / inline-size;flex:none;min-height:0;display:flex;flex-direction:column;border-left:1px solid #e0e3e7}
+.office-change-rail header{box-sizing:border-box;display:flex;flex:none;height:36px;justify-content:space-between;align-items:center;padding:0 6px 0 14px;border-bottom:0;box-shadow:inset 0 -1px #ececed}
+.office-change-rail[data-collapsed=true]{width:36px}
+.office-change-rail[data-collapsed=true] header{padding:0;justify-content:center}
+.office-rail-toggle{position:relative;display:grid;place-items:center;flex:none;width:28px;height:28px;padding:0;border:0;border-radius:6px;color:#535961;background:transparent;cursor:pointer}
+.office-rail-toggle:is(:hover,:focus-visible){background:#f1f2f4}
+.office-rail-dot{position:absolute;right:3px;top:3px;width:6px;height:6px;border-radius:50%;background:#df4046;box-shadow:0 0 0 1px #fff;pointer-events:none}
+.office-change-list{--rail-inset:10px;flex:1;min-height:0;overflow:auto;overflow-x:hidden;overflow-anchor:none;overscroll-behavior:contain}
+.office-change-track{position:relative;min-height:100%}
+.office-change-group{position:absolute;inset-inline:var(--rail-inset)}
+.office-change{position:relative;margin:0;border:1px solid #e0e3e6;border-radius:13px;background:#fff;box-shadow:0 2px 8px #20242a07}
+.office-change-group[data-stack=true] .office-stack-face{isolation:isolate;position:relative;overflow:clip;padding-bottom:6px}
+.office-change-group[data-stack=true] .office-stack-face::before,.office-change-group[data-stack=true] .office-stack-face::after{content:'';position:absolute;inset:4px 4px 3px;z-index:-1;border:1px solid #dce0e4;border-radius:13px;background:#fff;pointer-events:none}
+.office-change-group[data-stack=true] .office-stack-face::before{inset:8px 8px 0;background:#f7f8f9}
+.office-stack-strip{position:relative;transform:translateX(var(--office-card-drag,0px))}
+.office-stack-neighbor{position:absolute;top:0;width:100%;pointer-events:none}
+.office-stack-neighbor[data-side="-1"]{right:100%}.office-stack-neighbor[data-side="1"]{left:100%}
+.office-stack-face:hover .office-change .office-card-prompt{display:flex}
+.office-change-group[data-stack=true] .office-change-body{touch-action:pan-y;user-select:none;cursor:grab}
+.office-change-group[data-stack=true] .office-change-body:active{cursor:grabbing}
+.office-change-group nav{display:flex;flex-wrap:wrap;justify-content:center;margin-top:2px}
+.office-change-group nav button{display:grid;place-items:center;width:16px;height:20px;padding:0;border:0;border-radius:5px;background:transparent;color:#bcc2c8;cursor:pointer}
+.office-change-group nav button::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+.office-change-group nav button[aria-current=true]{color:#353b41}
+.office-change-group nav button:focus-visible{outline:1px solid currentColor}
+@media(forced-colors:active){.office-change-group nav button::before{background:GrayText}.office-change-group nav button[aria-current=true]::before{background:Highlight}}
+.office-change[data-active=true]{border-color:transparent;background:linear-gradient(white,white) padding-box,${WORK_BORDER_CSS} border-box}
+@media(forced-colors:active){.office-change[data-active=true]{border-color:Highlight}}
+.office-change{--card-inset:12px;--card-action:22px}
+.office-change-body{display:grid;gap:5px;width:100%;box-sizing:border-box;padding:var(--card-inset);text-align:start;color:inherit;background:none;border:0;border-radius:inherit;font:inherit;font-weight:400;cursor:pointer;white-space:pre-wrap;overflow-wrap:anywhere}
+.office-change-meta{display:flex;align-items:center;gap:6px;min-width:0;height:var(--card-action);padding-right:calc(var(--card-action) * 2);margin-bottom:3px;color:#686d74}
+.office-change-meta img{flex:none}.office-change-meta time{font-size:11px;line-height:1;font-variant-numeric:tabular-nums}
+.office-change-body del{color:#828991}
+.office-diff-text{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-width:0}
+.office-change[data-expanded=true] .office-diff-text{display:block;overflow:visible}
+.office-replacement{display:flex;align-items:baseline;gap:6px}.office-replacement svg{align-self:flex-start;flex:none;margin-top:2px}
+.office-change-actions{position:absolute;top:var(--card-inset);right:var(--card-inset);display:flex}
+.office-change-actions button{display:grid;place-items:center;width:var(--card-action);height:var(--card-action);padding:0;border:0;border-radius:6px;background:transparent;color:#464b52;cursor:pointer}
+.office-change-actions button:is(:hover,:focus-visible):enabled{background:#f0f1f3}
+.office-change-actions button:disabled{opacity:.5;cursor:default}
+.office-change .office-card-prompt{display:none;margin:0 var(--card-inset) var(--card-inset)}
+@container office-changes (max-width:220px){
+  .office-change-list{--rail-inset:6px}
+  .office-change{--card-inset:9px}
+  .office-change .office-card-prompt{gap:5px;padding-inline:10px 5px}
+}
+.office-change:hover .office-card-prompt,.office-change-rail[data-keyboard=true] .office-change:focus-within .office-card-prompt,.office-change:has(.office-change-body:focus-visible) .office-card-prompt{display:flex}
+@media(hover:none){.office-change[data-active=true] .office-card-prompt{display:flex}}
+.office-undo-confirm{display:flex;justify-content:center;align-items:center;gap:5px;padding:0 var(--card-inset) var(--card-inset);font-size:12px}
+.office-undo-confirm button{font:inherit;border:0;border-radius:6px;padding:4px 8px;background:#f1f2f4;color:#333;cursor:pointer}
+.office-undo-confirm button:last-child{background:#25292e;color:white}
+.office-focus-chat{position:absolute;z-index:8;right:14px;width:min(390px,calc(100% - 28px));max-height:calc(100% - 100px);display:flex;flex-direction:column;border:1px solid #dedfe2;border-radius:18px;corner-shape:round;box-shadow:0 6px 24px #25272a20,0 1px 3px #25272a0a;overflow:hidden}
+.office-focus-chat[popover]{position:fixed;inset:auto 14px auto auto;margin:0;padding:0}
+.office-focus-chat[data-expanded=true]{height:512px;max-height:calc(100% - 88px)}
+.office-chat-head,.office-chat-file,.office-chat-compose button,.office-chat-compose textarea{font:inherit;color:inherit}
+.office-chat-head{box-sizing:border-box;display:flex;flex:none;align-items:center;justify-content:space-between;gap:9px;padding:12px 14px;width:100%;background:transparent;border:0;border-bottom:1px solid #eceef1;border-radius:0;text-align:left;cursor:pointer}
+.office-focus-chat .office-chat-status{color:#666d75;font-size:12px}.office-focus-chat .office-chat-error{color:#9e3435}
+.office-chat-decision-list{min-height:0;max-height:85%;overflow:auto;overscroll-behavior:contain;flex:none}
+.office-chat-decisions{--dsh-composer-side-clearance:0px;--dsh-chat-content-width:100%}
+.office-chat-decisions [data-conversation-content],.office-chat-decisions [data-conversation-scroll],.office-chat-decisions [data-composer-seat]{height:auto;min-height:0;max-height:none;width:100%;margin:0;padding:0;position:static}
+.office-chat-decisions [data-chain-overlay-fallback="conversation.composer"]{display:none!important}
+.office-chat-other-decisions{padding:10px 14px;border-top:1px solid #eceef1}.office-chat-other-decisions .office-undo-confirm{padding:0}.office-chat-confirm{display:grid;gap:8px}.office-chat-confirm .sbp-actions{display:flex;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.office-chat-head:disabled{color:inherit;opacity:1;cursor:default}
+.office-chat-head:focus-visible{outline-offset:-3px}
+.office-chat-head img{display:block;flex:none}
+.office-chat-head strong{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:550;line-height:18px}
+.office-chat-head svg{display:block;flex:none}
+.office-chat-log{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:8px 14px;border-bottom:1px solid #eceef1}
+.office-chat-log p{margin:5px 0 12px;white-space:pre-wrap;overflow-wrap:anywhere}.office-chat-user{margin-left:auto!important;border-radius:12px;padding:6px 10px;background:#f4f5f6;width:fit-content;max-width:92%}
+${PROMPT_CSS}
+.office-chat-compose{flex:none;height:46px;margin:0;padding-inline:14px 6px;background:transparent;border:0;border-radius:0;box-shadow:none}
+.office-sent-edit{display:flex;flex-direction:column;align-items:flex-end;gap:6px}.office-sent-edit small,.office-chat-error{color:var(--dsw-alias-label-secondary,currentColor);overflow-wrap:anywhere}
+.office-chat-file{border:1px solid #e1e4e8;background:#fff;border-radius:7px;cursor:pointer;padding:2px 6px}
+.office-focus-chat[data-expanded=false]{border-radius:24px}
+@media(hover:hover){
+  .office-focus-chat[data-expanded=false]:not(:hover,:focus-within) .office-chat-head{height:0;padding-block:0;border:0;overflow:hidden}
+}
+.office-change-rail [role=alert],.office-focus-chat [role=alert]{padding:5px 10px;color:#a13f39}
+
+.sbp-document-context{display:flex;align-items:center;gap:8px;min-height:24px;padding:0 12px;font:12px/20px ${FONT};color:var(--dsw-alias-label-secondary,#656970)}
+.sbp-document-target{display:flex;align-items:center;gap:4px;min-width:0;white-space:nowrap}
+.sbp-document-name{border:0;border-radius:5px;padding:0 3px;background:transparent;color:inherit;cursor:pointer;font:inherit}
+.sbp-document-name{color:var(--dsw-alias-label-primary,#292a2e);overflow:hidden;text-overflow:ellipsis;font-weight:550}
+.sbp-document-name:is(:hover,:focus-visible){background:var(--dsw-alias-fill-secondary,#8882)}
 .sbp{${LIGHT}position:relative;display:flex;align-items:center;gap:4px;white-space:nowrap;color:var(--sbp-icon);font-size:12px}
 [data-ds-dark-theme] .sbp{${DARK}}
 @media (prefers-color-scheme:dark){:root:not([data-ds-theme-source]) body:not([data-ds-dark-theme]) .sbp{${DARK}}}

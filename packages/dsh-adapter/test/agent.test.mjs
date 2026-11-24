@@ -442,3 +442,47 @@ test('client: the bridge remembers the platform the last Host command named, for
   await bridge.serve('s1', { requestId: 'r', kind: 'read', path: 'C:\\w\\a.pptx', platform: 'win32' });
   assert.equal(bridge.lastPlatform, 'win32');
 });
+
+
+test('parallel edits reuse the open tab for absolute and workspace-relative names and deliver save to that tab', async () => {
+  const controllers = new ControllerRegistry(), opened = [], saved = [];
+  const path = '报告.docx', absolute = '/workspace/报告.docx';
+  const owner = {source:{sessionId:'s1'}, state:{}, ensureMode:async()=>{}, markSaved:(...args)=>saved.push(args),
+    probe:async p=>({path,realPath:absolute})};
+  const bridge = new AgentBridge({controllers,openResource:(address,options)=>opened.push([address,options])});
+  const canonical = sessionAddress('s1',path);
+  controllers.add(canonical,owner);
+  controllers.add(sessionAddress('other',absolute),{source:{sessionId:'other'}});
+  const jobs = await Promise.all([path,absolute].map(name=>bridge.document('s1',name)));
+  assert.ok(jobs.every(job=>job.controller===owner));
+  assert.deepEqual(opened,[]);
+  await bridge.serve('s1',{kind:'saved',path:absolute,version:'v2',editRevision:2});
+  assert.deepEqual(saved,[['v2',2]]);
+});
+
+test('background PPT rewrite and save leave the user in Word; concurrent first opens share one tab', async () => {
+  const ppt = fakeController(), word = fakeController();
+  ppt.flushEditor = async () => ppt.calls.push(['flush']);
+  const registry = new ControllerRegistry();
+  const pptAddress = sessionAddress('s1', '稿件.pptx'), wordAddress = sessionAddress('s1', '报告.docx');
+  registry.add(wordAddress, word);
+  let foreground = wordAddress;
+  const opens = [];
+  const bridge = new AgentBridge({ controllers: registry, openResource: address => { opens.push(address); foreground = address; } });
+  const first = bridge.document('s1', '稿件.pptx');
+  const second = bridge.document('s1', '稿件.pptx');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(opens, [pptAddress]);
+  registry.add(pptAddress, ppt);
+  await Promise.all([first, second]);
+  foreground = wordAddress;
+  await bridge.run('s1', {kind:'rewrite', path:'稿件.pptx', selection:{selectionId:'title'}, text:'新标题'});
+  await bridge.run('s1', {kind:'flush', path:'稿件.pptx'});
+  await bridge.serve('s1', {kind:'saved', path:'稿件.pptx', version:'v2', editRevision:1});
+  assert.equal(foreground, wordAddress);
+  assert.deepEqual(opens, [pptAddress]);
+  assert.equal(word.calls.length, 0);
+  assert.deepEqual(ppt.calls.filter(([name]) => name !== 'mode'), [
+    ['rewrite', {selectionId:'title', text:'新标题'}], ['flush'], ['saved','v2',1],
+  ]);
+});

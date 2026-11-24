@@ -6,10 +6,10 @@ the package is tested with).
 ```sh
 npm ci --prefix tooling --ignore-scripts        # esbuild and javascript-obfuscator for the build
 node tooling/kit/vendor.mjs fetch               # office-kit's editor bundle, host fonts and kit-manifest.json (components/README.md)
-node tooling/suite/pack-universal.mjs --version 0.0.1-rc.1 --sources public --obfuscate light \
+node tooling/suite/pack-universal.mjs --version 0.0.1 --sources public --obfuscate light \
   --repository https://github.com/officesdk/officesdk-plugin-dsh --out artifacts/npm
-node scripts/verify-universal-package.mjs artifacts/npm/officesdk-officesdk-plugin-dsh-0.0.1-rc.1.tgz
-node scripts/npm-gate.mjs artifacts/npm/officesdk-officesdk-plugin-dsh-0.0.1-rc.1.tgz --target ci
+node scripts/verify-universal-package.mjs artifacts/npm/officesdk-officesdk-plugin-dsh-0.0.1.tgz
+node scripts/npm-gate.mjs artifacts/npm/officesdk-officesdk-plugin-dsh-0.0.1.tgz --target ci
 ```
 
 `--repository <url>` (or `OFFICESDK_PUBLIC_REPOSITORY`) names the public repository in the package's `package.json`.
