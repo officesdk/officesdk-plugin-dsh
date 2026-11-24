@@ -97,9 +97,7 @@ export async function handleSelectionRequest({ controller, message, registry, la
   if (controller.state?.parallelError) controller.set?.({parallelError:undefined});
   if (!entry || state.reason === 'no-composer') return reply({ ok: false, reason: 'no-composer' });
   if (message.kind === 'region-batch') {
-    const parallel = message.parallel === true || state.reason === 'running';
     const ownsDraft = current => message.fromChat === true && !current?.attachments && current?.draft?.trim() === message.instruction;
-    if (!state.canSend && !parallel && !ownsDraft(entry)) return reply({ ok: false, reason:state.reason });
     const instruction = String(message.instruction ?? '').trim();
     const refs = message.references;
     if (!instruction || instruction.length>500 || !Array.isArray(refs) || refs.length!==1) return reply({ok:false, reason:'failed'});
@@ -117,7 +115,16 @@ export async function handleSelectionRequest({ controller, message, registry, la
         ids.push({number:ref.number,id:created.id});
         parts.push(created.message);
       }
-      if ((parallel || registry.get(sessionId)?.running) && ids.length===1) {
+      // selectionCreate can take long enough for the user to start typing in chat.
+      // A separate selection worker records its own message without borrowing that draft.
+      const current = registry.get(sessionId);
+      const currentState = composerState(current);
+      if (currentState.reason === 'no-composer') {
+        await cleanup();
+        return reply({ok:false, reason:'no-composer'});
+      }
+      const needsWorker = value => value.running || (!composerState(value).canSend && !ownsDraft(value));
+      if (ids.length === 1 && (message.parallel === true || needsWorker(entry) || needsWorker(current))) {
         const id=ids[0].id;
         controller.set?.({parallelError:undefined});
         await reply({ok:true,ids,independent:true});
@@ -139,15 +146,15 @@ export async function handleSelectionRequest({ controller, message, registry, la
         }
         return;
       }
-      if (!composerState(registry.get(sessionId)).canSend && !ownsDraft(registry.get(sessionId))) { await cleanup(); return reply({ok:false,reason:'draft'}); }
+      if (!currentState.canSend && !ownsDraft(current)) { await cleanup(); return reply({ok:false,reason:currentState.reason}); }
       const target = lang==='en' ? 'Editing target: '+path : '编辑目标：'+path;
       const quote = [target,...parts].join('\n\n');
       const label = refs.map(r=>Array.isArray(r.original)?r.original.join(' · '):r.original).filter(Boolean).join(' · ') || path;
-      entry.actions.setDraft(instruction);
-      if (!entry.actions.insertQuote?.(quote,documentQuoteSummary(quote,path,label))) entry.actions.setDraft([quote,instruction].join('\n\n'));
+      current.actions.setDraft(instruction);
+      if (!current.actions.insertQuote?.(quote,documentQuoteSummary(quote,path,label))) current.actions.setDraft([quote,instruction].join('\n\n'));
       wrote = true;
       await new Promise(resolve=>defer(resolve));
-      const submitted=entry.actions.submit();
+      const submitted=current.actions.submit();
       void Promise.resolve(submitted).catch(async error => {
         reportFailure(error);
         await cleanup();

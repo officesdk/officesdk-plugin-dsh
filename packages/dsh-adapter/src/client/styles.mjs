@@ -17,6 +17,8 @@ const DARK = '--sbp-icon:#d5d8dc;--sbp-disabled:#ffffff42;--sbp-hover:#ffffff18;
 const FONT = '-apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",sans-serif';
 
 export const CSS = `
+/* Lexical's visible edit can precede the host's projected draft, particularly during IME input. */
+[data-composer-seat] [data-composer-input]:is([data-composer-composing],:not(:empty):not(:has(*)),:has([data-lexical-text]:not(:empty),[data-lexical-decorator]),:has(>p:not(:empty)):not(:has(>p>*))) + [data-composer-placeholder]{visibility:hidden}
 .office-edit-reference{display:block;max-width:100%;min-width:0;white-space:normal}
 .office-edit-reference-target{display:flex;align-items:baseline;gap:6px;width:fit-content;max-width:100%;min-width:0;margin:0;padding:0;border:0;background:transparent;font:inherit;font-size:13px;line-height:1.5;text-align:start;cursor:pointer;color:var(--dsw-alias-link,#4778af)}
 body[data-ds-dark-theme] .office-edit-reference-target{color:#93baff}
@@ -123,6 +125,10 @@ ${PROMPT_CSS}
 .office-change-rail [role=alert],.office-focus-chat [role=alert]{padding:5px 10px;color:#a13f39}
 
 .sbp-document-context{display:flex;align-items:center;gap:8px;min-height:24px;padding:0 12px;font:12px/20px ${FONT};color:var(--dsw-alias-label-secondary,#656970)}
+.sbp-document-context{background:var(--dsw-alias-bg-base,Canvas)}
+@supports (backdrop-filter:blur(8px)){
+  .sbp-document-context{background:color-mix(in srgb,var(--dsw-alias-bg-base,Canvas) 86%,transparent);backdrop-filter:blur(8px)}
+}
 .sbp-document-target{display:flex;align-items:center;gap:4px;min-width:0;white-space:nowrap}
 .sbp-document-name{border:0;border-radius:5px;padding:0 3px;background:transparent;color:inherit;cursor:pointer;font:inherit}
 .sbp-document-name{color:var(--dsw-alias-label-primary,#292a2e);overflow:hidden;text-overflow:ellipsis;font-weight:550}

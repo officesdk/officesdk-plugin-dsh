@@ -4,6 +4,22 @@
 
 版本节里可以加一个「### 更新要点」小节：1–5 条用户一看就懂的话（说用户能感到的变化，不写内部实现）；紧跟一个「### Highlights」小节，逐条写同样要点的英文（条数相同，DSH 界面为英文时显示这一份；有更新要点却没有英文，生成脚本会报错）。插件更新后第一次打开文档时，会在标签页右上角弹出「本次更新」小提示，列出从旧版本到新版本之间各版本的要点；没有这个小节的版本不提示。改完要点（包括把「未发布」改成版本号）后运行 `node scripts/whats-new.mjs`，重新生成随包的 `whats-new.json`（单测会检查两者一致）。
 
+## 0.0.2 — 2026-11-24
+
+### 更新要点
+
+- 聊天框输入文字时，占位提示会隐藏，中文输入法组字也能看清。
+- 带编辑引用的消息会显示文档名和修改指令，重新打开已有会话也能看到。
+- 聊天框里有未发送的草稿时，仍可从文档选区发送局部修改，草稿会保留。
+- 滚动聊天时，「正在编辑」一行会模糊下方经过的文字，在深色和浅色主题中都清晰可读。
+
+### Highlights
+
+- The chat placeholder disappears as you type, including while composing Chinese characters.
+- Messages with an edit reference show the filename and your request, even when you reopen an existing conversation.
+- Send an edit from a document selection while keeping an unfinished draft in chat.
+- The editing status above the chat box stays readable as messages scroll behind it in both light and dark themes.
+
 ## 0.0.1 — 2026-11-24
 
 ### 更新要点

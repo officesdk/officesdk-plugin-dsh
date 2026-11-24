@@ -98,7 +98,7 @@ export function registerEditQuote(scope, React) {
   if (!scope.uiConversation?.userText) return;
   const { createElement: h, useEffect, useLayoutEffect, useRef, useId, useState } = React;
 
-  function EditQuote({ node, renderFactorySlot, interactive }) {
+  function EditQuote({ node }) {
     const { name, original, instruction, en } = node.data;
     const label = en ? 'Editing' : '正在编辑';
     const anchor = useRef(null);
@@ -174,8 +174,7 @@ export function registerEditQuote(scope, React) {
       open && h('span', { id, ref: tip, role: 'tooltip', popover: 'manual', className: 'office-edit-reference-tip',
         onPointerEnter: show, onPointerLeave: hide },
         original && h('small', null, en ? 'Quoted text' : '引用原文'), original || name),
-      instruction && h('span', { className: 'office-edit-instruction' }, renderFactorySlot
-        ? renderFactorySlot('conversation.user.text', { text: instruction, facts: {}, interactive }) : instruction));
+      instruction && h('span', { className: 'office-edit-instruction' }, instruction));
   }
   scope.uiConversation.userText.register(editQuoteRule);
   const slot = 'conversation.user.text.node';

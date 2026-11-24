@@ -299,6 +299,40 @@ test('client: the bridge hands selection_rewrite to the tab\'s page without a ca
 });
 
 
+test('a region edit uses its own message when chat holds a draft or an attachment', async () => {
+  for (const [draft, attachments] of [['修改第一段', 0], ['', 1], ['扩写这一段', 0]]) {
+    const registry = createComposerRegistry(), box = actions(), tab = fakeTab();
+    registry.set('s1', 'pane', {actions:box, draft, attachments, running:false});
+    await handleSelectionRequest({controller:tab, registry, message:{
+      kind:'region-batch', requestId:'region', references:[{...DOC_REQUEST,number:1}], instruction:'扩写这一段',
+    }});
+    assert.deepEqual(tab.calls.map(([method])=>method), ['selectionCreate','selectionParallel']);
+    assert.equal(tab.agents[0][1].independent, true);
+    assert.deepEqual(box.log, []);
+    assert.equal(registry.get('s1').draft, draft);
+    assert.equal(registry.get('s1').attachments, attachments);
+  }
+});
+
+test('typing into the main composer while selectionCreate is pending preserves the new draft', async () => {
+  const registry = createComposerRegistry(), box = actions(), tab = fakeTab();
+  registry.set('s1','pane',{actions:box, draft:'', attachments:0, running:false});
+  const creation = Promise.withResolvers(), call = tab.call;
+  tab.call = async (method, args) => {
+    const result = await call(method,args);
+    if (method === 'selectionCreate') await creation.promise;
+    return result;
+  };
+  const sending = handleSelectionRequest({controller:tab,registry,message:{
+    kind:'region-batch',requestId:'region',references:[{...DOC_REQUEST,number:1}],instruction:'缩短',
+  }});
+  registry.set('s1','pane',{actions:box,draft:'刚输入的草稿',attachments:0,running:false});
+  creation.resolve();
+  await sending;
+  assert.deepEqual(tab.calls.map(([method])=>method), ['selectionCreate','selectionParallel']);
+  assert.deepEqual(box.log, []);
+});
+
 test('a missing parallel endpoint ends only that request and tells the user how to recover', async () => {
   const registry = createComposerRegistry(), box = actions();
   registry.set('s1','pane',{actions:box,running:true,draft:'',attachments:0});

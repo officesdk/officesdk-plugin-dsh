@@ -1,7 +1,22 @@
 {
   "v": 1,
-  "latestReleased": "0.0.1",
+  "latestReleased": "0.0.2",
   "entries": [
+    {
+      "version": "0.0.2",
+      "highlights": [
+        "聊天框输入文字时，占位提示会隐藏，中文输入法组字也能看清。",
+        "带编辑引用的消息会显示文档名和修改指令，重新打开已有会话也能看到。",
+        "聊天框里有未发送的草稿时，仍可从文档选区发送局部修改，草稿会保留。",
+        "滚动聊天时，「正在编辑」一行会模糊下方经过的文字，在深色和浅色主题中都清晰可读。"
+      ],
+      "highlightsEn": [
+        "The chat placeholder disappears as you type, including while composing Chinese characters.",
+        "Messages with an edit reference show the filename and your request, even when you reopen an existing conversation.",
+        "Send an edit from a document selection while keeping an unfinished draft in chat.",
+        "The editing status above the chat box stays readable as messages scroll behind it in both light and dark themes."
+      ]
+    },
     {
       "version": "0.0.1",
       "highlights": [

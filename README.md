@@ -29,7 +29,7 @@ It updates itself from the plugin panel. The first open of a document downloads 
 ```sh
 npm ci --prefix tooling --ignore-scripts
 node tooling/kit/vendor.mjs fetch
-node tooling/suite/pack-universal.mjs --version 0.0.1 --sources public --obfuscate light \
+node tooling/suite/pack-universal.mjs --version 0.0.2 --sources public --obfuscate light \
   --repository https://github.com/officesdk/officesdk-plugin-dsh --out artifacts/npm
 ```
 

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { editQuoteRule, fitFilename } from '../src/client/edit-quote.mjs';
+import { editQuoteRule, fitFilename, registerEditQuote } from '../src/client/edit-quote.mjs';
 import { parallelEditMessage, selectionMessage } from '../../core/src/agent/selection.mjs';
 
 const parse = text => editQuoteRule.match(text, 0)?.data;
@@ -42,4 +42,25 @@ test('filename truncation keeps the extension, both ends and whole grapheme clus
   assert.equal(fitFilename(name,20,measure),name);
   assert.equal(fitFilename(name,12,measure),'研👩‍💻...定稿.pptx');
   assert.equal(fitFilename('预算.xlsx',16,measure),'预算.xlsx');
+});
+
+test('a quoted instruction renders inside the existing DSH user-text factory', () => {
+  let EditQuote;
+  const slots = {
+    inject: (_name, install) => install(),
+    register: (_definition, component) => { EditQuote = component; },
+  };
+  const React = {
+    createElement: (_tag, _props, ...children) => children,
+    useEffect() {}, useLayoutEffect() {}, useRef: () => ({current:null}),
+    useId: () => 'quote', useState: value => [value, () => {}],
+  };
+  registerEditQuote({uiConversation:{userText:{register() {}}}, slots}, React);
+  const node = editQuoteRule.match('改写第二段\n\n> 编辑目标：示例.docx\n> 原文', 0);
+  const content = EditQuote({node, renderFactorySlot() {
+    assert.fail('DSH rejects re-entry into the conversation.user.text factory');
+  }});
+  const text = content.flat(Infinity).filter(value => typeof value === 'string');
+  assert.ok(text.includes('示例.docx'));
+  assert.ok(text.includes('改写第二段'));
 });
