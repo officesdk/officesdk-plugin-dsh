@@ -14,7 +14,7 @@ pinned release. office-kit is not part of this repository.
 ## Install
 
 ```sh
-dsh plugin --profile desktop add @officesdk/officesdk-plugin-dsh@rc   # quit the desktop app first
+dsh plugin --profile desktop add @officesdk/officesdk-plugin-dsh   # quit the desktop app first
 ```
 
 It updates itself from the plugin panel. The first open of a document downloads office-kit's engine for this platform
