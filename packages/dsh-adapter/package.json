@@ -1,0 +1,73 @@
+{
+  "name": "officesdk",
+  "version": "0.0.2",
+  "description": "Word, Excel and PowerPoint documents opened, edited and saved in DeepSeek Harness, with live AI editing",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/host/index.mjs",
+  "exports": {
+    ".": "./lib/host/index.mjs",
+    "./package.json": "./package.json",
+    "./plugin.yml": "./plugin.yml",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./client": "./lib/client.js",
+    "./tools": "./lib/tools/index.mjs",
+    "./tools/locale/*.json": "./locale/tools/*.json",
+    "./tools/icon": "./icon.svg",
+    "./skills": "./lib/skills/index.mjs",
+    "./skills/locale/*.json": "./locale/skills/*.json",
+    "./skills/icon": "./icon.svg"
+  },
+  "files": [
+    "lib/host",
+    "lib/tools",
+    "lib/skills",
+    "lib/client.js",
+    "plugin.yml",
+    "locale",
+    "icon.svg",
+    "resources/runtime",
+    "README.md",
+    "CHANGELOG.md",
+    "whats-new.json",
+    "capabilities.json",
+    "resources/kit",
+    "resources/editor",
+    "resources/office-kit",
+    "resources/kit-page",
+    "resources/host-fonts",
+    "skills"
+  ],
+  "engines": {
+    "node": ">=22.19.0",
+    "dsh": ">=0.2.1-rc.3 <0.3.0-0"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./plugin.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-sidebar-documentpreview",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-client-ui-sidebar-right"
+      ],
+      "platform": "web"
+    }
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.5",
+    "@deepseek-ai/dsh-typert-protocol": ">=0.2.1-rc.3 <0.3.0-0",
+    "@deepseek-ai/schemastery": "~3.18.5",
+    "@deepseek-ai/dsh-atomic-write": ">=0.2.1-rc.3 <0.3.0-0",
+    "@deepseek-ai/dsh-sandbox": ">=0.2.1-rc.3 <0.3.0-0",
+    "@deepseek-ai/dsh-home-paths": ">=0.2.1-rc.3 <0.3.0-0",
+    "@deepseek-ai/dsh-tools": ">=0.2.1-rc.3 <0.3.0-0"
+  }
+}

@@ -1,0 +1,22 @@
+OfficeSDK plugin for DeepSeek Harness
+Copyright (c) 2026 OfficeSDK contributors
+
+The source code in this repository is licensed under the MIT License (see LICENSE).
+
+This repository contains the source code of the plugin only. It depends on the following external components,
+which are not part of this repository and are not covered by its LICENSE:
+
+office-kit (Kit document engine, editor page and editor resources)
+  Copyright (c) Shimo. All rights reserved.
+  - The Kit and the editor resources are downloaded by the plugin on first use from office-kit's official release
+    (the Kit from its GitHub release, the editor resources from its npm package), as described by kit-manifest.json,
+    and checked against it.
+  - The editor page (offline-editor.js) and the Sheet host fonts that the published plugin package carries are taken
+    at build time from the pinned sources named in components/office-kit.json (tooling/kit/vendor.mjs).
+  Their use is governed by office-kit's own terms.
+
+DeepSeek Harness packages (@deepseek-ai/*)
+  Peer dependencies provided by DeepSeek Harness at run time; not bundled.
+
+Third-party open-source packages bundled into the published plugin are listed in the package's
+THIRD-PARTY-NOTICES.md, generated at build time.

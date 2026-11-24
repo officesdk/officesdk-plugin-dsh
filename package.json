@@ -1,0 +1,21 @@
+{
+  "name": "officesdk-plugin-dsh-repo",
+  "version": "0.0.0",
+  "description": "Source repository of @officesdk/officesdk-plugin-dsh, the OfficeSDK plugin for DeepSeek Harness",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/officesdk/officesdk-plugin-dsh.git"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "scripts": {
+    "vendor": "node tooling/kit/vendor.mjs fetch",
+    "test": "node --test packages/core/test/*.test.mjs packages/kit-host/test/*.test.mjs scripts/test/*.test.mjs tooling/kit/test/*.test.mjs tooling/suite/test/*.test.mjs test/*.test.mjs",
+    "test:adapter": "node --test packages/dsh-adapter/test/*.test.mjs",
+    "check": "node scripts/whats-new.mjs --check && node tooling/suite/check-deps.mjs && node tooling/kit/vendor.mjs check"
+  }
+}

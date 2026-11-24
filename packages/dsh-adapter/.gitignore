@@ -1,0 +1,8 @@
+node_modules
+/lib/
+/resources/
+# Copied from components/kit-manifest.json by tooling/suite/pack-universal.mjs
+/kit-manifest.json
+/.gitattributes
+# Written by tooling/suite/pack-universal.mjs from what the bundles contain
+/THIRD-PARTY-NOTICES.md

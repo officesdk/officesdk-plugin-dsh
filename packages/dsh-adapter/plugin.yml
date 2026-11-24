@@ -1,0 +1,7 @@
+- insert:
+    - id: officesdk
+      name: officesdk
+    - id: officesdk-tools
+      name: officesdk/tools
+    - id: officesdk-skills
+      name: officesdk/skills

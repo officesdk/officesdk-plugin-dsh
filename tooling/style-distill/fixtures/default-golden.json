@@ -1,0 +1,8942 @@
+{
+ "env": {
+  "python-pptx": "1.0.2",
+  "lxml": "6.1.3",
+  "Pillow": "12.3.0",
+  "XlsxWriter": "3.2.9",
+  "python": "3.12.14"
+ },
+ "renderer": "packages/dsh-adapter/skills/shimo-pptx/scripts/brand_deck.py",
+ "year": 2026,
+ "decks": {
+  "example": {
+   "report": {
+    "slides": 11,
+    "style": "default",
+    "palette": "color-1",
+    "layouts": [
+     {
+      "slide": 1,
+      "layout": "cover"
+     },
+     {
+      "slide": 2,
+      "layout": "overview"
+     },
+     {
+      "slide": 3,
+      "layout": "statement"
+     },
+     {
+      "slide": 4,
+      "layout": "columns"
+     },
+     {
+      "slide": 5,
+      "layout": "composition"
+     },
+     {
+      "slide": 6,
+      "layout": "numbered"
+     },
+     {
+      "slide": 7,
+      "layout": "metrics"
+     },
+     {
+      "slide": 8,
+      "layout": "chart"
+     },
+     {
+      "slide": 9,
+      "layout": "table"
+     },
+     {
+      "slide": 10,
+      "layout": "risks"
+     },
+     {
+      "slide": 11,
+      "layout": "closing"
+     }
+    ],
+    "logo": "omitted",
+    "images": [],
+    "image_credits": [],
+    "warnings": [
+     "未提供 Logo 文件：封面、内容页与结束页均不放 Logo（不用文字仿 Logo）。原因：示例公司没有 Logo 文件",
+     "第3页(statement)：未提供 image，图位暂时改为色面。请按 shimo-pptx 补图：先用 scripts/find_images.py 上网找，找不到合适的用 scripts/theme_art.py 按主题生成配图，写进 image 后加 --overwrite 重跑。"
+    ]
+   },
+   "parts": {
+    "[Content_Types].xml": "8ab663e8a18838a0587278dc952611c801bd31eb274387518ff98ffaf90b30d8",
+    "_rels/.rels": "d5eb6bb696e8598de1d59105239109a7625b28b09fd7884ffebb24022f63fd9b",
+    "ppt/_rels/presentation.xml.rels": "b8714413dd1090fa385fae580dd92e50ee7a627ad652100ab4cd8769d6a402c0",
+    "ppt/charts/_rels/chart1.xml.rels": "999a27a38d1ccf9b3c82327db26599fd80a695915ee52ff11e9472c2c64f18e5",
+    "ppt/charts/_rels/chart2.xml.rels": "7c13f86eedf10a9569055ee3855fa7b2d0fce56fcf8a604763a6283a728d966d",
+    "ppt/charts/chart1.xml": "d3fe5ee71f50d7da3bc3cf666c3c64e260f581b017427ce505ac9e9c8a6b8c52",
+    "ppt/charts/chart2.xml": "cee19541f8bd69b8240a120b95d3719976a2c18fd5dc4fca231f1ba47a721f20",
+    "ppt/embeddings/Microsoft_Excel_Sheet1.xlsx![Content_Types].xml": "95531f2dda61729124bd0d8438cea3782d723b4c3f4df5844f5e242bf7b8b04b",
+    "ppt/embeddings/Microsoft_Excel_Sheet1.xlsx!_rels/.rels": "8bc63f6746c8aa90a38ebc9578ecce84f82f684eb26b312e5e0b8014d4c56968",
+    "ppt/embeddings/Microsoft_Excel_Sheet1.xlsx!xl/_rels/workbook.xml.rels": "7ede7ae4abc7aa3e35c91f0eea3ac8c396609976c05d1a5db4921b93abf9ef5b",
+    "ppt/embeddings/Microsoft_Excel_Sheet1.xlsx!xl/sharedStrings.xml": "a1b5a852431a400c8ccbe5380ee661b424675775f6fda49327ff5831ed9f15ed",
+    "ppt/embeddings/Microsoft_Excel_Sheet1.xlsx!xl/styles.xml": "768faf3ba6cdb101635e1a5cdb6eb9f0bccb5e7fc4f9a8b893201c3ae7246e0d",
+    "ppt/embeddings/Microsoft_Excel_Sheet1.xlsx!xl/theme/theme1.xml": "995daeb8ede0f15d24ab302b84e7d8e123897a21bac75be21aa1d58dd50505d6",
+    "ppt/embeddings/Microsoft_Excel_Sheet1.xlsx!xl/workbook.xml": "0506cf8f3603756f121265b60802c445bd09feab4d08746323171be529a388cc",
+    "ppt/embeddings/Microsoft_Excel_Sheet1.xlsx!xl/worksheets/sheet1.xml": "675f7011008018bd00a1cd818a9da8c9faf4974fad203bbd70e940015e48ccb8",
+    "ppt/embeddings/Microsoft_Excel_Sheet2.xlsx![Content_Types].xml": "95531f2dda61729124bd0d8438cea3782d723b4c3f4df5844f5e242bf7b8b04b",
+    "ppt/embeddings/Microsoft_Excel_Sheet2.xlsx!_rels/.rels": "8bc63f6746c8aa90a38ebc9578ecce84f82f684eb26b312e5e0b8014d4c56968",
+    "ppt/embeddings/Microsoft_Excel_Sheet2.xlsx!xl/_rels/workbook.xml.rels": "7ede7ae4abc7aa3e35c91f0eea3ac8c396609976c05d1a5db4921b93abf9ef5b",
+    "ppt/embeddings/Microsoft_Excel_Sheet2.xlsx!xl/sharedStrings.xml": "fb276c85ca35b2d7376e373052b453a107c467e161231a096023feef48a6ba8c",
+    "ppt/embeddings/Microsoft_Excel_Sheet2.xlsx!xl/styles.xml": "768faf3ba6cdb101635e1a5cdb6eb9f0bccb5e7fc4f9a8b893201c3ae7246e0d",
+    "ppt/embeddings/Microsoft_Excel_Sheet2.xlsx!xl/theme/theme1.xml": "995daeb8ede0f15d24ab302b84e7d8e123897a21bac75be21aa1d58dd50505d6",
+    "ppt/embeddings/Microsoft_Excel_Sheet2.xlsx!xl/workbook.xml": "0506cf8f3603756f121265b60802c445bd09feab4d08746323171be529a388cc",
+    "ppt/embeddings/Microsoft_Excel_Sheet2.xlsx!xl/worksheets/sheet1.xml": "e171e54b6cba89ae2fa7e89ccf5d330c19070108d7fe214261d1614414be73e3",
+    "ppt/presProps.xml": "42c2db72de4d191e4859d1b28eb355ba93dd28d21e2eb8014d908ce94ee1f347",
+    "ppt/presentation.xml": "50cc4cde90a54e4e745a237f6c7c1f7eb19399612f090fc12a6b1ab7a2a8bc54",
+    "ppt/printerSettings/printerSettings1.bin": "d7768f87e07d29634782e448ece1cddd05a52b9499254222b1190bc8f6dc579e",
+    "ppt/slideLayouts/_rels/slideLayout1.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout10.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout11.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout2.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout3.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout4.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout5.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout6.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout7.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout8.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout9.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/slideLayout1.xml": "b63decb6b703f6e75b13dfcc7a2ee98a5086795eefd0fc6cf63537373b58bc28",
+    "ppt/slideLayouts/slideLayout10.xml": "e8f780bb28cff652c5901ea9016cbc4aa737daf5f544d93d047da81962926ea2",
+    "ppt/slideLayouts/slideLayout11.xml": "3a863826ecb2cb79874ce1f6b581938dda06b9439af9b172f2782c1dbb570326",
+    "ppt/slideLayouts/slideLayout2.xml": "59fc7a6d9573d89b02146e664846a80958ee50bc23d640f7c768321a623a9384",
+    "ppt/slideLayouts/slideLayout3.xml": "77af3509f6c1600f41e6e611e071ee5df6dd05ed1ace5039afc8d75bf657290b",
+    "ppt/slideLayouts/slideLayout4.xml": "31dc4acf6cd102d7902b363bc4cddcf1a72e39eafbf55da1c2d0939ef39dc3bd",
+    "ppt/slideLayouts/slideLayout5.xml": "6eca9f78549f44807c4bf8c08723b1fc2cfb64e5e88559be16834aa1b7ac6a0d",
+    "ppt/slideLayouts/slideLayout6.xml": "47ced226e6b044bd4d3bc66983f6a9cb0e45a29f04a3062cdc128164f995bf90",
+    "ppt/slideLayouts/slideLayout7.xml": "e350fa920ed9c0cfcbf144910fd97a7a87985e274b348694011f8c5fd9595106",
+    "ppt/slideLayouts/slideLayout8.xml": "62576dd81c5f62afe788d4fb513a8884ace1c207667f778b5225b027648fd035",
+    "ppt/slideLayouts/slideLayout9.xml": "aa762dc84b2180cadb883ac0c977ec3abe2d8a1c962e6296d115b61d892b62ab",
+    "ppt/slideMasters/_rels/slideMaster1.xml.rels": "8e9a4d935bd16f8340069bbd1cd073332e428e0ac9b2a3d98a5015235a80fe71",
+    "ppt/slideMasters/slideMaster1.xml": "bd60237858a9e810121e44fc7b72cf251d92ae9a6669578191411dc85280a154",
+    "ppt/slides/_rels/slide1.xml.rels": "4d657778e912a3ac965957e8f4fdcc522e39a8479bf51edb68c50065507565f7",
+    "ppt/slides/_rels/slide10.xml.rels": "4d657778e912a3ac965957e8f4fdcc522e39a8479bf51edb68c50065507565f7",
+    "ppt/slides/_rels/slide11.xml.rels": "4d657778e912a3ac965957e8f4fdcc522e39a8479bf51edb68c50065507565f7",
+    "ppt/slides/_rels/slide2.xml.rels": "4d657778e912a3ac965957e8f4fdcc522e39a8479bf51edb68c50065507565f7",
+    "ppt/slides/_rels/slide3.xml.rels": "4d657778e912a3ac965957e8f4fdcc522e39a8479bf51edb68c50065507565f7",
+    "ppt/slides/_rels/slide4.xml.rels": "4d657778e912a3ac965957e8f4fdcc522e39a8479bf51edb68c50065507565f7",
+    "ppt/slides/_rels/slide5.xml.rels": "33b9661e56f881770f87ca5f3bc3972c7b8923c4ea4eb3e4b306c14a1c690c4b",
+    "ppt/slides/_rels/slide6.xml.rels": "4d657778e912a3ac965957e8f4fdcc522e39a8479bf51edb68c50065507565f7",
+    "ppt/slides/_rels/slide7.xml.rels": "4d657778e912a3ac965957e8f4fdcc522e39a8479bf51edb68c50065507565f7",
+    "ppt/slides/_rels/slide8.xml.rels": "086d987643fcefb6fec76cbe872714220347339437eb363f5e7af3526b1765c9",
+    "ppt/slides/_rels/slide9.xml.rels": "4d657778e912a3ac965957e8f4fdcc522e39a8479bf51edb68c50065507565f7",
+    "ppt/slides/slide1.xml": "29deef69c3e3966be81170fc27b79b251ef8b2a787206d6e8dcd294da7d05411",
+    "ppt/slides/slide10.xml": "231bf4e6bb28f48866b50fb9c6c40369f680966f7dbbd21f78abbd8fde0ce2f7",
+    "ppt/slides/slide11.xml": "5d3b519ba51a991e958563b0055009d655ffc813ef30d31ea01eeae7b57ed141",
+    "ppt/slides/slide2.xml": "6c71bd5a8c2badfbb34f2470e57fefa4d55583b426afe878c3b3e8347e931f85",
+    "ppt/slides/slide3.xml": "44d30b34646d1fecd3d01564ad1076d3366d22a949b0528cd7628022feddfd40",
+    "ppt/slides/slide4.xml": "426b0c20b8ba4e7d270b517d92eb542e4561420f6809c672dbd857db42812c4d",
+    "ppt/slides/slide5.xml": "cbabdb7a83c8b70eeb7372e823c8b6f80e4162a82a8ba2e8d22b3cc56e24d008",
+    "ppt/slides/slide6.xml": "f04088bdb07c40216b7f45d08c2533b442e58bb1949c979ce47a4cb549e52345",
+    "ppt/slides/slide7.xml": "1ac67c22fafbd9e2a21f0c30c0492aef40fe41ae13451e13ef3ec0ce98274be8",
+    "ppt/slides/slide8.xml": "9c45a1280b072c3af92f2ee1397382774f382a3d8db00dc6c10dd568725bfb21",
+    "ppt/slides/slide9.xml": "358ad106678ba40f1308f44b27f840c0c1332aa33ca6fed3e057301b006bc78a",
+    "ppt/tableStyles.xml": "6e2878f4fec5a97f0ac4c7f3ea3db3d166ffee9563489ccea13c05cbe93a5d70",
+    "ppt/theme/theme1.xml": "9c24e5ab81b3591ecc5f6855062cac0f6649720d5447cb2130cbefce6068d931",
+    "ppt/viewProps.xml": "c08881a0b447f0b6a3d587af95d5ba06f8001904ba161b2d8aa3872ed1216aed"
+   },
+   "dump": [
+    {
+     "slide": 1,
+     "background": "2826C9",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 1",
+       "box": [
+        518.0,
+        122.0,
+        412.0,
+        67.28
+       ],
+       "text": [
+        [
+         {
+          "t": "产品、业务与",
+          "pt": 21.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "2026 年重点",
+          "pt": 21.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 2",
+       "box": [
+        0.0,
+        221.0,
+        960.0,
+        1.0
+       ],
+       "fill": "9B99E3"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 3",
+       "box": [
+        50.0,
+        249.0,
+        787.0,
+        215.2
+       ],
+       "text": [
+        [
+         {
+          "t": "示例科技",
+          "pt": 82.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "公司介绍",
+          "pt": 82.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        790.0,
+        349.0,
+        98.0,
+        74.0
+       ],
+       "text": [
+        [
+         {
+          "t": "→",
+          "pt": 52.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "year",
+       "box": [
+        763.0,
+        426.0,
+        176.0,
+        49.2
+       ],
+       "text": [
+        [
+         {
+          "t": "2026",
+          "pt": 30.0,
+          "rgb": "FFFFFF",
+          "face": "Poppins Light"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 2,
+     "background": "FFFFFF",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        52.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "example.com",
+          "pt": 9.0,
+          "rgb": "2826C9",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 2",
+       "box": [
+        52.0,
+        246.0,
+        130.8,
+        70.0
+       ],
+       "fill": "2826C9"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 3",
+       "box": [
+        52.0,
+        316.0,
+        130.8,
+        73.0
+       ],
+       "fill": "2826C9"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        57.4,
+        244.8,
+        848.0,
+        144.0
+       ],
+       "text": [
+        [
+         {
+          "t": "业务",
+          "pt": 45.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "概览",
+          "pt": 45.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 5",
+       "box": [
+        52.0,
+        424.0,
+        394.0,
+        82.0
+       ],
+       "text": [
+        [
+         {
+          "t": "三条业务线",
+          "pt": 18.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "覆盖企业数字化全流程",
+          "pt": 18.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 6",
+       "box": [
+        463.0,
+        103.0,
+        1.0,
+        370.0
+       ],
+       "fill": "2826C9"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 7",
+       "box": [
+        518.0,
+        103.0,
+        400.0,
+        85.0
+       ],
+       "text": [
+        [
+         {
+          "t": "本文基于 2025 年经营数据",
+          "pt": 13.5,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "介绍公司的产品、客户与重点",
+          "pt": 13.5,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 8",
+       "box": [
+        518.0,
+        203.0,
+        102.0,
+        24.0
+       ],
+       "fill": "none"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 9",
+       "box": [
+        527.0,
+        205.0,
+        102.0,
+        19.82
+       ],
+       "text": [
+        [
+         {
+          "t": "阅读重点",
+          "pt": 10.5,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 10",
+       "box": [
+        598.0,
+        205.0,
+        19.6,
+        18.0
+       ],
+       "text": [
+        [
+         {
+          "t": "→",
+          "pt": 10.5,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 11",
+       "box": [
+        518.0,
+        255.0,
+        400.0,
+        36.0
+       ],
+       "text": [
+        [
+         {
+          "t": "产品覆盖协同、数据与安全",
+          "pt": 15.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 12",
+       "box": [
+        518.0,
+        291.0,
+        400.0,
+        1.0
+       ],
+       "fill": "B9B7C4"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 13",
+       "box": [
+        518.0,
+        300.5,
+        400.0,
+        36.0
+       ],
+       "text": [
+        [
+         {
+          "t": "服务客户 1800 家",
+          "pt": 15.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 14",
+       "box": [
+        518.0,
+        336.5,
+        400.0,
+        1.0
+       ],
+       "fill": "B9B7C4"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 15",
+       "box": [
+        518.0,
+        346.0,
+        400.0,
+        36.0
+       ],
+       "text": [
+        [
+         {
+          "t": "年收入 6.2 亿元",
+          "pt": 15.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 16",
+       "box": [
+        518.0,
+        382.0,
+        400.0,
+        1.0
+       ],
+       "fill": "B9B7C4"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 17",
+       "box": [
+        518.0,
+        391.5,
+        400.0,
+        36.0
+       ],
+       "text": [
+        [
+         {
+          "t": "研发投入占比 21%",
+          "pt": 15.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 18",
+       "box": [
+        518.0,
+        427.5,
+        400.0,
+        1.0
+       ],
+       "fill": "B9B7C4"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 19",
+       "box": [
+        518.0,
+        437.0,
+        400.0,
+        36.0
+       ],
+       "text": [
+        [
+         {
+          "t": "海外业务起步",
+          "pt": 15.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 20",
+       "box": [
+        518.0,
+        473.0,
+        400.0,
+        1.0
+       ],
+       "fill": "B9B7C4"
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 3,
+     "background": "2826C9",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        42.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "example.com",
+          "pt": 9.0,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "image-panel",
+       "box": [
+        42.0,
+        79.0,
+        306.0,
+        416.0
+       ],
+       "fill": "A8A7A5"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 3",
+       "box": [
+        388.0,
+        77.0,
+        545.0,
+        128.08
+       ],
+       "text": [
+        [
+         {
+          "t": "产品",
+          "pt": 49.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "体系",
+          "pt": 49.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        388.0,
+        260.0,
+        23.8,
+        21.0
+       ],
+       "text": [
+        [
+         {
+          "t": "→",
+          "pt": 12.75,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 5",
+       "box": [
+        418.0,
+        258.0,
+        260.0,
+        28.86
+       ],
+       "text": [
+        [
+         {
+          "t": "协同平台",
+          "pt": 16.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 6",
+       "box": [
+        388.0,
+        300.0,
+        285.0,
+        82.0
+       ],
+       "text": [
+        [
+         {
+          "t": "文档、会议与流程",
+          "pt": 13.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "覆盖日常办公",
+          "pt": 13.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 7",
+       "box": [
+        388.0,
+        405.0,
+        23.8,
+        21.0
+       ],
+       "text": [
+        [
+         {
+          "t": "→",
+          "pt": 12.75,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 8",
+       "box": [
+        418.0,
+        403.0,
+        260.0,
+        28.86
+       ],
+       "text": [
+        [
+         {
+          "t": "数据平台",
+          "pt": 16.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 9",
+       "box": [
+        388.0,
+        454.0,
+        285.0,
+        82.0
+       ],
+       "text": [
+        [
+         {
+          "t": "数据接入、治理与分析",
+          "pt": 13.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "服务经营决策",
+          "pt": 13.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 10",
+       "box": [
+        684.0,
+        258.0,
+        1.0,
+        231.0
+       ],
+       "fill": "9B99E3"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 11",
+       "box": [
+        715.0,
+        258.0,
+        218.0,
+        28.86
+       ],
+       "text": [
+        [
+         {
+          "t": "主要产品",
+          "pt": 16.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 12",
+       "box": [
+        715.0,
+        350.0,
+        218.0,
+        190.0
+       ],
+       "text": [
+        [
+         {
+          "t": "协同办公",
+          "pt": 15.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "低代码",
+          "pt": 15.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "数据中台",
+          "pt": 15.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "安全网关",
+          "pt": 15.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 4,
+     "background": "FFFFFF",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        52.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "example.com",
+          "pt": 9.0,
+          "rgb": "2826C9",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 2",
+       "box": [
+        52.0,
+        88.0,
+        881.0,
+        76.32
+       ],
+       "text": [
+        [
+         {
+          "t": "产品与服务",
+          "pt": 48.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 3",
+       "box": [
+        52.0,
+        185.0,
+        878.0,
+        32.25
+       ],
+       "text": [
+        [
+         {
+          "t": "从软件订阅延伸到实施与运维",
+          "pt": 18.75,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 4",
+       "box": [
+        52.0,
+        243.0,
+        868.0,
+        1.0
+       ],
+       "fill": "B9B7C4"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 5",
+       "box": [
+        52.0,
+        306.0,
+        78.46,
+        22.0
+       ],
+       "fill": "2826C9"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 6",
+       "box": [
+        57.23,
+        307.39,
+        98.46,
+        23.21
+       ],
+       "text": [
+        [
+         {
+          "t": "软件订阅",
+          "pt": 12.75,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 7",
+       "box": [
+        52.0,
+        352.0,
+        197.0,
+        167.0
+       ],
+       "text": [
+        [
+         {
+          "t": "按席位或项目",
+          "pt": 14.25,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "年度订阅",
+          "pt": 14.25,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 8",
+       "box": [
+        277.0,
+        306.0,
+        78.46,
+        22.0
+       ],
+       "fill": "2826C9"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 9",
+       "box": [
+        282.23,
+        307.39,
+        98.46,
+        23.21
+       ],
+       "text": [
+        [
+         {
+          "t": "实施交付",
+          "pt": 12.75,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 10",
+       "box": [
+        277.0,
+        352.0,
+        197.0,
+        167.0
+       ],
+       "text": [
+        [
+         {
+          "t": "需求梳理、配置",
+          "pt": 14.25,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "与数据迁移",
+          "pt": 14.25,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 11",
+       "box": [
+        502.0,
+        306.0,
+        78.46,
+        22.0
+       ],
+       "fill": "2826C9"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 12",
+       "box": [
+        507.23,
+        307.39,
+        98.46,
+        23.21
+       ],
+       "text": [
+        [
+         {
+          "t": "运维服务",
+          "pt": 12.75,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 13",
+       "box": [
+        502.0,
+        352.0,
+        197.0,
+        167.0
+       ],
+       "text": [
+        [
+         {
+          "t": "7×24 小时",
+          "pt": 14.25,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "监控与响应",
+          "pt": 14.25,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 14",
+       "box": [
+        727.0,
+        306.0,
+        78.46,
+        22.0
+       ],
+       "fill": "2826C9"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 15",
+       "box": [
+        732.23,
+        307.39,
+        98.46,
+        23.21
+       ],
+       "text": [
+        [
+         {
+          "t": "培训认证",
+          "pt": 12.75,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 16",
+       "box": [
+        727.0,
+        352.0,
+        197.0,
+        167.0
+       ],
+       "text": [
+        [
+         {
+          "t": "管理员与开发者",
+          "pt": 14.25,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "分级认证",
+          "pt": 14.25,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 5,
+     "background": "FFFFFF",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        52.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "example.com",
+          "pt": 9.0,
+          "rgb": "2826C9",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 2",
+       "box": [
+        52.0,
+        74.0,
+        303.0,
+        126.88
+       ],
+       "text": [
+        [
+         {
+          "t": "收入",
+          "pt": 48.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "结构",
+          "pt": 48.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 3",
+       "box": [
+        52.0,
+        258.0,
+        309.0,
+        150.0
+       ],
+       "text": [
+        [
+         {
+          "t": "订阅收入是主体",
+          "pt": 17.25,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "服务收入形成补充",
+          "pt": 17.25,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        52.0,
+        442.0,
+        303.0,
+        79.0
+       ],
+       "text": [
+        [
+         {
+          "t": "2025 年全年收入",
+          "pt": 12.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "单位：亿元",
+          "pt": 12.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 5",
+       "box": [
+        382.0,
+        85.0,
+        1.0,
+        394.0
+       ],
+       "fill": "2826C9"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 6",
+       "box": [
+        424.0,
+        75.0,
+        233.0,
+        23.21
+       ],
+       "text": [
+        [
+         {
+          "t": "2025 年收入占比",
+          "pt": 12.75,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "CHART",
+       "name": "chart",
+       "box": [
+        412.0,
+        112.0,
+        239.0,
+        250.0
+       ],
+       "chart": {
+        "type": "DOUGHNUT (-4120)",
+        "categories": [
+         "订阅",
+         "实施",
+         "运维"
+        ],
+        "series": [
+         [
+          "数值",
+          [
+           3.9,
+           1.5,
+           0.8
+          ]
+         ]
+        ]
+       }
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 8",
+       "box": [
+        424.0,
+        372.0,
+        12.0,
+        12.0
+       ],
+       "fill": "2826C9"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 9",
+       "box": [
+        448.0,
+        370.0,
+        209.0,
+        18.69
+       ],
+       "text": [
+        [
+         {
+          "t": "订阅 63%",
+          "pt": 9.75,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 10",
+       "box": [
+        424.0,
+        397.0,
+        233.0,
+        1.0
+       ],
+       "fill": "B9B7C4"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 11",
+       "box": [
+        424.0,
+        402.5,
+        12.0,
+        12.0
+       ],
+       "fill": "A8A7A5"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 12",
+       "box": [
+        448.0,
+        400.5,
+        209.0,
+        18.69
+       ],
+       "text": [
+        [
+         {
+          "t": "实施 24%",
+          "pt": 9.75,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 13",
+       "box": [
+        424.0,
+        427.5,
+        233.0,
+        1.0
+       ],
+       "fill": "B9B7C4"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 14",
+       "box": [
+        424.0,
+        433.0,
+        12.0,
+        12.0
+       ],
+       "fill": "D0CFCA"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 15",
+       "box": [
+        448.0,
+        431.0,
+        209.0,
+        18.69
+       ],
+       "text": [
+        [
+         {
+          "t": "运维 13%",
+          "pt": 9.75,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 16",
+       "box": [
+        424.0,
+        458.0,
+        233.0,
+        1.0
+       ],
+       "fill": "B9B7C4"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 17",
+       "box": [
+        663.0,
+        76.0,
+        291.0,
+        419.0
+       ],
+       "fill": "2826C9"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 18",
+       "box": [
+        694.0,
+        97.0,
+        242.0,
+        20.95
+       ],
+       "text": [
+        [
+         {
+          "t": "2025 年关键收入",
+          "pt": 11.25,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 19",
+       "box": [
+        694.0,
+        155.0,
+        239.0,
+        18.69
+       ],
+       "text": [
+        [
+         {
+          "t": "总收入 / 亿元",
+          "pt": 9.75,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 20",
+       "box": [
+        694.0,
+        188.0,
+        239.0,
+        54.85
+       ],
+       "text": [
+        [
+         {
+          "t": "6.2",
+          "pt": 33.75,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 21",
+       "box": [
+        694.0,
+        264.0,
+        230.0,
+        1.0
+       ],
+       "fill": "8D89DC"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 22",
+       "box": [
+        694.0,
+        276.0,
+        239.0,
+        18.69
+       ],
+       "text": [
+        [
+         {
+          "t": "订阅 / 亿元",
+          "pt": 9.75,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 23",
+       "box": [
+        694.0,
+        309.0,
+        239.0,
+        54.85
+       ],
+       "text": [
+        [
+         {
+          "t": "3.9",
+          "pt": 33.75,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 24",
+       "box": [
+        694.0,
+        385.0,
+        230.0,
+        1.0
+       ],
+       "fill": "8D89DC"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 25",
+       "box": [
+        694.0,
+        397.0,
+        239.0,
+        18.69
+       ],
+       "text": [
+        [
+         {
+          "t": "服务 / 亿元",
+          "pt": 9.75,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 26",
+       "box": [
+        694.0,
+        430.0,
+        239.0,
+        54.85
+       ],
+       "text": [
+        [
+         {
+          "t": "2.3",
+          "pt": 33.75,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 6,
+     "background": "FFFFFF",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        48.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "example.com",
+          "pt": 9.0,
+          "rgb": "2826C9",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 2",
+       "box": [
+        48.0,
+        81.0,
+        351.0,
+        29.2
+       ],
+       "text": [
+        [
+         {
+          "t": "理解业务的",
+          "pt": 18.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 3",
+       "box": [
+        48.0,
+        106.0,
+        158.77,
+        33.0
+       ],
+       "fill": "2826C9"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        55.38,
+        108.94,
+        178.77,
+        31.12
+       ],
+       "text": [
+        [
+         {
+          "t": "五个观察角度",
+          "pt": 18.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 5",
+       "box": [
+        48.0,
+        355.0,
+        394.0,
+        142.6
+       ],
+       "text": [
+        [
+         {
+          "t": "经营",
+          "pt": 49.5,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "重点",
+          "pt": 49.5,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 6",
+       "box": [
+        360.0,
+        453.0,
+        64.4,
+        50.0
+       ],
+       "text": [
+        [
+         {
+          "t": "→",
+          "pt": 34.5,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 7",
+       "box": [
+        482.0,
+        82.0,
+        106.0,
+        62.19
+       ],
+       "text": [
+        [
+         {
+          "t": "01",
+          "pt": 38.62,
+          "rgb": "2826C9",
+          "face": "Poppins Light"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 8",
+       "box": [
+        600.0,
+        88.0,
+        324.0,
+        70.0
+       ],
+       "text": [
+        [
+         {
+          "t": "客户留存",
+          "pt": 15.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "决定订阅收入",
+          "pt": 15.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 9",
+       "box": [
+        482.0,
+        164.0,
+        442.0,
+        1.0
+       ],
+       "fill": "B9B7C4"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 10",
+       "box": [
+        482.0,
+        164.0,
+        106.0,
+        62.19
+       ],
+       "text": [
+        [
+         {
+          "t": "02",
+          "pt": 38.62,
+          "rgb": "2826C9",
+          "face": "Poppins Light"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 11",
+       "box": [
+        600.0,
+        170.0,
+        324.0,
+        70.0
+       ],
+       "text": [
+        [
+         {
+          "t": "交付效率",
+          "pt": 15.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "影响毛利",
+          "pt": 15.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 12",
+       "box": [
+        482.0,
+        246.0,
+        442.0,
+        1.0
+       ],
+       "fill": "B9B7C4"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 13",
+       "box": [
+        482.0,
+        246.0,
+        106.0,
+        62.19
+       ],
+       "text": [
+        [
+         {
+          "t": "03",
+          "pt": 38.62,
+          "rgb": "2826C9",
+          "face": "Poppins Light"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 14",
+       "box": [
+        600.0,
+        252.0,
+        324.0,
+        70.0
+       ],
+       "text": [
+        [
+         {
+          "t": "产品组合",
+          "pt": 15.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "带动客单价",
+          "pt": 15.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 15",
+       "box": [
+        482.0,
+        328.0,
+        442.0,
+        1.0
+       ],
+       "fill": "B9B7C4"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 16",
+       "box": [
+        482.0,
+        328.0,
+        106.0,
+        62.19
+       ],
+       "text": [
+        [
+         {
+          "t": "04",
+          "pt": 38.62,
+          "rgb": "2826C9",
+          "face": "Poppins Light"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 17",
+       "box": [
+        600.0,
+        334.0,
+        324.0,
+        70.0
+       ],
+       "text": [
+        [
+         {
+          "t": "渠道合作",
+          "pt": 15.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "扩大覆盖",
+          "pt": 15.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 18",
+       "box": [
+        482.0,
+        410.0,
+        442.0,
+        1.0
+       ],
+       "fill": "B9B7C4"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 19",
+       "box": [
+        482.0,
+        410.0,
+        106.0,
+        62.19
+       ],
+       "text": [
+        [
+         {
+          "t": "05",
+          "pt": 38.62,
+          "rgb": "2826C9",
+          "face": "Poppins Light"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 20",
+       "box": [
+        600.0,
+        416.0,
+        324.0,
+        70.0
+       ],
+       "text": [
+        [
+         {
+          "t": "合规认证",
+          "pt": 15.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "打开新行业",
+          "pt": 15.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 21",
+       "box": [
+        482.0,
+        492.0,
+        442.0,
+        1.0
+       ],
+       "fill": "B9B7C4"
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 7,
+     "background": "A8A7A5",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        52.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "example.com",
+          "pt": 9.0,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 2",
+       "box": [
+        52.0,
+        100.0,
+        130.8,
+        70.0
+       ],
+       "fill": "2826C9"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 3",
+       "box": [
+        52.0,
+        170.0,
+        250.8,
+        73.0
+       ],
+       "fill": "2826C9"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        57.4,
+        98.8,
+        848.0,
+        144.0
+       ],
+       "text": [
+        [
+         {
+          "t": "年度",
+          "pt": 45.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "经营指标",
+          "pt": 45.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 5",
+       "box": [
+        52.0,
+        285.0,
+        500.0,
+        88.0
+       ],
+       "text": [
+        [
+         {
+          "t": "以下均为 2025 年全年口径",
+          "pt": 13.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 6",
+       "box": [
+        52.0,
+        409.0,
+        260.0,
+        60.5
+       ],
+       "text": [
+        [
+         {
+          "t": "1800",
+          "pt": 37.5,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 7",
+       "box": [
+        52.0,
+        497.0,
+        257.0,
+        19.82
+       ],
+       "text": [
+        [
+         {
+          "t": "付费客户 / 家",
+          "pt": 10.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 8",
+       "box": [
+        318.0,
+        409.0,
+        260.0,
+        60.5
+       ],
+       "text": [
+        [
+         {
+          "t": "92%",
+          "pt": 37.5,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 9",
+       "box": [
+        318.0,
+        497.0,
+        257.0,
+        19.82
+       ],
+       "text": [
+        [
+         {
+          "t": "续费率",
+          "pt": 10.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 10",
+       "box": [
+        584.0,
+        76.0,
+        300.0,
+        464.0
+       ],
+       "fill": "2826C9"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 11",
+       "box": [
+        636.0,
+        118.0,
+        240.0,
+        58.24
+       ],
+       "text": [
+        [
+         {
+          "t": "6.2亿",
+          "pt": 36.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 12",
+       "box": [
+        636.0,
+        194.0,
+        240.0,
+        23.21
+       ],
+       "text": [
+        [
+         {
+          "t": "全年收入 / 元",
+          "pt": 12.75,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 13",
+       "box": [
+        636.0,
+        261.0,
+        240.0,
+        58.24
+       ],
+       "text": [
+        [
+         {
+          "t": "21%",
+          "pt": 36.0,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 14",
+       "box": [
+        636.0,
+        337.0,
+        240.0,
+        23.21
+       ],
+       "text": [
+        [
+         {
+          "t": "研发投入占比",
+          "pt": 12.75,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 15",
+       "box": [
+        636.0,
+        403.0,
+        240.0,
+        58.24
+       ],
+       "text": [
+        [
+         {
+          "t": "1260",
+          "pt": 36.0,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 16",
+       "box": [
+        636.0,
+        479.0,
+        240.0,
+        23.21
+       ],
+       "text": [
+        [
+         {
+          "t": "员工 / 人",
+          "pt": 12.75,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 8,
+     "background": "FFFFFF",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        48.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "example.com",
+          "pt": 9.0,
+          "rgb": "2826C9",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 2",
+       "box": [
+        60.0,
+        73.0,
+        400.0,
+        23.8
+       ],
+       "text": [
+        [
+         {
+          "t": "收入 / 亿元",
+          "pt": 13.5,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "CHART",
+       "name": "chart",
+       "box": [
+        48.0,
+        105.0,
+        440.0,
+        380.0
+       ],
+       "chart": {
+        "type": "COLUMN_CLUSTERED (51)",
+        "categories": [
+         "2023",
+         "2024",
+         "2025"
+        ],
+        "series": [
+         [
+          "收入",
+          [
+           3.1,
+           4.6,
+           6.2
+          ]
+         ]
+        ]
+       }
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        533.0,
+        71.0,
+        406.0,
+        123.04
+       ],
+       "text": [
+        [
+         {
+          "t": "收入",
+          "pt": 46.5,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "增长趋势",
+          "pt": 46.5,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 5",
+       "box": [
+        533.0,
+        264.0,
+        400.0,
+        110.0
+       ],
+       "text": [
+        [
+         {
+          "t": "收入保持增长",
+          "pt": 18.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "2025 年达到 6.2 亿元",
+          "pt": 18.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 6",
+       "box": [
+        533.0,
+        410.0,
+        260.0,
+        22.08
+       ],
+       "text": [
+        [
+         {
+          "t": "年度收入",
+          "pt": 12.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 7",
+       "box": [
+        781.0,
+        409.0,
+        23.8,
+        21.0
+       ],
+       "text": [
+        [
+         {
+          "t": "→",
+          "pt": 12.75,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 8",
+       "box": [
+        533.0,
+        458.0,
+        403.0,
+        70.0
+       ],
+       "text": [
+        [
+         {
+          "t": "单位：亿元",
+          "pt": 12.75,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "口径为经审计全年收入",
+          "pt": 12.75,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 9,
+     "background": "FFFFFF",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        52.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "example.com",
+          "pt": 9.0,
+          "rgb": "2826C9",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 2",
+       "box": [
+        52.0,
+        70.0,
+        856.0,
+        58.0
+       ],
+       "text": [
+        [
+         {
+          "t": "三条产品线对比",
+          "pt": 40.5,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 3",
+       "box": [
+        52.0,
+        140.0,
+        856.0,
+        26.6
+       ],
+       "text": [
+        [
+         {
+          "t": "2025 年全年",
+          "pt": 15.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TABLE",
+       "name": "table",
+       "box": [
+        52.0,
+        182.0,
+        856.0,
+        184.0
+       ],
+       "table": [
+        [
+         "产品线",
+         "收入 / 亿元",
+         "增速",
+         "毛利率"
+        ],
+        [
+         "协同办公",
+         "3.0",
+         "18%",
+         "80%"
+        ],
+        [
+         "低代码",
+         "1.9",
+         "52%",
+         "74%"
+        ],
+        [
+         "数据平台",
+         "1.3",
+         "35%",
+         "68%"
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 5",
+       "box": [
+        52.0,
+        470.0,
+        856.0,
+        19.82
+       ],
+       "text": [
+        [
+         {
+          "t": "增速为同比",
+          "pt": 10.5,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 10,
+     "background": "FFFFFF",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        52.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "example.com",
+          "pt": 9.0,
+          "rgb": "2826C9",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 2",
+       "box": [
+        52.0,
+        137.0,
+        135.16,
+        72.33
+       ],
+       "fill": "2826C9"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 3",
+       "box": [
+        52.0,
+        209.33,
+        197.16,
+        75.43
+       ],
+       "fill": "2826C9"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        57.58,
+        135.76,
+        848.0,
+        148.67
+       ],
+       "text": [
+        [
+         {
+          "t": "风险",
+          "pt": 46.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "与边界",
+          "pt": 46.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 5",
+       "box": [
+        52.0,
+        325.0,
+        270.0,
+        82.0
+       ],
+       "text": [
+        [
+         {
+          "t": "增长之外",
+          "pt": 18.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "也要看执行条件",
+          "pt": 18.0,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 6",
+       "box": [
+        52.0,
+        422.0,
+        98.0,
+        74.0
+       ],
+       "text": [
+        [
+         {
+          "t": "→",
+          "pt": 52.5,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 7",
+       "box": [
+        420.0,
+        87.0,
+        500.0,
+        110.0
+       ],
+       "text": [
+        [
+         {
+          "t": "业务发展受客户预算",
+          "pt": 13.5,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "与行业竞争影响",
+          "pt": 13.5,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 8",
+       "box": [
+        420.0,
+        221.0,
+        73.85,
+        21.0
+       ],
+       "fill": "2826C9"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 9",
+       "box": [
+        424.92,
+        222.46,
+        93.85,
+        22.08
+       ],
+       "text": [
+        [
+         {
+          "t": "主要风险",
+          "pt": 12.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 10",
+       "box": [
+        420.0,
+        270.0,
+        500.0,
+        240.0
+       ],
+       "text": [
+        [
+         {
+          "t": "客户预算收紧",
+          "pt": 14.25,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "同质化竞争",
+          "pt": 14.25,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "大项目回款周期长",
+          "pt": 14.25,
+          "rgb": "2826C9",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 11,
+     "background": "2826C9",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 1",
+       "box": [
+        518.0,
+        122.0,
+        412.0,
+        67.28
+       ],
+       "text": [
+        [
+         {
+          "t": "产品、业务与",
+          "pt": 21.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "2026 年重点",
+          "pt": 21.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 2",
+       "box": [
+        0.0,
+        221.0,
+        960.0,
+        1.0
+       ],
+       "fill": "9B99E3"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 3",
+       "box": [
+        50.0,
+        362.0,
+        787.0,
+        109.6
+       ],
+       "text": [
+        [
+         {
+          "t": "THANKS",
+          "pt": 82.5,
+          "rgb": "FFFFFF",
+          "face": "Poppins Light"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        790.0,
+        349.0,
+        98.0,
+        74.0
+       ],
+       "text": [
+        [
+         {
+          "t": "→",
+          "pt": 52.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "year",
+       "box": [
+        763.0,
+        426.0,
+        176.0,
+        49.2
+       ],
+       "text": [
+        [
+         {
+          "t": "2026",
+          "pt": 30.0,
+          "rgb": "FFFFFF",
+          "face": "Poppins Light"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    }
+   ]
+  },
+  "default-regression-2": {
+   "report": {
+    "slides": 3,
+    "style": "default",
+    "palette": "color-4",
+    "layouts": [
+     {
+      "slide": 1,
+      "layout": "columns"
+     },
+     {
+      "slide": 2,
+      "layout": "metrics"
+     },
+     {
+      "slide": 3,
+      "layout": "closing"
+     }
+    ],
+    "logo": "omitted",
+    "images": [],
+    "image_credits": [],
+    "warnings": [
+     "未提供 Logo 文件：封面、内容页与结束页均不放 Logo（不用文字仿 Logo）。请在 brand.logo_missing_reason 记录原因。",
+     "第 1 页不是 cover：本风格默认封面开场。"
+    ]
+   },
+   "parts": {
+    "[Content_Types].xml": "92e338dc1da442ddad256fb2497c241c4fdf23dd947079a0301fca70fe26003f",
+    "_rels/.rels": "d5eb6bb696e8598de1d59105239109a7625b28b09fd7884ffebb24022f63fd9b",
+    "ppt/_rels/presentation.xml.rels": "0a4cbe63a1899947f572be5ad84c44ae0c2a9900c01b1bb86eaf6adad0556cf4",
+    "ppt/presProps.xml": "42c2db72de4d191e4859d1b28eb355ba93dd28d21e2eb8014d908ce94ee1f347",
+    "ppt/presentation.xml": "cc48455143f9b064ab801fa1dc889051fd3466e953a8e93a9b7b88db83094453",
+    "ppt/printerSettings/printerSettings1.bin": "d7768f87e07d29634782e448ece1cddd05a52b9499254222b1190bc8f6dc579e",
+    "ppt/slideLayouts/_rels/slideLayout1.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout10.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout11.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout2.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout3.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout4.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout5.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout6.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout7.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout8.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout9.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/slideLayout1.xml": "b63decb6b703f6e75b13dfcc7a2ee98a5086795eefd0fc6cf63537373b58bc28",
+    "ppt/slideLayouts/slideLayout10.xml": "e8f780bb28cff652c5901ea9016cbc4aa737daf5f544d93d047da81962926ea2",
+    "ppt/slideLayouts/slideLayout11.xml": "3a863826ecb2cb79874ce1f6b581938dda06b9439af9b172f2782c1dbb570326",
+    "ppt/slideLayouts/slideLayout2.xml": "59fc7a6d9573d89b02146e664846a80958ee50bc23d640f7c768321a623a9384",
+    "ppt/slideLayouts/slideLayout3.xml": "77af3509f6c1600f41e6e611e071ee5df6dd05ed1ace5039afc8d75bf657290b",
+    "ppt/slideLayouts/slideLayout4.xml": "31dc4acf6cd102d7902b363bc4cddcf1a72e39eafbf55da1c2d0939ef39dc3bd",
+    "ppt/slideLayouts/slideLayout5.xml": "6eca9f78549f44807c4bf8c08723b1fc2cfb64e5e88559be16834aa1b7ac6a0d",
+    "ppt/slideLayouts/slideLayout6.xml": "47ced226e6b044bd4d3bc66983f6a9cb0e45a29f04a3062cdc128164f995bf90",
+    "ppt/slideLayouts/slideLayout7.xml": "e350fa920ed9c0cfcbf144910fd97a7a87985e274b348694011f8c5fd9595106",
+    "ppt/slideLayouts/slideLayout8.xml": "62576dd81c5f62afe788d4fb513a8884ace1c207667f778b5225b027648fd035",
+    "ppt/slideLayouts/slideLayout9.xml": "aa762dc84b2180cadb883ac0c977ec3abe2d8a1c962e6296d115b61d892b62ab",
+    "ppt/slideMasters/_rels/slideMaster1.xml.rels": "8e9a4d935bd16f8340069bbd1cd073332e428e0ac9b2a3d98a5015235a80fe71",
+    "ppt/slideMasters/slideMaster1.xml": "bd60237858a9e810121e44fc7b72cf251d92ae9a6669578191411dc85280a154",
+    "ppt/slides/_rels/slide1.xml.rels": "4d657778e912a3ac965957e8f4fdcc522e39a8479bf51edb68c50065507565f7",
+    "ppt/slides/_rels/slide2.xml.rels": "4d657778e912a3ac965957e8f4fdcc522e39a8479bf51edb68c50065507565f7",
+    "ppt/slides/_rels/slide3.xml.rels": "4d657778e912a3ac965957e8f4fdcc522e39a8479bf51edb68c50065507565f7",
+    "ppt/slides/slide1.xml": "8f6278ccde4dcb0a077a2a7d94b97fc10cf680af1bb0c1a8cff814255d731239",
+    "ppt/slides/slide2.xml": "557e6f1fe55627883f9a8ed357eae6f972f08fbfc291588d64272e5e5743b21a",
+    "ppt/slides/slide3.xml": "1e76df15a67ac7a4f5355b233ff10090d551b696bd8ad399357f26a505aecb33",
+    "ppt/tableStyles.xml": "6e2878f4fec5a97f0ac4c7f3ea3db3d166ffee9563489ccea13c05cbe93a5d70",
+    "ppt/theme/theme1.xml": "9c24e5ab81b3591ecc5f6855062cac0f6649720d5447cb2130cbefce6068d931",
+    "ppt/viewProps.xml": "c08881a0b447f0b6a3d587af95d5ba06f8001904ba161b2d8aa3872ed1216aed"
+   },
+   "dump": [
+    {
+     "slide": 1,
+     "background": "FFFFFF",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 1",
+       "box": [
+        52.0,
+        88.0,
+        881.0,
+        76.32
+       ],
+       "text": [
+        [
+         {
+          "t": "开头不是封面",
+          "pt": 48.0,
+          "rgb": "984105",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 2",
+       "box": [
+        52.0,
+        243.0,
+        868.0,
+        1.0
+       ],
+       "fill": "DECAAF"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 3",
+       "box": [
+        52.0,
+        306.0,
+        27.46,
+        22.0
+       ],
+       "fill": "ED7908"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        57.23,
+        307.39,
+        47.46,
+        23.21
+       ],
+       "text": [
+        [
+         {
+          "t": "一",
+          "pt": 12.75,
+          "rgb": "242018",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 5",
+       "box": [
+        52.0,
+        352.0,
+        261.33,
+        167.0
+       ],
+       "text": [
+        [
+         {
+          "t": "1",
+          "pt": 14.25,
+          "rgb": "984105",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 6",
+       "box": [
+        341.33,
+        306.0,
+        27.46,
+        22.0
+       ],
+       "fill": "ED7908"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 7",
+       "box": [
+        346.56,
+        307.39,
+        47.46,
+        23.21
+       ],
+       "text": [
+        [
+         {
+          "t": "二",
+          "pt": 12.75,
+          "rgb": "242018",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 8",
+       "box": [
+        341.33,
+        352.0,
+        261.33,
+        167.0
+       ],
+       "text": [
+        [
+         {
+          "t": "2",
+          "pt": 14.25,
+          "rgb": "984105",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 9",
+       "box": [
+        630.67,
+        306.0,
+        27.46,
+        22.0
+       ],
+       "fill": "ED7908"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 10",
+       "box": [
+        635.9,
+        307.39,
+        47.46,
+        23.21
+       ],
+       "text": [
+        [
+         {
+          "t": "三",
+          "pt": 12.75,
+          "rgb": "242018",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 11",
+       "box": [
+        630.67,
+        352.0,
+        261.33,
+        167.0
+       ],
+       "text": [
+        [
+         {
+          "t": "3",
+          "pt": 14.25,
+          "rgb": "984105",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 2,
+     "background": "75614E",
+     "shapes": [
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 1",
+       "box": [
+        52.0,
+        100.0,
+        130.8,
+        70.0
+       ],
+       "fill": "ED7908"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 2",
+       "box": [
+        52.0,
+        170.0,
+        130.8,
+        73.0
+       ],
+       "fill": "ED7908"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 3",
+       "box": [
+        57.4,
+        98.8,
+        848.0,
+        144.0
+       ],
+       "text": [
+        [
+         {
+          "t": "橙色",
+          "pt": 45.0,
+          "rgb": "242018",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "指标",
+          "pt": 45.0,
+          "rgb": "242018",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        52.0,
+        409.0,
+        260.0,
+        60.5
+       ],
+       "text": [
+        [
+         {
+          "t": "1",
+          "pt": 37.5,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 5",
+       "box": [
+        52.0,
+        497.0,
+        257.0,
+        19.82
+       ],
+       "text": [
+        [
+         {
+          "t": "a",
+          "pt": 10.5,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 6",
+       "box": [
+        318.0,
+        409.0,
+        260.0,
+        60.5
+       ],
+       "text": [
+        [
+         {
+          "t": "2",
+          "pt": 37.5,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 7",
+       "box": [
+        318.0,
+        497.0,
+        257.0,
+        19.82
+       ],
+       "text": [
+        [
+         {
+          "t": "b",
+          "pt": 10.5,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 8",
+       "box": [
+        584.0,
+        76.0,
+        300.0,
+        464.0
+       ],
+       "fill": "ED7908"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 9",
+       "box": [
+        636.0,
+        118.0,
+        240.0,
+        58.24
+       ],
+       "text": [
+        [
+         {
+          "t": "3",
+          "pt": 36.0,
+          "rgb": "242018",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 10",
+       "box": [
+        636.0,
+        194.0,
+        240.0,
+        23.21
+       ],
+       "text": [
+        [
+         {
+          "t": "c",
+          "pt": 12.75,
+          "rgb": "242018",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 3,
+     "background": "ED7908",
+     "shapes": [
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 1",
+       "box": [
+        0.0,
+        221.0,
+        960.0,
+        1.0
+       ],
+       "fill": "A95400"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 2",
+       "box": [
+        50.0,
+        362.0,
+        787.0,
+        109.6
+       ],
+       "text": [
+        [
+         {
+          "t": "THANKS",
+          "pt": 82.5,
+          "rgb": "242018",
+          "face": "Poppins Light"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 3",
+       "box": [
+        790.0,
+        349.0,
+        98.0,
+        74.0
+       ],
+       "text": [
+        [
+         {
+          "t": "→",
+          "pt": 52.5,
+          "rgb": "242018",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "year",
+       "box": [
+        763.0,
+        426.0,
+        176.0,
+        49.2
+       ],
+       "text": [
+        [
+         {
+          "t": "2026",
+          "pt": 30.0,
+          "rgb": "242018",
+          "face": "Poppins Light"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    }
+   ]
+  },
+  "default-regression": {
+   "report": {
+    "slides": 27,
+    "style": "default",
+    "palette": "color-2",
+    "layouts": [
+     {
+      "slide": 1,
+      "layout": "cover"
+     },
+     {
+      "slide": 2,
+      "layout": "overview"
+     },
+     {
+      "slide": 3,
+      "layout": "overview"
+     },
+     {
+      "slide": 4,
+      "layout": "statement"
+     },
+     {
+      "slide": 5,
+      "layout": "statement"
+     },
+     {
+      "slide": 6,
+      "layout": "statement"
+     },
+     {
+      "slide": 7,
+      "layout": "columns"
+     },
+     {
+      "slide": 8,
+      "layout": "columns"
+     },
+     {
+      "slide": 9,
+      "layout": "composition"
+     },
+     {
+      "slide": 10,
+      "layout": "composition"
+     },
+     {
+      "slide": 11,
+      "layout": "image-statement"
+     },
+     {
+      "slide": 12,
+      "layout": "image-statement"
+     },
+     {
+      "slide": 13,
+      "layout": "numbered"
+     },
+     {
+      "slide": 14,
+      "layout": "numbered"
+     },
+     {
+      "slide": 15,
+      "layout": "metrics"
+     },
+     {
+      "slide": 16,
+      "layout": "metrics"
+     },
+     {
+      "slide": 17,
+      "layout": "chart"
+     },
+     {
+      "slide": 18,
+      "layout": "chart"
+     },
+     {
+      "slide": 19,
+      "layout": "chart"
+     },
+     {
+      "slide": 20,
+      "layout": "risks"
+     },
+     {
+      "slide": 21,
+      "layout": "risks"
+     },
+     {
+      "slide": 22,
+      "layout": "table"
+     },
+     {
+      "slide": 23,
+      "layout": "table"
+     },
+     {
+      "slide": 24,
+      "layout": "image-statement"
+     },
+     {
+      "slide": 25,
+      "layout": "closing"
+     },
+     {
+      "slide": 26,
+      "layout": "cover"
+     },
+     {
+      "slide": 27,
+      "layout": "overview"
+     }
+    ],
+    "logo": "included",
+    "images": [
+     "第4页(statement).image",
+     "第4页(statement).image2",
+     "第4页(statement).image3",
+     "第5页(statement).image",
+     "第6页(statement).image2",
+     "第11页(image-statement).image",
+     "第13页(numbered).image",
+     "第15页(metrics).image",
+     "第20页(risks).image",
+     "第24页(image-statement).image"
+    ],
+    "image_credits": [],
+    "warnings": [
+     "第2页(overview)：items 有 6 项，本页型最多 5 项，已截掉：六（超出上限）。请精简或拆页。",
+     "第3页(overview)：文字「这是一段很长很长的导语文…」估计超出文本框高度，请精简。",
+     "第4页(statement)：items 有 3 项，本页型最多 2 项，已截掉：丙。请精简或拆页。",
+     "第5页(statement)：标题「只有主图的陈述页标题…」过长，已缩到下限仍可能溢出，请精简。",
+     "第6页(statement)：未提供 image，图位暂时改为色面。请按 shimo-pptx 补图：先用 scripts/find_images.py 上网找，找不到合适的用 scripts/theme_art.py 按主题生成配图，写进 image 后加 --overwrite 重跑。",
+     "第8页(columns)：标题「这是一个非常非常非常…」过长，已缩到下限仍可能溢出，请精简。",
+     "第8页(columns)：columns 有 5 项，本页型最多 4 项，已截掉：五。请精简或拆页。",
+     "第9页(composition)：图表有 4 个系列/类别，超过 3 个时用主色浅色和深灰区分，建议精简或改图。",
+     "第9页(composition)：panel.metrics 有 4 项，本页型最多 3 项，已截掉：D。请精简或拆页。",
+     "第12页(image-statement)：未提供 image，图位暂时改为色面。请按 shimo-pptx 补图：先用 scripts/find_images.py 上网找，找不到合适的用 scripts/theme_art.py 按主题生成配图，写进 image 后加 --overwrite 重跑。",
+     "第14页(numbered)：items 有 6 项，本页型最多 5 项，已截掉：六。请精简或拆页。",
+     "第16页(metrics)：panel 有 4 项，本页型最多 3 项，已截掉：d。请精简或拆页。",
+     "第18页(chart)：图表有 4 个系列/类别，超过 3 个时用主色浅色和深灰区分，建议精简或改图。",
+     "最后一页不是 closing：本风格默认 THANKS 结束页与封面配对。"
+    ]
+   },
+   "parts": {
+    "[Content_Types].xml": "a837d434b86cfe6afdb1b4de72ed0e464a977dc96da570918b881badc07e23f3",
+    "_rels/.rels": "d5eb6bb696e8598de1d59105239109a7625b28b09fd7884ffebb24022f63fd9b",
+    "ppt/_rels/presentation.xml.rels": "03a04b2a590e1e7d5aed72b21acc204c2e244a3b4902adc936b03bd68fc10350",
+    "ppt/charts/_rels/chart1.xml.rels": "999a27a38d1ccf9b3c82327db26599fd80a695915ee52ff11e9472c2c64f18e5",
+    "ppt/charts/_rels/chart2.xml.rels": "7c13f86eedf10a9569055ee3855fa7b2d0fce56fcf8a604763a6283a728d966d",
+    "ppt/charts/_rels/chart3.xml.rels": "d5bd75c15de4da2e4e0384f19e97818ddc2ddbda06232da899d41d56b62ac0b8",
+    "ppt/charts/_rels/chart4.xml.rels": "a0e06a8535b105f2796dd139072ade9966caf34679e263feb81fde4e9ea26f93",
+    "ppt/charts/_rels/chart5.xml.rels": "b6cb2f738c7ccac75d424111229ec8d4b786b941878c89d091173c4cb5bc2e2f",
+    "ppt/charts/chart1.xml": "40735ef67cf4f6befc8f30f15bc4fa6bc27f43edb15a20e33df2b3df412cd38d",
+    "ppt/charts/chart2.xml": "8b56119c440496a6b550a5e3be29cdcfb9034a1c05467dde107470302dfffea5",
+    "ppt/charts/chart3.xml": "8ad5db7ebd71f08900ddecc65414e12fab4cd53df9a0dfd51006f7b37af605fb",
+    "ppt/charts/chart4.xml": "0260cd31b6a53439b8d449fca7595fe410e8fc0868e26c17ba379ab5b0255dce",
+    "ppt/charts/chart5.xml": "5b6cb418b3a094581b4411979e88efcf39ea3f77d1c32eb297e6ba6da4f4fb14",
+    "ppt/embeddings/Microsoft_Excel_Sheet1.xlsx![Content_Types].xml": "95531f2dda61729124bd0d8438cea3782d723b4c3f4df5844f5e242bf7b8b04b",
+    "ppt/embeddings/Microsoft_Excel_Sheet1.xlsx!_rels/.rels": "8bc63f6746c8aa90a38ebc9578ecce84f82f684eb26b312e5e0b8014d4c56968",
+    "ppt/embeddings/Microsoft_Excel_Sheet1.xlsx!xl/_rels/workbook.xml.rels": "7ede7ae4abc7aa3e35c91f0eea3ac8c396609976c05d1a5db4921b93abf9ef5b",
+    "ppt/embeddings/Microsoft_Excel_Sheet1.xlsx!xl/sharedStrings.xml": "36e79e1d0911c40516ed100a0149e8d6a56d2ac76b3c15493ee2c1cb083979ed",
+    "ppt/embeddings/Microsoft_Excel_Sheet1.xlsx!xl/styles.xml": "768faf3ba6cdb101635e1a5cdb6eb9f0bccb5e7fc4f9a8b893201c3ae7246e0d",
+    "ppt/embeddings/Microsoft_Excel_Sheet1.xlsx!xl/theme/theme1.xml": "995daeb8ede0f15d24ab302b84e7d8e123897a21bac75be21aa1d58dd50505d6",
+    "ppt/embeddings/Microsoft_Excel_Sheet1.xlsx!xl/workbook.xml": "0506cf8f3603756f121265b60802c445bd09feab4d08746323171be529a388cc",
+    "ppt/embeddings/Microsoft_Excel_Sheet1.xlsx!xl/worksheets/sheet1.xml": "265432327e6e5d2686536d8a904d1f94d4e5d2f0beeff9f09844c3b508f93942",
+    "ppt/embeddings/Microsoft_Excel_Sheet2.xlsx![Content_Types].xml": "95531f2dda61729124bd0d8438cea3782d723b4c3f4df5844f5e242bf7b8b04b",
+    "ppt/embeddings/Microsoft_Excel_Sheet2.xlsx!_rels/.rels": "8bc63f6746c8aa90a38ebc9578ecce84f82f684eb26b312e5e0b8014d4c56968",
+    "ppt/embeddings/Microsoft_Excel_Sheet2.xlsx!xl/_rels/workbook.xml.rels": "7ede7ae4abc7aa3e35c91f0eea3ac8c396609976c05d1a5db4921b93abf9ef5b",
+    "ppt/embeddings/Microsoft_Excel_Sheet2.xlsx!xl/sharedStrings.xml": "2d3622b3694da7ff35599c143619f79d2eb315ce9cee58bc714366d8803cc7e8",
+    "ppt/embeddings/Microsoft_Excel_Sheet2.xlsx!xl/styles.xml": "768faf3ba6cdb101635e1a5cdb6eb9f0bccb5e7fc4f9a8b893201c3ae7246e0d",
+    "ppt/embeddings/Microsoft_Excel_Sheet2.xlsx!xl/theme/theme1.xml": "995daeb8ede0f15d24ab302b84e7d8e123897a21bac75be21aa1d58dd50505d6",
+    "ppt/embeddings/Microsoft_Excel_Sheet2.xlsx!xl/workbook.xml": "0506cf8f3603756f121265b60802c445bd09feab4d08746323171be529a388cc",
+    "ppt/embeddings/Microsoft_Excel_Sheet2.xlsx!xl/worksheets/sheet1.xml": "7d762bc051f11935ae2a42b97c046f6425e2cf99c2814cc66b69961a8e9bd3d5",
+    "ppt/embeddings/Microsoft_Excel_Sheet3.xlsx![Content_Types].xml": "95531f2dda61729124bd0d8438cea3782d723b4c3f4df5844f5e242bf7b8b04b",
+    "ppt/embeddings/Microsoft_Excel_Sheet3.xlsx!_rels/.rels": "8bc63f6746c8aa90a38ebc9578ecce84f82f684eb26b312e5e0b8014d4c56968",
+    "ppt/embeddings/Microsoft_Excel_Sheet3.xlsx!xl/_rels/workbook.xml.rels": "7ede7ae4abc7aa3e35c91f0eea3ac8c396609976c05d1a5db4921b93abf9ef5b",
+    "ppt/embeddings/Microsoft_Excel_Sheet3.xlsx!xl/sharedStrings.xml": "d4f1e12c88b4894d0170806b2886a24cbd4db070d991ed00e6a709ad00dc41fc",
+    "ppt/embeddings/Microsoft_Excel_Sheet3.xlsx!xl/styles.xml": "768faf3ba6cdb101635e1a5cdb6eb9f0bccb5e7fc4f9a8b893201c3ae7246e0d",
+    "ppt/embeddings/Microsoft_Excel_Sheet3.xlsx!xl/theme/theme1.xml": "995daeb8ede0f15d24ab302b84e7d8e123897a21bac75be21aa1d58dd50505d6",
+    "ppt/embeddings/Microsoft_Excel_Sheet3.xlsx!xl/workbook.xml": "0506cf8f3603756f121265b60802c445bd09feab4d08746323171be529a388cc",
+    "ppt/embeddings/Microsoft_Excel_Sheet3.xlsx!xl/worksheets/sheet1.xml": "a9231914d77e6d3832877f8e13b5ecd8ba8205e2615c1a59b77cc69bb70eb63d",
+    "ppt/embeddings/Microsoft_Excel_Sheet4.xlsx![Content_Types].xml": "95531f2dda61729124bd0d8438cea3782d723b4c3f4df5844f5e242bf7b8b04b",
+    "ppt/embeddings/Microsoft_Excel_Sheet4.xlsx!_rels/.rels": "8bc63f6746c8aa90a38ebc9578ecce84f82f684eb26b312e5e0b8014d4c56968",
+    "ppt/embeddings/Microsoft_Excel_Sheet4.xlsx!xl/_rels/workbook.xml.rels": "7ede7ae4abc7aa3e35c91f0eea3ac8c396609976c05d1a5db4921b93abf9ef5b",
+    "ppt/embeddings/Microsoft_Excel_Sheet4.xlsx!xl/sharedStrings.xml": "aa98a0bacdf7ec9b40a271b906f6a5a6b33b6630f4915011a65bec931c3cb67a",
+    "ppt/embeddings/Microsoft_Excel_Sheet4.xlsx!xl/styles.xml": "768faf3ba6cdb101635e1a5cdb6eb9f0bccb5e7fc4f9a8b893201c3ae7246e0d",
+    "ppt/embeddings/Microsoft_Excel_Sheet4.xlsx!xl/theme/theme1.xml": "995daeb8ede0f15d24ab302b84e7d8e123897a21bac75be21aa1d58dd50505d6",
+    "ppt/embeddings/Microsoft_Excel_Sheet4.xlsx!xl/workbook.xml": "0506cf8f3603756f121265b60802c445bd09feab4d08746323171be529a388cc",
+    "ppt/embeddings/Microsoft_Excel_Sheet4.xlsx!xl/worksheets/sheet1.xml": "fedce4e63a45026f4306ce30d7e1c0681727b34062d92e03d6310b17f5819136",
+    "ppt/embeddings/Microsoft_Excel_Sheet5.xlsx![Content_Types].xml": "95531f2dda61729124bd0d8438cea3782d723b4c3f4df5844f5e242bf7b8b04b",
+    "ppt/embeddings/Microsoft_Excel_Sheet5.xlsx!_rels/.rels": "8bc63f6746c8aa90a38ebc9578ecce84f82f684eb26b312e5e0b8014d4c56968",
+    "ppt/embeddings/Microsoft_Excel_Sheet5.xlsx!xl/_rels/workbook.xml.rels": "7ede7ae4abc7aa3e35c91f0eea3ac8c396609976c05d1a5db4921b93abf9ef5b",
+    "ppt/embeddings/Microsoft_Excel_Sheet5.xlsx!xl/sharedStrings.xml": "a6256140e2fe5cfe804cbdbe3af57cadaf2babf057d6638dacac63af10e0e658",
+    "ppt/embeddings/Microsoft_Excel_Sheet5.xlsx!xl/styles.xml": "768faf3ba6cdb101635e1a5cdb6eb9f0bccb5e7fc4f9a8b893201c3ae7246e0d",
+    "ppt/embeddings/Microsoft_Excel_Sheet5.xlsx!xl/theme/theme1.xml": "995daeb8ede0f15d24ab302b84e7d8e123897a21bac75be21aa1d58dd50505d6",
+    "ppt/embeddings/Microsoft_Excel_Sheet5.xlsx!xl/workbook.xml": "0506cf8f3603756f121265b60802c445bd09feab4d08746323171be529a388cc",
+    "ppt/embeddings/Microsoft_Excel_Sheet5.xlsx!xl/worksheets/sheet1.xml": "a81b10eb847a19140b1829f2594f9ae25119bbdae6da64b2bfc386b6b017aa19",
+    "ppt/media/image1.png": "0bd49a825d703ed7976e1ce36e9a8b28d0c422ff3fdf65499742529dd1cb635c",
+    "ppt/media/image10.png": "4ef57a5507948ec964a36adef9ac64ae6552c373854da5b7c20f52b5ead2cb5f",
+    "ppt/media/image11.png": "5f62f33465e5996950098f4c3a0ea6144fed6cfcbd21ea637d3f5ff60cce28a3",
+    "ppt/media/image12.png": "b3f9bdb45814d26c05addde0819d5b5d26baff0fbafc8262c746dd5167c9ee92",
+    "ppt/media/image2.png": "6f17bca27d84f212cedbe25429579fac1da9bee0f6d97161ce85564cff2c1258",
+    "ppt/media/image3.png": "b4cb0e8f2e2d434cb2bdc509fe1d9beb4e32f28e4d009681ef8acfa16865871b",
+    "ppt/media/image4.png": "10245544b190a75cc537f9498a6aa6f26d7564a28d923c1f558042dd1b51d3a3",
+    "ppt/media/image5.png": "3d94decc36e2281d5306a9ea5aa5c2940701e28417aa81dc5a6b38105093afb1",
+    "ppt/media/image6.png": "0ff0a9c6e23801226453f6951dc63d2ad6dfd8da4b1c7f1ab31928158cafc355",
+    "ppt/media/image7.png": "42ba5f3a6892c75246b2c5016f901a0d1a2f2f3b0815dfc61d92248daae081b0",
+    "ppt/media/image8.png": "5d2e9e2a6ca758c6baa13f11ceefc27cc3bdeb39bd8d4a0bde1e885bd1bf3594",
+    "ppt/media/image9.png": "5d54ebb7f11dbc6315a33b88e1e8a152d5432d28b98327f682dfc9c338fbc07c",
+    "ppt/notesMasters/_rels/notesMaster1.xml.rels": "27568c53cfe3136591e43bcabf2be268cebaa7117863661ed41925193e5225e7",
+    "ppt/notesMasters/notesMaster1.xml": "aa67170374dbe45de448e9e6f93d4ddd5e4dfa1bd169b13940015a90e8183aa2",
+    "ppt/notesSlides/_rels/notesSlide1.xml.rels": "dbd155f92e9566045a616df9d80346e4e8c35f1a0923db4cf31b7325b15e1686",
+    "ppt/notesSlides/notesSlide1.xml": "cab9f4e5fdfd23084833a4b9a17f4b2679d27677de989a6043d902440a40a5be",
+    "ppt/presProps.xml": "42c2db72de4d191e4859d1b28eb355ba93dd28d21e2eb8014d908ce94ee1f347",
+    "ppt/presentation.xml": "f7d3ba0852e16cd4cd450f9520da62ac06ad88b3f9227fea7d330f641cdae717",
+    "ppt/printerSettings/printerSettings1.bin": "d7768f87e07d29634782e448ece1cddd05a52b9499254222b1190bc8f6dc579e",
+    "ppt/slideLayouts/_rels/slideLayout1.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout10.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout11.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout2.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout3.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout4.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout5.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout6.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout7.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout8.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/_rels/slideLayout9.xml.rels": "7ef792bde014c7c69f6569914cc8cdcb99b073b1f3b6fab3a52c5a693fe888e2",
+    "ppt/slideLayouts/slideLayout1.xml": "b63decb6b703f6e75b13dfcc7a2ee98a5086795eefd0fc6cf63537373b58bc28",
+    "ppt/slideLayouts/slideLayout10.xml": "e8f780bb28cff652c5901ea9016cbc4aa737daf5f544d93d047da81962926ea2",
+    "ppt/slideLayouts/slideLayout11.xml": "3a863826ecb2cb79874ce1f6b581938dda06b9439af9b172f2782c1dbb570326",
+    "ppt/slideLayouts/slideLayout2.xml": "59fc7a6d9573d89b02146e664846a80958ee50bc23d640f7c768321a623a9384",
+    "ppt/slideLayouts/slideLayout3.xml": "77af3509f6c1600f41e6e611e071ee5df6dd05ed1ace5039afc8d75bf657290b",
+    "ppt/slideLayouts/slideLayout4.xml": "31dc4acf6cd102d7902b363bc4cddcf1a72e39eafbf55da1c2d0939ef39dc3bd",
+    "ppt/slideLayouts/slideLayout5.xml": "6eca9f78549f44807c4bf8c08723b1fc2cfb64e5e88559be16834aa1b7ac6a0d",
+    "ppt/slideLayouts/slideLayout6.xml": "47ced226e6b044bd4d3bc66983f6a9cb0e45a29f04a3062cdc128164f995bf90",
+    "ppt/slideLayouts/slideLayout7.xml": "e350fa920ed9c0cfcbf144910fd97a7a87985e274b348694011f8c5fd9595106",
+    "ppt/slideLayouts/slideLayout8.xml": "62576dd81c5f62afe788d4fb513a8884ace1c207667f778b5225b027648fd035",
+    "ppt/slideLayouts/slideLayout9.xml": "aa762dc84b2180cadb883ac0c977ec3abe2d8a1c962e6296d115b61d892b62ab",
+    "ppt/slideMasters/_rels/slideMaster1.xml.rels": "8e9a4d935bd16f8340069bbd1cd073332e428e0ac9b2a3d98a5015235a80fe71",
+    "ppt/slideMasters/slideMaster1.xml": "bd60237858a9e810121e44fc7b72cf251d92ae9a6669578191411dc85280a154",
+    "ppt/slides/_rels/slide1.xml.rels": "f184cdacd8d89bd31096fc54d5675f7d6870d0d2424247abcdf6f755ee9ca514",
+    "ppt/slides/_rels/slide10.xml.rels": "b889b055b5e037ebee429c35103cd2b068518cd6baea90da2f0f15d04ce71b9d",
+    "ppt/slides/_rels/slide11.xml.rels": "6e7a6a879f35e3effde012b81d5096fe553bba03a3c8f9ab273ba62509e11e0e",
+    "ppt/slides/_rels/slide12.xml.rels": "f184cdacd8d89bd31096fc54d5675f7d6870d0d2424247abcdf6f755ee9ca514",
+    "ppt/slides/_rels/slide13.xml.rels": "aba49b3a8df29d3e6b8253676961a1476da6755cd3ad21b03a15f0cd3301d3d3",
+    "ppt/slides/_rels/slide14.xml.rels": "b2c1f7e19d540100e73c725d1ad14ac523775ecc780794c2ae40b14e850384ff",
+    "ppt/slides/_rels/slide15.xml.rels": "5e1692abd015344632013f52cbe48b8e939cdfdf5c0ea13297df6c19b41427e2",
+    "ppt/slides/_rels/slide16.xml.rels": "f184cdacd8d89bd31096fc54d5675f7d6870d0d2424247abcdf6f755ee9ca514",
+    "ppt/slides/_rels/slide17.xml.rels": "b739b3de1c9567dc66bc06051bab5fd0ef9546c511ca0ef9d620bc9b4a75b2e8",
+    "ppt/slides/_rels/slide18.xml.rels": "1f758c59536a32466e164cd677820b497d6e832c0b53dd43f675ac72c6282cd1",
+    "ppt/slides/_rels/slide19.xml.rels": "71c3f3a5bde4d0790c983b9af12bddc782466d4fec5c2a0a18dd4275508ff4ae",
+    "ppt/slides/_rels/slide2.xml.rels": "fe0e563e0b93da5a4a061e7093b5f1d91d4ba58aa946d7d4e8a42ef6518247b2",
+    "ppt/slides/_rels/slide20.xml.rels": "a3e5a31a6abb9975d59840c5d32b23e09905fc577abdaf16d80a07b6cce750a9",
+    "ppt/slides/_rels/slide21.xml.rels": "b2c1f7e19d540100e73c725d1ad14ac523775ecc780794c2ae40b14e850384ff",
+    "ppt/slides/_rels/slide22.xml.rels": "b2c1f7e19d540100e73c725d1ad14ac523775ecc780794c2ae40b14e850384ff",
+    "ppt/slides/_rels/slide23.xml.rels": "b2c1f7e19d540100e73c725d1ad14ac523775ecc780794c2ae40b14e850384ff",
+    "ppt/slides/_rels/slide24.xml.rels": "db47654afab85c2d10775477b98b5fa31ed51b7efb450713e06b09fe41b813e6",
+    "ppt/slides/_rels/slide25.xml.rels": "f184cdacd8d89bd31096fc54d5675f7d6870d0d2424247abcdf6f755ee9ca514",
+    "ppt/slides/_rels/slide26.xml.rels": "f184cdacd8d89bd31096fc54d5675f7d6870d0d2424247abcdf6f755ee9ca514",
+    "ppt/slides/_rels/slide27.xml.rels": "b2c1f7e19d540100e73c725d1ad14ac523775ecc780794c2ae40b14e850384ff",
+    "ppt/slides/_rels/slide3.xml.rels": "b2c1f7e19d540100e73c725d1ad14ac523775ecc780794c2ae40b14e850384ff",
+    "ppt/slides/_rels/slide4.xml.rels": "b3b25eacb85ab7d7f918bf5b183c0bd3ace0990b980628d10bb0e63415b31ad1",
+    "ppt/slides/_rels/slide5.xml.rels": "5c2b7d172c39be747ac39819661d67033e7cdd89e611ccdd63d6fe26fd9e59fb",
+    "ppt/slides/_rels/slide6.xml.rels": "deb1326255eb9000da6ea80a2c447b751eb287a081e880fabeca124e09550875",
+    "ppt/slides/_rels/slide7.xml.rels": "b2c1f7e19d540100e73c725d1ad14ac523775ecc780794c2ae40b14e850384ff",
+    "ppt/slides/_rels/slide8.xml.rels": "b2c1f7e19d540100e73c725d1ad14ac523775ecc780794c2ae40b14e850384ff",
+    "ppt/slides/_rels/slide9.xml.rels": "eac4bda6b3dadb0625fba609e1778e44c09d6283ea339d2f7e4bd5d8fd0148cb",
+    "ppt/slides/slide1.xml": "251f729513b9b95fa10be5df93ab46ef76dce0c9f1a4f14f518b6b87433af28d",
+    "ppt/slides/slide10.xml": "d9ede0844cc0ab1ca32a2ece99861cc503e3b11e509d7209f7db37a8e80a2e31",
+    "ppt/slides/slide11.xml": "2eb460247af00358a33de3c69cf2f21a74331f4df64f542641fa5a9f171db58b",
+    "ppt/slides/slide12.xml": "278e12eb91e7880014aaf1ee19bf84b8326cce574f7b1234d62a60f823f579a8",
+    "ppt/slides/slide13.xml": "b0edb4fb99da3c1e7034dc500af71a1e0890775d3fb31e180b345bb64e7d95c7",
+    "ppt/slides/slide14.xml": "d04040ac6a9b58fa70d42463c105dcdf3a1c7592eef02ae8bf4c32199f155768",
+    "ppt/slides/slide15.xml": "42a58339c183a2b2849522c523258d9f7038d75cc1a383e1d90d8794c339abb7",
+    "ppt/slides/slide16.xml": "b088bd53b41e2d8a5a357651981a586ef46aad63cce8cddc1d4f8695b591e5d7",
+    "ppt/slides/slide17.xml": "7ed94da5353b0bcd9d602d2d94f7c1cbb2c71a95c1e27ac3f00b71b675d5680a",
+    "ppt/slides/slide18.xml": "f711f651985fe0f3bc569d5c4936dd53f08bfdfdbf1375af6848f60d7cfae8f1",
+    "ppt/slides/slide19.xml": "d82c0aceb4b9adbba50b0705894b80b77fa6c3be92c725c26caa559356358357",
+    "ppt/slides/slide2.xml": "2413f7c94deaee600aa6c64d2ca787a1123658ff7670716787e16c5c26da3db1",
+    "ppt/slides/slide20.xml": "adea531360b7e71427df9b7e6d8947ea28bbffed1fa8b08b08e3d040e9a19157",
+    "ppt/slides/slide21.xml": "36820cf0265bfe6cb4637d14b184303d5b174e51fbc32f3d513501e0b55cbb64",
+    "ppt/slides/slide22.xml": "489c31d425b6ab6d48ddca2f7df1c1d559e30e859d0d87a5df11165e6f94366d",
+    "ppt/slides/slide23.xml": "096cf1d688e1751b91eb010e11cd76e558b1c759a158ad0957302d86f7bc597c",
+    "ppt/slides/slide24.xml": "3d07aafc9103c86c55133cadfb2876ef595d3328b30d9049745b579c54ea790c",
+    "ppt/slides/slide25.xml": "9195c97c8d776beea22455856dd88093c4442fbbe0b5b2d92f36615711710740",
+    "ppt/slides/slide26.xml": "709b73b4e7bf51b181e89b2945ce3112ccf73a1161ca850c4f73b5764a9bf2b0",
+    "ppt/slides/slide27.xml": "db289c8ebf405fc8d709a70343956d37c7c1f6b6b32f2a6f923543b13c8fd3ae",
+    "ppt/slides/slide3.xml": "0afc6493563122139b72519d23709a96c1f8798e71b08e3c0174b8f8b9fe6133",
+    "ppt/slides/slide4.xml": "eb62779d9f2e003f918894284b45a67a5354cc835cc7d00c1e7ceb109be8ac5f",
+    "ppt/slides/slide5.xml": "aa768b09989fc3138c5869ba00f0a6d08b8709a119b45a57bb83e3d77e7248d0",
+    "ppt/slides/slide6.xml": "b8d014096bbb111c8ccf7199488595c3569b6b9715e1c9657ace2e686d1fc806",
+    "ppt/slides/slide7.xml": "64054fe4bd8693eca64e3f6fce7fe9c7162c6702ac3b68542331191e8165ee97",
+    "ppt/slides/slide8.xml": "cee69bf2c53c79d7b542c1cb947563fd035e8fb9da1e812e9147f1bad2a44753",
+    "ppt/slides/slide9.xml": "a7aa81893b959bfc23605b4ede567d488520c2e4356868920d0b81279db34284",
+    "ppt/tableStyles.xml": "6e2878f4fec5a97f0ac4c7f3ea3db3d166ffee9563489ccea13c05cbe93a5d70",
+    "ppt/theme/theme1.xml": "9c24e5ab81b3591ecc5f6855062cac0f6649720d5447cb2130cbefce6068d931",
+    "ppt/theme/theme2.xml": "9c24e5ab81b3591ecc5f6855062cac0f6649720d5447cb2130cbefce6068d931",
+    "ppt/viewProps.xml": "c08881a0b447f0b6a3d587af95d5ba06f8001904ba161b2d8aa3872ed1216aed"
+   },
+   "dump": [
+    {
+     "slide": 1,
+     "background": "176B45",
+     "shapes": [
+      {
+       "kind": "PICTURE",
+       "name": "brand-logo",
+       "box": [
+        50.0,
+        118.0,
+        104.0,
+        26.0
+       ],
+       "image": "0bd49a825d703ed7"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 2",
+       "box": [
+        518.0,
+        122.0,
+        412.0,
+        35.64
+       ],
+       "text": [
+        [
+         {
+          "t": "单行标题封面",
+          "pt": 21.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 3",
+       "box": [
+        0.0,
+        221.0,
+        960.0,
+        1.0
+       ],
+       "fill": "83B49A"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        50.0,
+        362.0,
+        787.0,
+        109.6
+       ],
+       "text": [
+        [
+         {
+          "t": "回归夹具",
+          "pt": 82.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 5",
+       "box": [
+        790.0,
+        349.0,
+        98.0,
+        74.0
+       ],
+       "text": [
+        [
+         {
+          "t": "→",
+          "pt": 52.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "year",
+       "box": [
+        763.0,
+        426.0,
+        176.0,
+        49.2
+       ],
+       "text": [
+        [
+         {
+          "t": "2031",
+          "pt": 30.0,
+          "rgb": "FFFFFF",
+          "face": "Poppins Light"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 2,
+     "background": "FFFFFF",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        52.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "fixture.example",
+          "pt": 9.0,
+          "rgb": "176B45",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "PICTURE",
+       "name": "brand-logo",
+       "box": [
+        846.0,
+        24.0,
+        72.0,
+        18.0
+       ],
+       "image": "6f17bca27d84f212"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 3",
+       "box": [
+        52.0,
+        246.0,
+        190.8,
+        70.0
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 4",
+       "box": [
+        52.0,
+        316.0,
+        190.8,
+        73.0
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 5",
+       "box": [
+        57.4,
+        244.8,
+        848.0,
+        144.0
+       ],
+       "text": [
+        [
+         {
+          "t": "第一行",
+          "pt": 45.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "第二行",
+          "pt": 45.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 6",
+       "box": [
+        52.0,
+        424.0,
+        394.0,
+        82.0
+       ],
+       "text": [
+        [
+         {
+          "t": "导语",
+          "pt": 18.0,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 7",
+       "box": [
+        463.0,
+        103.0,
+        1.0,
+        370.0
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 8",
+       "box": [
+        518.0,
+        103.0,
+        400.0,
+        85.0
+       ],
+       "text": [
+        [
+         {
+          "t": "介绍",
+          "pt": 13.5,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 9",
+       "box": [
+        518.0,
+        203.0,
+        102.0,
+        24.0
+       ],
+       "fill": "none"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 10",
+       "box": [
+        527.0,
+        205.0,
+        102.0,
+        19.82
+       ],
+       "text": [
+        [
+         {
+          "t": "阅读重点",
+          "pt": 10.5,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 11",
+       "box": [
+        598.0,
+        205.0,
+        19.6,
+        18.0
+       ],
+       "text": [
+        [
+         {
+          "t": "→",
+          "pt": 10.5,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 12",
+       "box": [
+        518.0,
+        255.0,
+        400.0,
+        36.0
+       ],
+       "text": [
+        [
+         {
+          "t": "一",
+          "pt": 15.0,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 13",
+       "box": [
+        518.0,
+        291.0,
+        400.0,
+        1.0
+       ],
+       "fill": "B6C9B7"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 14",
+       "box": [
+        518.0,
+        300.5,
+        400.0,
+        36.0
+       ],
+       "text": [
+        [
+         {
+          "t": "二",
+          "pt": 15.0,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 15",
+       "box": [
+        518.0,
+        336.5,
+        400.0,
+        1.0
+       ],
+       "fill": "B6C9B7"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 16",
+       "box": [
+        518.0,
+        346.0,
+        400.0,
+        36.0
+       ],
+       "text": [
+        [
+         {
+          "t": "三",
+          "pt": 15.0,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 17",
+       "box": [
+        518.0,
+        382.0,
+        400.0,
+        1.0
+       ],
+       "fill": "B6C9B7"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 18",
+       "box": [
+        518.0,
+        391.5,
+        400.0,
+        36.0
+       ],
+       "text": [
+        [
+         {
+          "t": "四",
+          "pt": 15.0,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 19",
+       "box": [
+        518.0,
+        427.5,
+        400.0,
+        1.0
+       ],
+       "fill": "B6C9B7"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 20",
+       "box": [
+        518.0,
+        437.0,
+        400.0,
+        36.0
+       ],
+       "text": [
+        [
+         {
+          "t": "五",
+          "pt": 15.0,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 21",
+       "box": [
+        518.0,
+        473.0,
+        400.0,
+        1.0
+       ],
+       "fill": "B6C9B7"
+      }
+     ],
+     "notes": "备注文字\n来源：来源甲；来源乙"
+    },
+    {
+     "slide": 3,
+     "background": "FFFFFF",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        52.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "fixture.example",
+          "pt": 9.0,
+          "rgb": "176B45",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "PICTURE",
+       "name": "brand-logo",
+       "box": [
+        846.0,
+        24.0,
+        72.0,
+        18.0
+       ],
+       "image": "6f17bca27d84f212"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 3",
+       "box": [
+        52.0,
+        246.0,
+        190.8,
+        70.0
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        57.4,
+        244.8,
+        848.0,
+        74.0
+       ],
+       "text": [
+        [
+         {
+          "t": "无标签",
+          "pt": 45.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 5",
+       "box": [
+        52.0,
+        424.0,
+        394.0,
+        82.0
+       ],
+       "text": [
+        [
+         {
+          "t": "这是一段很长很长的导语文字，用来触发超出文本框高度的估算警告，继续写更多的字让它换很多行很多行很多行",
+          "pt": 18.0,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 6",
+       "box": [
+        463.0,
+        103.0,
+        1.0,
+        370.0
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 7",
+       "box": [
+        518.0,
+        255.0,
+        400.0,
+        36.0
+       ],
+       "text": [
+        [
+         {
+          "t": "只有一项",
+          "pt": 15.0,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 8",
+       "box": [
+        518.0,
+        291.0,
+        400.0,
+        1.0
+       ],
+       "fill": "B6C9B7"
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 4,
+     "background": "176B45",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        42.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "fixture.example",
+          "pt": 9.0,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "PICTURE",
+       "name": "brand-logo",
+       "box": [
+        838.0,
+        24.0,
+        72.0,
+        18.0
+       ],
+       "image": "0bd49a825d703ed7"
+      },
+      {
+       "kind": "PICTURE",
+       "name": "image",
+       "box": [
+        42.0,
+        79.0,
+        306.0,
+        416.0
+       ],
+       "image": "b4cb0e8f2e2d434c"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        388.0,
+        77.0,
+        165.0,
+        128.08
+       ],
+       "text": [
+        [
+         {
+          "t": "三图",
+          "pt": 49.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "陈述",
+          "pt": 49.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "PICTURE",
+       "name": "image2",
+       "box": [
+        558.0,
+        79.0,
+        120.0,
+        120.0
+       ],
+       "image": "10245544b190a75c"
+      },
+      {
+       "kind": "PICTURE",
+       "name": "image3",
+       "box": [
+        678.0,
+        79.0,
+        232.0,
+        120.0
+       ],
+       "image": "3d94decc36e2281d"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 7",
+       "box": [
+        388.0,
+        260.0,
+        23.8,
+        21.0
+       ],
+       "text": [
+        [
+         {
+          "t": "→",
+          "pt": 12.75,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 8",
+       "box": [
+        418.0,
+        258.0,
+        260.0,
+        28.86
+       ],
+       "text": [
+        [
+         {
+          "t": "甲",
+          "pt": 16.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 9",
+       "box": [
+        388.0,
+        300.0,
+        285.0,
+        82.0
+       ],
+       "text": [
+        [
+         {
+          "t": "说明甲",
+          "pt": 13.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 10",
+       "box": [
+        388.0,
+        405.0,
+        23.8,
+        21.0
+       ],
+       "text": [
+        [
+         {
+          "t": "→",
+          "pt": 12.75,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 11",
+       "box": [
+        418.0,
+        403.0,
+        260.0,
+        28.86
+       ],
+       "text": [
+        [
+         {
+          "t": "乙",
+          "pt": 16.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 12",
+       "box": [
+        388.0,
+        454.0,
+        285.0,
+        82.0
+       ],
+       "text": [
+        [
+         {
+          "t": "说明乙",
+          "pt": 13.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 13",
+       "box": [
+        684.0,
+        258.0,
+        1.0,
+        231.0
+       ],
+       "fill": "83B49A"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 14",
+       "box": [
+        715.0,
+        258.0,
+        218.0,
+        28.86
+       ],
+       "text": [
+        [
+         {
+          "t": "侧栏",
+          "pt": 16.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 15",
+       "box": [
+        715.0,
+        350.0,
+        218.0,
+        190.0
+       ],
+       "text": [
+        [
+         {
+          "t": "一",
+          "pt": 15.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "二",
+          "pt": 15.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 5,
+     "background": "176B45",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        42.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "fixture.example",
+          "pt": 9.0,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "PICTURE",
+       "name": "brand-logo",
+       "box": [
+        838.0,
+        24.0,
+        72.0,
+        18.0
+       ],
+       "image": "0bd49a825d703ed7"
+      },
+      {
+       "kind": "PICTURE",
+       "name": "image",
+       "box": [
+        42.0,
+        79.0,
+        306.0,
+        416.0
+       ],
+       "image": "0ff0a9c6e2380122"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        388.0,
+        77.0,
+        545.0,
+        42.46
+       ],
+       "text": [
+        [
+         {
+          "t": "只有主图的陈述页标题很长很长很长很长很长",
+          "pt": 30.69,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 5",
+       "box": [
+        388.0,
+        260.0,
+        23.8,
+        21.0
+       ],
+       "text": [
+        [
+         {
+          "t": "→",
+          "pt": 12.75,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 6",
+       "box": [
+        418.0,
+        258.0,
+        260.0,
+        28.86
+       ],
+       "text": [
+        [
+         {
+          "t": "唯一",
+          "pt": 16.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 7",
+       "box": [
+        388.0,
+        300.0,
+        285.0,
+        82.0
+       ],
+       "text": [
+        [
+         {
+          "t": "说明",
+          "pt": 13.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 6,
+     "background": "176B45",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        42.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "fixture.example",
+          "pt": 9.0,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "PICTURE",
+       "name": "brand-logo",
+       "box": [
+        838.0,
+        24.0,
+        72.0,
+        18.0
+       ],
+       "image": "0bd49a825d703ed7"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "image-panel",
+       "box": [
+        42.0,
+        79.0,
+        306.0,
+        416.0
+       ],
+       "fill": "56685A"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        388.0,
+        77.0,
+        165.0,
+        66.04
+       ],
+       "text": [
+        [
+         {
+          "t": "无图",
+          "pt": 49.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "PICTURE",
+       "name": "image2",
+       "box": [
+        558.0,
+        79.0,
+        120.0,
+        120.0
+       ],
+       "image": "42ba5f3a6892c752"
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 7,
+     "background": "FFFFFF",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        52.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "fixture.example",
+          "pt": 9.0,
+          "rgb": "176B45",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "PICTURE",
+       "name": "brand-logo",
+       "box": [
+        848.0,
+        24.0,
+        72.0,
+        18.0
+       ],
+       "image": "6f17bca27d84f212"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 3",
+       "box": [
+        52.0,
+        88.0,
+        881.0,
+        76.32
+       ],
+       "text": [
+        [
+         {
+          "t": "两栏",
+          "pt": 48.0,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        52.0,
+        185.0,
+        878.0,
+        32.25
+       ],
+       "text": [
+        [
+         {
+          "t": "副标题",
+          "pt": 18.75,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 5",
+       "box": [
+        52.0,
+        243.0,
+        868.0,
+        1.0
+       ],
+       "fill": "B6C9B7"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 6",
+       "box": [
+        52.0,
+        306.0,
+        27.46,
+        22.0
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 7",
+       "box": [
+        57.23,
+        307.39,
+        47.46,
+        23.21
+       ],
+       "text": [
+        [
+         {
+          "t": "左",
+          "pt": 12.75,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 8",
+       "box": [
+        52.0,
+        352.0,
+        406.0,
+        167.0
+       ],
+       "text": [
+        [
+         {
+          "t": "左栏",
+          "pt": 14.25,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 9",
+       "box": [
+        486.0,
+        306.0,
+        27.46,
+        22.0
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 10",
+       "box": [
+        491.23,
+        307.39,
+        47.46,
+        23.21
+       ],
+       "text": [
+        [
+         {
+          "t": "右",
+          "pt": 12.75,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 11",
+       "box": [
+        486.0,
+        352.0,
+        406.0,
+        167.0
+       ],
+       "text": [
+        [
+         {
+          "t": "右栏",
+          "pt": 14.25,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 8,
+     "background": "FFFFFF",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        52.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "fixture.example",
+          "pt": 9.0,
+          "rgb": "176B45",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "PICTURE",
+       "name": "brand-logo",
+       "box": [
+        848.0,
+        24.0,
+        72.0,
+        18.0
+       ],
+       "image": "6f17bca27d84f212"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 3",
+       "box": [
+        52.0,
+        88.0,
+        881.0,
+        48.84
+       ],
+       "text": [
+        [
+         {
+          "t": "这是一个非常非常非常非常非常非常非常非常非常非常非常长的分栏标题",
+          "pt": 29.76,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 4",
+       "box": [
+        52.0,
+        243.0,
+        868.0,
+        1.0
+       ],
+       "fill": "B6C9B7"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 5",
+       "box": [
+        52.0,
+        306.0,
+        27.46,
+        22.0
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 6",
+       "box": [
+        57.23,
+        307.39,
+        47.46,
+        23.21
+       ],
+       "text": [
+        [
+         {
+          "t": "一",
+          "pt": 12.75,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 7",
+       "box": [
+        52.0,
+        352.0,
+        197.0,
+        167.0
+       ],
+       "text": [
+        [
+         {
+          "t": "1",
+          "pt": 14.25,
+          "rgb": "176B45",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 8",
+       "box": [
+        277.0,
+        306.0,
+        27.46,
+        22.0
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 9",
+       "box": [
+        282.23,
+        307.39,
+        47.46,
+        23.21
+       ],
+       "text": [
+        [
+         {
+          "t": "二",
+          "pt": 12.75,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 10",
+       "box": [
+        277.0,
+        352.0,
+        197.0,
+        167.0
+       ],
+       "text": [
+        [
+         {
+          "t": "2",
+          "pt": 14.25,
+          "rgb": "176B45",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 11",
+       "box": [
+        502.0,
+        306.0,
+        27.46,
+        22.0
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 12",
+       "box": [
+        507.23,
+        307.39,
+        47.46,
+        23.21
+       ],
+       "text": [
+        [
+         {
+          "t": "三",
+          "pt": 12.75,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 13",
+       "box": [
+        502.0,
+        352.0,
+        197.0,
+        167.0
+       ],
+       "text": [
+        [
+         {
+          "t": "3",
+          "pt": 14.25,
+          "rgb": "176B45",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 14",
+       "box": [
+        727.0,
+        306.0,
+        27.46,
+        22.0
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 15",
+       "box": [
+        732.23,
+        307.39,
+        47.46,
+        23.21
+       ],
+       "text": [
+        [
+         {
+          "t": "四",
+          "pt": 12.75,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 16",
+       "box": [
+        727.0,
+        352.0,
+        197.0,
+        167.0
+       ],
+       "text": [
+        [
+         {
+          "t": "4",
+          "pt": 14.25,
+          "rgb": "176B45",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 9,
+     "background": "FFFFFF",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        52.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "fixture.example",
+          "pt": 9.0,
+          "rgb": "176B45",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "PICTURE",
+       "name": "brand-logo",
+       "box": [
+        882.0,
+        24.0,
+        72.0,
+        18.0
+       ],
+       "image": "6f17bca27d84f212"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 3",
+       "box": [
+        52.0,
+        74.0,
+        303.0,
+        126.88
+       ],
+       "text": [
+        [
+         {
+          "t": "四类",
+          "pt": 48.0,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "组成",
+          "pt": 48.0,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        52.0,
+        258.0,
+        309.0,
+        150.0
+       ],
+       "text": [
+        [
+         {
+          "t": "说明",
+          "pt": 17.25,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 5",
+       "box": [
+        382.0,
+        85.0,
+        1.0,
+        394.0
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "CHART",
+       "name": "chart",
+       "box": [
+        412.0,
+        112.0,
+        239.0,
+        250.0
+       ],
+       "chart": {
+        "type": "DOUGHNUT (-4120)",
+        "categories": [
+         "甲",
+         "乙",
+         "丙",
+         "丁"
+        ],
+        "series": [
+         [
+          "数值",
+          [
+           4.0,
+           3.0,
+           2.0,
+           1.0
+          ]
+         ]
+        ]
+       }
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 7",
+       "box": [
+        424.0,
+        372.0,
+        12.0,
+        12.0
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 8",
+       "box": [
+        448.0,
+        370.0,
+        209.0,
+        18.69
+       ],
+       "text": [
+        [
+         {
+          "t": "甲",
+          "pt": 9.75,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 9",
+       "box": [
+        424.0,
+        397.0,
+        233.0,
+        1.0
+       ],
+       "fill": "B6C9B7"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 10",
+       "box": [
+        424.0,
+        402.5,
+        12.0,
+        12.0
+       ],
+       "fill": "A4BCA7"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 11",
+       "box": [
+        448.0,
+        400.5,
+        209.0,
+        18.69
+       ],
+       "text": [
+        [
+         {
+          "t": "乙",
+          "pt": 9.75,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 12",
+       "box": [
+        424.0,
+        427.5,
+        233.0,
+        1.0
+       ],
+       "fill": "B6C9B7"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 13",
+       "box": [
+        424.0,
+        433.0,
+        12.0,
+        12.0
+       ],
+       "fill": "D0DDD0"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 14",
+       "box": [
+        448.0,
+        431.0,
+        209.0,
+        18.69
+       ],
+       "text": [
+        [
+         {
+          "t": "丙",
+          "pt": 9.75,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 15",
+       "box": [
+        424.0,
+        458.0,
+        233.0,
+        1.0
+       ],
+       "fill": "B6C9B7"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 16",
+       "box": [
+        424.0,
+        463.5,
+        12.0,
+        12.0
+       ],
+       "fill": "7FAE99"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 17",
+       "box": [
+        448.0,
+        461.5,
+        209.0,
+        18.69
+       ],
+       "text": [
+        [
+         {
+          "t": "丁",
+          "pt": 9.75,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 18",
+       "box": [
+        424.0,
+        488.5,
+        233.0,
+        1.0
+       ],
+       "fill": "B6C9B7"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 19",
+       "box": [
+        663.0,
+        76.0,
+        291.0,
+        419.0
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 20",
+       "box": [
+        694.0,
+        155.0,
+        239.0,
+        18.69
+       ],
+       "text": [
+        [
+         {
+          "t": "A",
+          "pt": 9.75,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 21",
+       "box": [
+        694.0,
+        188.0,
+        239.0,
+        54.85
+       ],
+       "text": [
+        [
+         {
+          "t": "1",
+          "pt": 33.75,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 22",
+       "box": [
+        694.0,
+        264.0,
+        230.0,
+        1.0
+       ],
+       "fill": "83B49A"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 23",
+       "box": [
+        694.0,
+        276.0,
+        239.0,
+        18.69
+       ],
+       "text": [
+        [
+         {
+          "t": "B",
+          "pt": 9.75,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 24",
+       "box": [
+        694.0,
+        309.0,
+        239.0,
+        54.85
+       ],
+       "text": [
+        [
+         {
+          "t": "2",
+          "pt": 33.75,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 25",
+       "box": [
+        694.0,
+        385.0,
+        230.0,
+        1.0
+       ],
+       "fill": "83B49A"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 26",
+       "box": [
+        694.0,
+        397.0,
+        239.0,
+        18.69
+       ],
+       "text": [
+        [
+         {
+          "t": "C",
+          "pt": 9.75,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 27",
+       "box": [
+        694.0,
+        430.0,
+        239.0,
+        54.85
+       ],
+       "text": [
+        [
+         {
+          "t": "3",
+          "pt": 33.75,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 10,
+     "background": "FFFFFF",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        52.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "fixture.example",
+          "pt": 9.0,
+          "rgb": "176B45",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "PICTURE",
+       "name": "brand-logo",
+       "box": [
+        882.0,
+        24.0,
+        72.0,
+        18.0
+       ],
+       "image": "6f17bca27d84f212"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 3",
+       "box": [
+        52.0,
+        74.0,
+        303.0,
+        65.44
+       ],
+       "text": [
+        [
+         {
+          "t": "两类",
+          "pt": 48.0,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        52.0,
+        442.0,
+        303.0,
+        79.0
+       ],
+       "text": [
+        [
+         {
+          "t": "注",
+          "pt": 12.0,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 5",
+       "box": [
+        382.0,
+        85.0,
+        1.0,
+        394.0
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 6",
+       "box": [
+        424.0,
+        75.0,
+        233.0,
+        23.21
+       ],
+       "text": [
+        [
+         {
+          "t": "占比",
+          "pt": 12.75,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "CHART",
+       "name": "chart",
+       "box": [
+        412.0,
+        112.0,
+        239.0,
+        250.0
+       ],
+       "chart": {
+        "type": "DOUGHNUT (-4120)",
+        "categories": [
+         "甲",
+         "乙"
+        ],
+        "series": [
+         [
+          "数值",
+          [
+           1.0,
+           3.0
+          ]
+         ]
+        ]
+       }
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 8",
+       "box": [
+        424.0,
+        372.0,
+        12.0,
+        12.0
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 9",
+       "box": [
+        448.0,
+        370.0,
+        209.0,
+        18.69
+       ],
+       "text": [
+        [
+         {
+          "t": "甲 25%",
+          "pt": 9.75,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 10",
+       "box": [
+        424.0,
+        397.0,
+        233.0,
+        1.0
+       ],
+       "fill": "B6C9B7"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 11",
+       "box": [
+        424.0,
+        402.5,
+        12.0,
+        12.0
+       ],
+       "fill": "A4BCA7"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 12",
+       "box": [
+        448.0,
+        400.5,
+        209.0,
+        18.69
+       ],
+       "text": [
+        [
+         {
+          "t": "乙 75%",
+          "pt": 9.75,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 13",
+       "box": [
+        424.0,
+        427.5,
+        233.0,
+        1.0
+       ],
+       "fill": "B6C9B7"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 14",
+       "box": [
+        663.0,
+        76.0,
+        291.0,
+        419.0
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 15",
+       "box": [
+        694.0,
+        97.0,
+        242.0,
+        20.95
+       ],
+       "text": [
+        [
+         {
+          "t": "指标",
+          "pt": 11.25,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 16",
+       "box": [
+        694.0,
+        155.0,
+        239.0,
+        18.69
+       ],
+       "text": [
+        [
+         {
+          "t": "唯一",
+          "pt": 9.75,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 17",
+       "box": [
+        694.0,
+        188.0,
+        239.0,
+        39.69
+       ],
+       "text": [
+        [
+         {
+          "t": "123456789012",
+          "pt": 23.68,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 18",
+       "box": [
+        694.0,
+        264.0,
+        230.0,
+        1.0
+       ],
+       "fill": "83B49A"
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 11,
+     "background": "176B45",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        55.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "fixture.example",
+          "pt": 9.0,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "PICTURE",
+       "name": "brand-logo",
+       "box": [
+        846.0,
+        24.0,
+        72.0,
+        18.0
+       ],
+       "image": "0bd49a825d703ed7"
+      },
+      {
+       "kind": "PICTURE",
+       "name": "image",
+       "box": [
+        0.0,
+        64.0,
+        960.0,
+        476.0
+       ],
+       "image": "5d2e9e2a6ca758c6"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "image-mask",
+       "box": [
+        0.0,
+        64.0,
+        960.0,
+        476.0
+       ],
+       "fill": "000000"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 5",
+       "box": [
+        55.0,
+        97.0,
+        848.0,
+        73.3
+       ],
+       "text": [
+        [
+         {
+          "t": "照片",
+          "pt": 49.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 6",
+       "box": [
+        55.0,
+        179.0,
+        143.0,
+        78.0
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 7",
+       "box": [
+        66.5,
+        184.0,
+        700.0,
+        67.0
+       ],
+       "text": [
+        [
+         {
+          "t": "陈述",
+          "pt": 45.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 8",
+       "box": [
+        700.0,
+        178.0,
+        230.0,
+        150.0
+       ],
+       "text": [
+        [
+         {
+          "t": "短说明",
+          "pt": 14.25,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 9",
+       "box": [
+        875.0,
+        86.0,
+        64.4,
+        50.0
+       ],
+       "text": [
+        [
+         {
+          "t": "→",
+          "pt": 34.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 12,
+     "background": "176B45",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        55.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "fixture.example",
+          "pt": 9.0,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "PICTURE",
+       "name": "brand-logo",
+       "box": [
+        846.0,
+        24.0,
+        72.0,
+        18.0
+       ],
+       "image": "0bd49a825d703ed7"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "image-panel",
+       "box": [
+        0.0,
+        64.0,
+        960.0,
+        476.0
+       ],
+       "fill": "56685A"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        55.0,
+        97.0,
+        848.0,
+        73.3
+       ],
+       "text": [
+        [
+         {
+          "t": "缺图单行",
+          "pt": 49.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 5",
+       "box": [
+        875.0,
+        86.0,
+        64.4,
+        50.0
+       ],
+       "text": [
+        [
+         {
+          "t": "→",
+          "pt": 34.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 13,
+     "background": "FFFFFF",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        48.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "fixture.example",
+          "pt": 9.0,
+          "rgb": "176B45",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "PICTURE",
+       "name": "brand-logo",
+       "box": [
+        852.0,
+        24.0,
+        72.0,
+        18.0
+       ],
+       "image": "6f17bca27d84f212"
+      },
+      {
+       "kind": "PICTURE",
+       "name": "image",
+       "box": [
+        182.0,
+        124.0,
+        221.0,
+        222.0
+       ],
+       "image": "5d54ebb7f11dbc63"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        48.0,
+        81.0,
+        351.0,
+        29.2
+       ],
+       "text": [
+        [
+         {
+          "t": "导语",
+          "pt": 18.0,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 5",
+       "box": [
+        48.0,
+        106.0,
+        62.77,
+        33.0
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 6",
+       "box": [
+        55.38,
+        108.94,
+        82.77,
+        31.12
+       ],
+       "text": [
+        [
+         {
+          "t": "标签",
+          "pt": 18.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 7",
+       "box": [
+        48.0,
+        355.0,
+        394.0,
+        142.6
+       ],
+       "text": [
+        [
+         {
+          "t": "编号",
+          "pt": 49.5,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "清单",
+          "pt": 49.5,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 8",
+       "box": [
+        360.0,
+        453.0,
+        64.4,
+        50.0
+       ],
+       "text": [
+        [
+         {
+          "t": "→",
+          "pt": 34.5,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 9",
+       "box": [
+        482.0,
+        82.0,
+        106.0,
+        62.19
+       ],
+       "text": [
+        [
+         {
+          "t": "01",
+          "pt": 38.62,
+          "rgb": "176B45",
+          "face": "Poppins Light"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 10",
+       "box": [
+        600.0,
+        88.0,
+        324.0,
+        70.0
+       ],
+       "text": [
+        [
+         {
+          "t": "a",
+          "pt": 15.0,
+          "rgb": "176B45",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 11",
+       "box": [
+        482.0,
+        164.0,
+        442.0,
+        1.0
+       ],
+       "fill": "B6C9B7"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 12",
+       "box": [
+        482.0,
+        164.0,
+        106.0,
+        62.19
+       ],
+       "text": [
+        [
+         {
+          "t": "02",
+          "pt": 38.62,
+          "rgb": "176B45",
+          "face": "Poppins Light"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 13",
+       "box": [
+        600.0,
+        170.0,
+        324.0,
+        70.0
+       ],
+       "text": [
+        [
+         {
+          "t": "b",
+          "pt": 15.0,
+          "rgb": "176B45",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 14",
+       "box": [
+        482.0,
+        246.0,
+        442.0,
+        1.0
+       ],
+       "fill": "B6C9B7"
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 14,
+     "background": "FFFFFF",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        48.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "fixture.example",
+          "pt": 9.0,
+          "rgb": "176B45",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "PICTURE",
+       "name": "brand-logo",
+       "box": [
+        852.0,
+        24.0,
+        72.0,
+        18.0
+       ],
+       "image": "6f17bca27d84f212"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 3",
+       "box": [
+        48.0,
+        355.0,
+        394.0,
+        73.3
+       ],
+       "text": [
+        [
+         {
+          "t": "无图编号",
+          "pt": 49.5,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        360.0,
+        453.0,
+        64.4,
+        50.0
+       ],
+       "text": [
+        [
+         {
+          "t": "→",
+          "pt": 34.5,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 5",
+       "box": [
+        482.0,
+        82.0,
+        106.0,
+        62.19
+       ],
+       "text": [
+        [
+         {
+          "t": "01",
+          "pt": 38.62,
+          "rgb": "176B45",
+          "face": "Poppins Light"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 6",
+       "box": [
+        600.0,
+        88.0,
+        324.0,
+        70.0
+       ],
+       "text": [
+        [
+         {
+          "t": "一",
+          "pt": 15.0,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "两行",
+          "pt": 15.0,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 7",
+       "box": [
+        482.0,
+        164.0,
+        442.0,
+        1.0
+       ],
+       "fill": "B6C9B7"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 8",
+       "box": [
+        482.0,
+        164.0,
+        106.0,
+        62.19
+       ],
+       "text": [
+        [
+         {
+          "t": "02",
+          "pt": 38.62,
+          "rgb": "176B45",
+          "face": "Poppins Light"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 9",
+       "box": [
+        600.0,
+        170.0,
+        324.0,
+        70.0
+       ],
+       "text": [
+        [
+         {
+          "t": "二",
+          "pt": 15.0,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 10",
+       "box": [
+        482.0,
+        246.0,
+        442.0,
+        1.0
+       ],
+       "fill": "B6C9B7"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 11",
+       "box": [
+        482.0,
+        246.0,
+        106.0,
+        62.19
+       ],
+       "text": [
+        [
+         {
+          "t": "03",
+          "pt": 38.62,
+          "rgb": "176B45",
+          "face": "Poppins Light"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 12",
+       "box": [
+        600.0,
+        252.0,
+        324.0,
+        70.0
+       ],
+       "text": [
+        [
+         {
+          "t": "三",
+          "pt": 15.0,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 13",
+       "box": [
+        482.0,
+        328.0,
+        442.0,
+        1.0
+       ],
+       "fill": "B6C9B7"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 14",
+       "box": [
+        482.0,
+        328.0,
+        106.0,
+        62.19
+       ],
+       "text": [
+        [
+         {
+          "t": "04",
+          "pt": 38.62,
+          "rgb": "176B45",
+          "face": "Poppins Light"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 15",
+       "box": [
+        600.0,
+        334.0,
+        324.0,
+        70.0
+       ],
+       "text": [
+        [
+         {
+          "t": "四",
+          "pt": 15.0,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 16",
+       "box": [
+        482.0,
+        410.0,
+        442.0,
+        1.0
+       ],
+       "fill": "B6C9B7"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 17",
+       "box": [
+        482.0,
+        410.0,
+        106.0,
+        62.19
+       ],
+       "text": [
+        [
+         {
+          "t": "05",
+          "pt": 38.62,
+          "rgb": "176B45",
+          "face": "Poppins Light"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 18",
+       "box": [
+        600.0,
+        416.0,
+        324.0,
+        70.0
+       ],
+       "text": [
+        [
+         {
+          "t": "五",
+          "pt": 15.0,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 19",
+       "box": [
+        482.0,
+        492.0,
+        442.0,
+        1.0
+       ],
+       "fill": "B6C9B7"
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 15,
+     "background": "56685A",
+     "shapes": [
+      {
+       "kind": "PICTURE",
+       "name": "image",
+       "box": [
+        0.0,
+        0.0,
+        960.0,
+        540.0
+       ],
+       "image": "4ef57a5507948ec9"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "image-mask",
+       "box": [
+        0.0,
+        0.0,
+        960.0,
+        540.0
+       ],
+       "fill": "000000"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        52.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "fixture.example",
+          "pt": 9.0,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "PICTURE",
+       "name": "brand-logo",
+       "box": [
+        812.0,
+        24.0,
+        72.0,
+        18.0
+       ],
+       "image": "0bd49a825d703ed7"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 5",
+       "box": [
+        52.0,
+        100.0,
+        130.8,
+        70.0
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 6",
+       "box": [
+        52.0,
+        170.0,
+        130.8,
+        73.0
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 7",
+       "box": [
+        57.4,
+        98.8,
+        848.0,
+        144.0
+       ],
+       "text": [
+        [
+         {
+          "t": "有图",
+          "pt": 45.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "指标",
+          "pt": 45.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 8",
+       "box": [
+        52.0,
+        285.0,
+        500.0,
+        88.0
+       ],
+       "text": [
+        [
+         {
+          "t": "说明",
+          "pt": 13.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 9",
+       "box": [
+        52.0,
+        409.0,
+        260.0,
+        60.5
+       ],
+       "text": [
+        [
+         {
+          "t": "1",
+          "pt": 37.5,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 10",
+       "box": [
+        52.0,
+        497.0,
+        257.0,
+        19.82
+       ],
+       "text": [
+        [
+         {
+          "t": "x",
+          "pt": 10.5,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 11",
+       "box": [
+        318.0,
+        409.0,
+        260.0,
+        60.5
+       ],
+       "text": [
+        [
+         {
+          "t": "2",
+          "pt": 37.5,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 12",
+       "box": [
+        318.0,
+        497.0,
+        257.0,
+        19.82
+       ],
+       "text": [
+        [
+         {
+          "t": "y",
+          "pt": 10.5,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 13",
+       "box": [
+        584.0,
+        76.0,
+        300.0,
+        464.0
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 14",
+       "box": [
+        636.0,
+        118.0,
+        240.0,
+        58.24
+       ],
+       "text": [
+        [
+         {
+          "t": "3",
+          "pt": 36.0,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 15",
+       "box": [
+        636.0,
+        194.0,
+        240.0,
+        23.21
+       ],
+       "text": [
+        [
+         {
+          "t": "z",
+          "pt": 12.75,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 16,
+     "background": "56685A",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        52.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "fixture.example",
+          "pt": 9.0,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "PICTURE",
+       "name": "brand-logo",
+       "box": [
+        812.0,
+        24.0,
+        72.0,
+        18.0
+       ],
+       "image": "0bd49a825d703ed7"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 3",
+       "box": [
+        52.0,
+        100.0,
+        250.8,
+        70.0
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        57.4,
+        98.8,
+        848.0,
+        74.0
+       ],
+       "text": [
+        [
+         {
+          "t": "无图指标",
+          "pt": 45.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 5",
+       "box": [
+        52.0,
+        409.0,
+        260.0,
+        45.42
+       ],
+       "text": [
+        [
+         {
+          "t": "99999999999",
+          "pt": 27.49,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 6",
+       "box": [
+        52.0,
+        497.0,
+        257.0,
+        19.82
+       ],
+       "text": [
+        [
+         {
+          "t": "长数字",
+          "pt": 10.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 7",
+       "box": [
+        584.0,
+        76.0,
+        300.0,
+        464.0
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 8",
+       "box": [
+        636.0,
+        118.0,
+        240.0,
+        58.24
+       ],
+       "text": [
+        [
+         {
+          "t": "1",
+          "pt": 36.0,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 9",
+       "box": [
+        636.0,
+        194.0,
+        240.0,
+        23.21
+       ],
+       "text": [
+        [
+         {
+          "t": "a",
+          "pt": 12.75,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 10",
+       "box": [
+        636.0,
+        261.0,
+        240.0,
+        58.24
+       ],
+       "text": [
+        [
+         {
+          "t": "2",
+          "pt": 36.0,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 11",
+       "box": [
+        636.0,
+        337.0,
+        240.0,
+        23.21
+       ],
+       "text": [
+        [
+         {
+          "t": "b",
+          "pt": 12.75,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 12",
+       "box": [
+        636.0,
+        403.0,
+        240.0,
+        58.24
+       ],
+       "text": [
+        [
+         {
+          "t": "3",
+          "pt": 36.0,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 13",
+       "box": [
+        636.0,
+        479.0,
+        240.0,
+        23.21
+       ],
+       "text": [
+        [
+         {
+          "t": "c",
+          "pt": 12.75,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 17,
+     "background": "FFFFFF",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        48.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "fixture.example",
+          "pt": 9.0,
+          "rgb": "176B45",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "PICTURE",
+       "name": "brand-logo",
+       "box": [
+        846.0,
+        24.0,
+        72.0,
+        18.0
+       ],
+       "image": "6f17bca27d84f212"
+      },
+      {
+       "kind": "CHART",
+       "name": "chart",
+       "box": [
+        48.0,
+        105.0,
+        440.0,
+        380.0
+       ],
+       "chart": {
+        "type": "LINE_MARKERS (65)",
+        "categories": [
+         "Q1",
+         "Q2",
+         "Q3"
+        ],
+        "series": [
+         [
+          "甲",
+          [
+           1.5,
+           2.5,
+           2.0
+          ]
+         ],
+         [
+          "乙",
+          [
+           1.0,
+           2.0,
+           3.25
+          ]
+         ]
+        ]
+       }
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        533.0,
+        71.0,
+        406.0,
+        63.52
+       ],
+       "text": [
+        [
+         {
+          "t": "折线",
+          "pt": 46.5,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 18,
+     "background": "FFFFFF",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        48.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "fixture.example",
+          "pt": 9.0,
+          "rgb": "176B45",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "PICTURE",
+       "name": "brand-logo",
+       "box": [
+        846.0,
+        24.0,
+        72.0,
+        18.0
+       ],
+       "image": "6f17bca27d84f212"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 3",
+       "box": [
+        60.0,
+        73.0,
+        400.0,
+        23.8
+       ],
+       "text": [
+        [
+         {
+          "t": "单位",
+          "pt": 13.5,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "CHART",
+       "name": "chart",
+       "box": [
+        48.0,
+        105.0,
+        440.0,
+        380.0
+       ],
+       "chart": {
+        "type": "BAR_CLUSTERED (57)",
+        "categories": [
+         "a",
+         "b"
+        ],
+        "series": [
+         [
+          "1",
+          [
+           1.0,
+           2.0
+          ]
+         ],
+         [
+          "2",
+          [
+           2.0,
+           3.0
+          ]
+         ],
+         [
+          "3",
+          [
+           3.0,
+           4.0
+          ]
+         ],
+         [
+          "4",
+          [
+           4.0,
+           5.0
+          ]
+         ]
+        ]
+       }
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 5",
+       "box": [
+        533.0,
+        71.0,
+        406.0,
+        123.04
+       ],
+       "text": [
+        [
+         {
+          "t": "条形",
+          "pt": 46.5,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "多系列",
+          "pt": 46.5,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 6",
+       "box": [
+        533.0,
+        264.0,
+        400.0,
+        110.0
+       ],
+       "text": [
+        [
+         {
+          "t": "说明",
+          "pt": 18.0,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 7",
+       "box": [
+        533.0,
+        410.0,
+        260.0,
+        22.08
+       ],
+       "text": [
+        [
+         {
+          "t": "标签",
+          "pt": 12.0,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 8",
+       "box": [
+        781.0,
+        409.0,
+        23.8,
+        21.0
+       ],
+       "text": [
+        [
+         {
+          "t": "→",
+          "pt": 12.75,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 9",
+       "box": [
+        533.0,
+        458.0,
+        403.0,
+        70.0
+       ],
+       "text": [
+        [
+         {
+          "t": "注",
+          "pt": 12.75,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 19,
+     "background": "FFFFFF",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        48.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "fixture.example",
+          "pt": 9.0,
+          "rgb": "176B45",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "PICTURE",
+       "name": "brand-logo",
+       "box": [
+        846.0,
+        24.0,
+        72.0,
+        18.0
+       ],
+       "image": "6f17bca27d84f212"
+      },
+      {
+       "kind": "CHART",
+       "name": "chart",
+       "box": [
+        48.0,
+        105.0,
+        440.0,
+        380.0
+       ],
+       "chart": {
+        "type": "COLUMN_CLUSTERED (51)",
+        "categories": [
+         "x",
+         "y"
+        ],
+        "series": [
+         [
+          "唯一",
+          [
+           0.0,
+           0.0
+          ]
+         ]
+        ]
+       }
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        533.0,
+        71.0,
+        406.0,
+        63.52
+       ],
+       "text": [
+        [
+         {
+          "t": "单值",
+          "pt": 46.5,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 20,
+     "background": "FFFFFF",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        52.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "fixture.example",
+          "pt": 9.0,
+          "rgb": "176B45",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "PICTURE",
+       "name": "brand-logo",
+       "box": [
+        854.0,
+        24.0,
+        72.0,
+        18.0
+       ],
+       "image": "6f17bca27d84f212"
+      },
+      {
+       "kind": "PICTURE",
+       "name": "image",
+       "box": [
+        327.0,
+        88.0,
+        303.0,
+        385.0
+       ],
+       "image": "5f62f33465e59969"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 4",
+       "box": [
+        52.0,
+        137.0,
+        135.16,
+        72.33
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 5",
+       "box": [
+        52.0,
+        209.33,
+        135.16,
+        75.43
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 6",
+       "box": [
+        57.58,
+        135.76,
+        848.0,
+        148.67
+       ],
+       "text": [
+        [
+         {
+          "t": "有图",
+          "pt": 46.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "风险",
+          "pt": 46.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 7",
+       "box": [
+        52.0,
+        325.0,
+        270.0,
+        82.0
+       ],
+       "text": [
+        [
+         {
+          "t": "导语",
+          "pt": 18.0,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 8",
+       "box": [
+        52.0,
+        422.0,
+        98.0,
+        74.0
+       ],
+       "text": [
+        [
+         {
+          "t": "→",
+          "pt": 52.5,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 9",
+       "box": [
+        669.0,
+        87.0,
+        263.0,
+        110.0
+       ],
+       "text": [
+        [
+         {
+          "t": "介绍",
+          "pt": 13.5,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 10",
+       "box": [
+        669.0,
+        221.0,
+        41.85,
+        21.0
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 11",
+       "box": [
+        673.92,
+        222.46,
+        61.85,
+        22.08
+       ],
+       "text": [
+        [
+         {
+          "t": "标签",
+          "pt": 12.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 12",
+       "box": [
+        669.0,
+        270.0,
+        263.0,
+        240.0
+       ],
+       "text": [
+        [
+         {
+          "t": "一",
+          "pt": 14.25,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "二",
+          "pt": 14.25,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 21,
+     "background": "FFFFFF",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        52.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "fixture.example",
+          "pt": 9.0,
+          "rgb": "176B45",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "PICTURE",
+       "name": "brand-logo",
+       "box": [
+        854.0,
+        24.0,
+        72.0,
+        18.0
+       ],
+       "image": "6f17bca27d84f212"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 3",
+       "box": [
+        52.0,
+        137.0,
+        259.16,
+        72.33
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        57.58,
+        135.76,
+        848.0,
+        76.33
+       ],
+       "text": [
+        [
+         {
+          "t": "无图风险",
+          "pt": 46.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 5",
+       "box": [
+        52.0,
+        422.0,
+        98.0,
+        74.0
+       ],
+       "text": [
+        [
+         {
+          "t": "→",
+          "pt": 52.5,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 6",
+       "box": [
+        420.0,
+        270.0,
+        500.0,
+        240.0
+       ],
+       "text": [
+        [
+         {
+          "t": "一",
+          "pt": 14.25,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 22,
+     "background": "FFFFFF",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        52.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "fixture.example",
+          "pt": 9.0,
+          "rgb": "176B45",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "PICTURE",
+       "name": "brand-logo",
+       "box": [
+        836.0,
+        24.0,
+        72.0,
+        18.0
+       ],
+       "image": "6f17bca27d84f212"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 3",
+       "box": [
+        52.0,
+        70.0,
+        856.0,
+        58.0
+       ],
+       "text": [
+        [
+         {
+          "t": "八行表",
+          "pt": 40.5,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TABLE",
+       "name": "table",
+       "box": [
+        52.0,
+        140.0,
+        856.0,
+        300.0
+       ],
+       "table": [
+        [
+         "名",
+         "a",
+         "b"
+        ],
+        [
+         "1",
+         "x",
+         ""
+        ],
+        [
+         "2",
+         "x",
+         "y"
+        ],
+        [
+         "3",
+         "x",
+         "y"
+        ],
+        [
+         "4",
+         "x",
+         "y"
+        ],
+        [
+         "5",
+         "x",
+         "y"
+        ],
+        [
+         "6",
+         "x",
+         "y"
+        ],
+        [
+         "7",
+         "x",
+         "y"
+        ],
+        [
+         "8",
+         "x",
+         "y"
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 5",
+       "box": [
+        52.0,
+        470.0,
+        856.0,
+        19.82
+       ],
+       "text": [
+        [
+         {
+          "t": "注",
+          "pt": 10.5,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 23,
+     "background": "FFFFFF",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        52.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "fixture.example",
+          "pt": 9.0,
+          "rgb": "176B45",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "PICTURE",
+       "name": "brand-logo",
+       "box": [
+        836.0,
+        24.0,
+        72.0,
+        18.0
+       ],
+       "image": "6f17bca27d84f212"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 3",
+       "box": [
+        52.0,
+        70.0,
+        856.0,
+        58.0
+       ],
+       "text": [
+        [
+         {
+          "t": "带副标题",
+          "pt": 40.5,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        52.0,
+        140.0,
+        856.0,
+        26.6
+       ],
+       "text": [
+        [
+         {
+          "t": "副",
+          "pt": 15.0,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TABLE",
+       "name": "table",
+       "box": [
+        52.0,
+        182.0,
+        856.0,
+        92.0
+       ],
+       "table": [
+        [
+         "a",
+         "b"
+        ],
+        [
+         "1",
+         "2"
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 24,
+     "background": "176B45",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        55.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "fixture.example",
+          "pt": 9.0,
+          "rgb": "FFFFFF",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "PICTURE",
+       "name": "brand-logo",
+       "box": [
+        846.0,
+        24.0,
+        72.0,
+        18.0
+       ],
+       "image": "0bd49a825d703ed7"
+      },
+      {
+       "kind": "PICTURE",
+       "name": "image",
+       "box": [
+        0.0,
+        64.0,
+        960.0,
+        476.0
+       ],
+       "image": "b3f9bdb45814d26c"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "image-mask",
+       "box": [
+        0.0,
+        64.0,
+        960.0,
+        476.0
+       ],
+       "fill": "000000"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 5",
+       "box": [
+        55.0,
+        97.0,
+        848.0,
+        73.3
+       ],
+       "text": [
+        [
+         {
+          "t": "最后",
+          "pt": 49.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 6",
+       "box": [
+        55.0,
+        179.0,
+        203.0,
+        78.0
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 7",
+       "box": [
+        66.5,
+        184.0,
+        700.0,
+        67.0
+       ],
+       "text": [
+        [
+         {
+          "t": "一张图",
+          "pt": 45.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 8",
+       "box": [
+        875.0,
+        86.0,
+        64.4,
+        50.0
+       ],
+       "text": [
+        [
+         {
+          "t": "→",
+          "pt": 34.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 25,
+     "background": "176B45",
+     "shapes": [
+      {
+       "kind": "PICTURE",
+       "name": "brand-logo",
+       "box": [
+        50.0,
+        118.0,
+        104.0,
+        26.0
+       ],
+       "image": "0bd49a825d703ed7"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 2",
+       "box": [
+        518.0,
+        122.0,
+        412.0,
+        35.64
+       ],
+       "text": [
+        [
+         {
+          "t": "结束副标题",
+          "pt": 21.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 3",
+       "box": [
+        0.0,
+        221.0,
+        960.0,
+        1.0
+       ],
+       "fill": "83B49A"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        50.0,
+        362.0,
+        787.0,
+        109.6
+       ],
+       "text": [
+        [
+         {
+          "t": "再见",
+          "pt": 82.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 5",
+       "box": [
+        790.0,
+        349.0,
+        98.0,
+        74.0
+       ],
+       "text": [
+        [
+         {
+          "t": "→",
+          "pt": 52.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "year",
+       "box": [
+        763.0,
+        426.0,
+        176.0,
+        49.2
+       ],
+       "text": [
+        [
+         {
+          "t": "MMXXVI",
+          "pt": 30.0,
+          "rgb": "FFFFFF",
+          "face": "Poppins Light"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 26,
+     "background": "176B45",
+     "shapes": [
+      {
+       "kind": "PICTURE",
+       "name": "brand-logo",
+       "box": [
+        50.0,
+        118.0,
+        104.0,
+        26.0
+       ],
+       "image": "0bd49a825d703ed7"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 2",
+       "box": [
+        518.0,
+        122.0,
+        412.0,
+        35.64
+       ],
+       "text": [
+        [
+         {
+          "t": "覆盖 example.json 没走到的分支",
+          "pt": 21.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 3",
+       "box": [
+        0.0,
+        221.0,
+        960.0,
+        1.0
+       ],
+       "fill": "83B49A"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        50.0,
+        249.0,
+        787.0,
+        172.0
+       ],
+       "text": [
+        [
+         {
+          "t": "不是最后页的封面",
+          "pt": 65.62,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ],
+        [
+         {
+          "t": "两行",
+          "pt": 65.62,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 5",
+       "box": [
+        790.0,
+        349.0,
+        98.0,
+        74.0
+       ],
+       "text": [
+        [
+         {
+          "t": "→",
+          "pt": 52.5,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "year",
+       "box": [
+        763.0,
+        426.0,
+        176.0,
+        49.2
+       ],
+       "text": [
+        [
+         {
+          "t": "2026",
+          "pt": 30.0,
+          "rgb": "FFFFFF",
+          "face": "Poppins Light"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    },
+    {
+     "slide": 27,
+     "background": "FFFFFF",
+     "shapes": [
+      {
+       "kind": "TEXT_BOX",
+       "name": "header-website",
+       "box": [
+        52.0,
+        24.0,
+        300.0,
+        17.56
+       ],
+       "text": [
+        [
+         {
+          "t": "fixture.example",
+          "pt": 9.0,
+          "rgb": "176B45",
+          "face": "Poppins"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "PICTURE",
+       "name": "brand-logo",
+       "box": [
+        846.0,
+        24.0,
+        72.0,
+        18.0
+       ],
+       "image": "6f17bca27d84f212"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 3",
+       "box": [
+        52.0,
+        246.0,
+        486.0,
+        70.0
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 4",
+       "box": [
+        57.4,
+        244.8,
+        848.0,
+        74.0
+       ],
+       "text": [
+        [
+         {
+          "t": "结尾不是 closing",
+          "pt": 45.0,
+          "rgb": "FFFFFF",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 5",
+       "box": [
+        463.0,
+        103.0,
+        1.0,
+        370.0
+       ],
+       "fill": "176B45"
+      },
+      {
+       "kind": "AUTO_SHAPE",
+       "name": "Rectangle 6",
+       "box": [
+        518.0,
+        203.0,
+        102.0,
+        24.0
+       ],
+       "fill": "none"
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 7",
+       "box": [
+        527.0,
+        205.0,
+        102.0,
+        19.82
+       ],
+       "text": [
+        [
+         {
+          "t": "阅读重点",
+          "pt": 10.5,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      },
+      {
+       "kind": "TEXT_BOX",
+       "name": "TextBox 8",
+       "box": [
+        598.0,
+        205.0,
+        19.6,
+        18.0
+       ],
+       "text": [
+        [
+         {
+          "t": "→",
+          "pt": 10.5,
+          "rgb": "176B45",
+          "face": "Noto Sans SC"
+         }
+        ]
+       ]
+      }
+     ],
+     "notes": ""
+    }
+   ]
+  }
+ }
+}
