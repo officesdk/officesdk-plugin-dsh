@@ -1,0 +1,13 @@
+# The package.json "files" list decides what ships; this is a second line of defence (spec 261111-npm-publish-prep §2).
+*.map
+src/
+test/
+node_modules/
+.env
+.env.*
+.npmrc
+*.pem
+*.key
+*.p12
+*.tgz
+.DS_Store

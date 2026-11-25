@@ -1,0 +1,24 @@
+{
+  "v": 1,
+  "profile": "public",
+  "profiles": {
+    "public": {
+      "kit": [
+        "mirror",
+        "release"
+      ],
+      "editor": [
+        "mirror",
+        "npm"
+      ],
+      "skills": {
+        "sources": [
+          "bundled"
+        ],
+        "catalog": [
+          "bundled"
+        ]
+      }
+    }
+  }
+}

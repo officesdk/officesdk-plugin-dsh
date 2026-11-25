@@ -1,0 +1,11 @@
+{
+  "name": "officesdk-build-tools",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "esbuild": "0.25.10",
+    "javascript-obfuscator": "4.1.1",
+    "playwright": "1.58.0",
+    "terser": "5.44.0"
+  }
+}

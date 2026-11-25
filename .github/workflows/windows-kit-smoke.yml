@@ -1,0 +1,72 @@
+# Windows engine smoke of the pinned office-kit release (components/office-kit.json), on a GitHub-hosted
+# windows-latest runner (x64). It needs no DeepSeek Harness: through the plugin's own downloader it takes the win32-x64
+# Kit from office-kit's GitHub release and the editor resources from npm, checks every hash against kit-manifest.json
+# and the release's SHA256SUMS, runs the Kit's self-test, opens a PPTX with the real Kit, then runs the unit tests.
+#
+# Not covered: win32-arm64 (no GitHub-hosted arm64 Windows runner is available to this private repository; that Kit is
+# untested here), and the DSH user interface (smoke that on a real Windows machine before a stage moves on, docs/BUILD.md).
+# Run by hand (Actions → windows-kit-smoke → Run workflow): a private repository pays for its minutes (Windows counts double).
+name: windows-kit-smoke
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    # This workflow needs no secrets. Placeholders, for the user to configure in the repository settings if a later
+    # step needs them (never commit real values):
+    # env:
+    #   NPM_GATE_INTERNAL_HOSTS: ${{ secrets.NPM_GATE_INTERNAL_HOSTS }}   # npm-gate's company host list
+    # NPM_TOKEN belongs to the publish workflow only (npm-publish.yml), never to this one.
+    # Actions are pinned to commit SHAs (the version in the comment: update both together).
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: Cache the pinned office-kit downloads
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: .vendor-cache
+          key: vendor-${{ hashFiles('components/office-kit.json') }}
+
+      - name: Install build tools
+        run: npm ci --prefix tooling --ignore-scripts
+
+      - name: Fetch office-kit files (sha512 / sha256 / SHA256SUMS checked)
+        run: node tooling/kit/vendor.mjs fetch && node tooling/kit/vendor.mjs check
+
+      - name: Download and self-test the Kit (win32-x64) and the editor resources
+        run: |
+          node tooling/kit/kit-smoke.mjs --data "$RUNNER_TEMP/office-kit-smoke" --github-env "$GITHUB_ENV" | tee "$RUNNER_TEMP/kit-smoke.json"
+
+      - name: Open a PPTX with the real Kit
+        run: node --test --test-timeout=120000 --test-force-exit packages/kit-host/test/real-kit.test.mjs
+
+      - name: Unit tests (outside DeepSeek Harness)
+        run: node --test --test-timeout=60000 --test-force-exit packages/core/test/*.test.mjs packages/kit-host/test/*.test.mjs scripts/test/*.test.mjs tooling/kit/test/*.test.mjs tooling/suite/test/*.test.mjs test/*.test.mjs
+
+      - name: Keep the smoke report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: kit-smoke-win32-x64
+          path: ${{ runner.temp }}/kit-smoke.json
+          if-no-files-found: ignore
+
+      - name: Remove the downloaded Kit and editor resources
+        if: always()
+        run: |
+          node -e "require('node:fs').rmSync(process.argv[1], { recursive: true, force: true, maxRetries: 5, retryDelay: 2000 })" "$RUNNER_TEMP/office-kit-smoke"
