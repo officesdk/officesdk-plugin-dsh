@@ -1,85 +1,234 @@
-# OfficeSDK for DeepSeek Harness
+<a id="readme-top"></a>
 
-OfficeSDK for DeepSeek Harness (`@officesdk/officesdk-plugin-dsh`) opens, edits and
-saves Word (.docx), Excel (.xlsx) and PowerPoint (.pptx) files in the host’s right-side file tab, lets the model create and edit
-those files live through AI tools, with bundled document and presentation skills. Document rendering runs on the user's
-machine; no server is needed.
+<p align="center"><img src="./assets/cover.webp" alt="OfficeSDK for DeepSeek Harness (Plugin) with the Word, Excel, and PowerPoint editors. Word is in front, with both rulers visible." width="960" /></p>
 
-Documents open through [office-kit](NOTICE), a separate external component: its document engine (Kit) and editor
-resources download on first use from office-kit's public release, and its editor page ships in the package from a
-pinned release. office-kit is not part of this repository.
+<h1 align="center">Edit Office files directly in DeepSeek Harness</h1>
 
-> 中文说明：[docs/OVERVIEW.md](docs/OVERVIEW.md)（项目、架构与发布流程）。
+<p align="center">Install the OfficeSDK plugin, then open a Word document, Excel workbook, or PowerPoint presentation.</p>
 
-## Install
+<p align="center"><a href="#quick-start">🚀 Quick start</a> · <a href="https://officesdk.com/en/features">✨ Features</a> · <a href="https://officesdk.com/en">🌐 Website</a> · <a href="#examples">🎮 Demo</a> · <a href="https://officesdk.com/en/blog">📝 Blog</a></p>
 
-[OfficeSDK website](https://officesdk.com/) · [Installation guide](https://officesdk.com/en/install/deepseek-harness) · [中文安装指南](https://officesdk.com/zh/install/deepseek-harness)
+<p align="center"><strong>English</strong> · <a href="./README.zh-CN.md">简体中文</a></p>
 
-In DeepSeek Harness Desktop, open **Plugins → Add plugin** and enter `@officesdk/officesdk-plugin-dsh`. To install from a terminal, use the desktop app’s **Manage dsh Command…** menu first. The command uses the bundled runtime. The package requires Node.js 22.19.0 or later. See the [current package metadata](https://registry.npmjs.org/@officesdk/officesdk-plugin-dsh/latest) for compatible host versions.
+<p align="center">
+<a href="https://github.com/officesdk/officesdk-plugin-dsh/releases"><img src="https://img.shields.io/github/v/release/officesdk/officesdk-plugin-dsh?style=flat&amp;labelColor=30363D&amp;color=4F46E5&amp;logo=github&amp;logoColor=white&amp;label=plugin" alt="Plugin release" /></a>
+<a href="https://officesdk.com/en/install/deepseek-harness"><img src="https://img.shields.io/npm/v/@officesdk/officesdk-plugin-dsh?style=flat&amp;labelColor=30363D&amp;color=CB3837&amp;logo=npm&amp;logoColor=white&amp;label=npm" alt="Plugin on npm" /></a>
+<a href="https://github.com/officesdk/officesdk-plugin-dsh/blob/main/LICENSE"><img src="https://img.shields.io/github/license/officesdk/officesdk-plugin-dsh?style=flat&amp;labelColor=30363D&amp;color=0F766E&amp;label=plugin+license" alt="Plugin source license" /></a>
+<a href="https://officesdk.com/legal/eula"><img src="https://img.shields.io/badge/Core-EULA-0F766E?style=flat&amp;labelColor=30363D&amp;color=0F766E" alt="Core license" /></a>
+</p>
+
+<p align="center">
+<a href="https://www.youtube.com/channel/UCxtU8aZIS42F7-FCYkFb_Kg"><img src="https://img.shields.io/badge/YouTube-OfficeSDK-FF0033?style=flat&amp;labelColor=30363D&amp;color=FF0033&amp;logo=youtube&amp;logoColor=white" alt="OfficeSDK on YouTube" /></a>
+<a href="https://x.com/officesdk"><img src="https://img.shields.io/badge/%40officesdk-18181B?style=flat&amp;labelColor=30363D&amp;color=18181B&amp;logo=x&amp;logoColor=white" alt="OfficeSDK on X" /></a>
+</p>
+
+<details>
+<summary>Table of contents</summary>
+
+- [💡 What is OfficeSDK for DeepSeek Harness (Plugin)?](#overview)
+  - [Editor features](#editor-capabilities)
+  - [Confirming and undoing AI edits](#ai-edits)
+  - [Create files with bundled skills](#bundled-skills)
+  - [Plugin demo](#examples)
+- [🚀 Get started in DeepSeek Harness](#quick-start)
+  - [Install from the desktop app](#desktop-install)
+  - [Install from the terminal](#terminal-install)
+  - [First use and updates](#first-open)
+- [🌐 OfficeSDK ecosystem](#family)
+- [📚 Plugin developer guides](#docs)
+- [💬 Community and feedback](#community)
+- [📄 License](#license)
+
+</details>
+
+<a id="overview"></a>
+
+## 💡 What is OfficeSDK for DeepSeek Harness (Plugin)?
+
+**OfficeSDK for DeepSeek Harness (Plugin)** adds native editors for Word documents, Excel workbooks, and PowerPoint presentations to DeepSeek Harness. You can change the content and formatting, then save your edits to the original file without opening a separate Office desktop app.
+
+<a id="editor-capabilities"></a>
+
+### Editor features
+
+Across the plugin’s three editors, you can access **233 features** directly from the ribbon.
+
+- **Word · 81 features.** Format paragraphs, insert footnotes, and review tracked changes.
+- **Excel · 64 features.** Set up data validation, use PivotTables, and freeze the header row so it stays visible as you scroll.
+- **PowerPoint · 88 features.** Change slide layouts, apply transitions, and use Presenter View.
+
+The count for [version 0.0.3](https://github.com/officesdk/officesdk-plugin-dsh/releases/tag/v0.0.3) covers top-level ribbon controls and excludes individual spreadsheet functions and submenu options. The totals may change as we continue to update the editors.
+
+You and your AI agent can edit the same file. You can ask the agent to revise a paragraph, update a range of cells, or edit a particular text box on a slide. For example, select the concluding paragraph of a Word document and ask the agent to shorten it while you check the figures in an earlier paragraph. You can review each change right where it was made.
+
+| File type | Example request | What to check in the editor |
+| --- | --- | --- |
+| Word (`.docx`) | Shorten the final paragraph of the monthly report to two sentences. | Read the revised paragraph in context. Check its spacing or review the tracked changes. |
+| Excel (`.xlsx`) | In the variance column, subtract budgeted spending from actual spending using a formula. | Select a cell to check its formula, then format the amounts to two decimal places. |
+| PowerPoint (`.pptx`) | Rewrite the title of slide 3 so it states the decision we need to make at this meeting. | Check how the title wraps, reposition the text box if needed, and preview the slide. |
+
+<a id="ai-edits"></a>
+
+### Confirming and undoing AI edits
+
+Enable both **OfficeSDK** and **[OfficeSDK · model editing tools](https://github.com/officesdk/officesdk-plugin-dsh/tree/main/packages/dsh-adapter/src/tools)** on the plugin page. The agent asks for confirmation before applying changes to an existing file. Each change appears in the file tab beside your conversation. When the agent creates a new document or presentation, you can watch each section or slide appear and stop the agent at any time.
+
+You can undo the agent’s edits to a PowerPoint presentation. In Word and Excel, stopping the agent or encountering an error does not automatically undo edits it has already applied. Review those edits in the editor before saving to the original file.
+
+<a id="bundled-skills"></a>
+
+### Create files with bundled skills
+
+The plugin includes two skills. DeepSeek Harness selects the appropriate one when you ask the agent to create a file.
+
+- **Word** (`shimo-docx`). The agent drafts the document section by section using a template for official documents in Chinese, such as notices and letters. It uses an offline script when the document needs tables or when you request several documents at once.
+- **PowerPoint** (`shimo-pptx`). The agent builds the presentation a few slides at a time in the editor. It uses an offline script if you need tables or charts, request several presentations at once, or work in a session without the editor. It looks first for images you provide or suitable images in your workspace. If it uses images under an open license, it credits them in the speaker notes or in its final response.
+
+For **Excel**, open an existing workbook and ask the agent to enter data or write formulas. The plugin does not currently include a skill or template for creating new workbooks in the editor.
+
+<details>
+<summary>Upgrading from older skills</summary>
+
+If you installed `dsh-docx-style` or `dsh-pptx-style` manually, the old skills will appear alongside the bundled ones after you upgrade. You can remove the manually installed copies. If you previously disabled the skills component, it stays disabled after the upgrade.
+
+</details>
+
+<a id="examples"></a>
+
+### Plugin demo
+
+<video controls playsinline preload="metadata" width="960" src="https://officesdk.com/sites/lusion/demo-v1/officesdk-demo-1.0-en-academic-v2.mp4" poster="https://officesdk.com/sites/lusion/demo-v1/officesdk-plugin-opening.png"></video>
+
+<p align="center"><a href="https://officesdk.com/sites/lusion/demo-v1/officesdk-demo-1.0-en-academic-v2.mp4"><img src="./assets/en-video.webp" alt="Play the OfficeSDK plugin demo in English" width="960" /></a></p>
+
+[Watch the English demo on YouTube](https://www.youtube.com/watch?v=D8GwrO1wnWc)
+
+<p align="right"><a href="#readme-top"><img src="https://img.shields.io/badge/%E2%86%91%20Back%20to%20top-30363D?style=flat-square" alt="↑ Back to top" height="20" /></a></p>
+
+<a id="quick-start"></a>
+
+## 🚀 Get started in DeepSeek Harness
+
+After installation, Office files open in a tab beside your conversation.
+
+**Platform support.** The document engine is stable on Mac computers with Apple silicon. The x64 build for Windows is still being tested.
+
+<a id="desktop-install"></a>
+
+### Install from the desktop app
+
+<table>
+<thead><tr><th>Step</th><th>Action</th><th>Screenshot</th></tr></thead>
+<tbody>
+<tr>
+<td align="center">1</td>
+<td>
+
+**Open the plugin manager**
+
+In the sidebar, open **Plugins**. On the **Installed** tab, click **Add plugin** in the upper right.
+
+</td>
+<td><a href="./assets/en-install-open.webp"><img src="./assets/en-install-open.webp" alt="DeepSeek Harness showing the Plugins page with Add plugin highlighted." width="540" /></a></td>
+</tr>
+<tr>
+<td align="center">2</td>
+<td>
+
+**Install OfficeSDK**
+
+Paste the package name into the **Add plugin** dialog, then click **Install**.
+
+~~~text
+@officesdk/officesdk-plugin-dsh
+~~~
+
+</td>
+<td><a href="./assets/en-install-package.webp"><img src="./assets/en-install-package.webp" alt="The Add plugin dialog with the OfficeSDK package name entered and the Install button highlighted." width="540" /></a></td>
+</tr>
+<tr>
+<td align="center">3</td>
+<td>
+
+**Enable the plugin**
+
+When the dialog says **Installed**, check the package name and version, then click **Enable now**.
+
+</td>
+<td><a href="./assets/en-install-enable.webp"><img src="./assets/en-install-enable.webp" alt="The installation confirmation showing the OfficeSDK version and the Enable now button." width="540" /></a></td>
+</tr>
+</tbody>
+</table>
+
+<a id="terminal-install"></a>
+
+### Install from the terminal
+
+In the DeepSeek Harness desktop app, select **Manage dsh Command…** to enable the `dsh` command. Quit the app, run the command below in your terminal, then reopen the app.
+
+The command uses the runtime bundled with the desktop app. The plugin requires Node.js 22.19.0 or later. The [npm package metadata](https://registry.npmjs.org/@officesdk/officesdk-plugin-dsh/latest) lists the supported versions of DeepSeek Harness.
 
 ```sh
-dsh plugin --profile desktop add @officesdk/officesdk-plugin-dsh   # quit the desktop app first
+dsh plugin --profile desktop add @officesdk/officesdk-plugin-dsh
 ```
 
-It updates itself from the plugin panel. The first open of a document downloads office-kit's engine for this platform
-(darwin-arm64 is stable, win32-x64 is in test).
+[Installation guide](https://officesdk.com/en/install/deepseek-harness)
 
-## Build
+<a id="first-open"></a>
 
-```sh
-npm ci --prefix tooling --ignore-scripts
-node tooling/kit/vendor.mjs fetch
-node tooling/suite/pack-universal.mjs --version 0.0.3 --sources public --obfuscate light \
-  --repository https://github.com/officesdk/officesdk-plugin-dsh --out artifacts/npm
-```
+### First use and updates
 
-Details, tests and releases: [docs/BUILD.md](docs/BUILD.md), [docs/NPM.md](docs/NPM.md). Releases to npm run from the
-`npm-publish` GitHub Actions workflow (run by hand, npm trusted publishing), which also moves dist-tags (mode `dist-tag`);
-the `github-release` workflow makes the GitHub Release of a published version, with its npm package attached.
+The first time you open an Office file from your workspace, the plugin downloads the [office-kit](https://github.com/officesdk/officesdk-plugin-dsh/blob/main/components/office-kit.json) document engine and editor resources for your platform. Documents render on your machine, so there is no document server to set up.
 
-## Repository layout
+Install OfficeSDK updates from the **Plugins** panel in DeepSeek Harness.
 
-| Path | What |
-|---|---|
-| `packages/dsh-adapter/` | the plugin: Host service, DeepSeek Harness client, AI tools, bundled skills |
-| `packages/core/` | host-neutral core: AI edit model, the Kit editor page and its in-browser agents |
-| `packages/kit-host/` | runs office-kit's Kit process and serves its document views |
-| `components/office-kit.json` | the pinned office-kit release ([components/README.md](components/README.md)) |
-| `tooling/`, `scripts/` | packaging, the npm release gate, capabilities and release notes |
+<p align="right"><a href="#readme-top"><img src="https://img.shields.io/badge/%E2%86%91%20Back%20to%20top-30363D?style=flat-square" alt="↑ Back to top" height="20" /></a></p>
 
-## Model editing tools
+<a id="family"></a>
 
-The `officesdk/tools` component (「OfficeSDK · 模型编辑工具」 on the plugin page) lets the model create, read, edit and save PPTX, DOCX and XLSX files; it needs the `officesdk` component enabled. The plugin page keeps its text short; the details are here:
+## 🌐 OfficeSDK ecosystem
 
-- Every change appears step by step in the OfficeSDK tab.
-- Edits to an existing file apply only after you confirm. A file the model creates is shown as it is built, and you can stop it at any time.
-- PPTX edits can be undone. Word and Excel edits cannot be undone automatically: steps finished before a stop or an error stay.
-- The result can be saved back to the original file.
+<p align="center"><img src="./assets/en-family.webp" alt="OfficeSDK Desktop for offline editing and OfficeAPI for online conversion and preview" width="960" /></p>
 
-## Bundled skills
+- **OfficeSDK Desktop** lets you edit documents offline.
+- **OfficeAPI** provides a hosted API for converting and previewing documents.
 
-The `officesdk/skills` component (「OfficeSDK · 默认风格 skill」 on the plugin page) registers two skills with DeepSeek Harness. The plugin page shows a one-line summary from `locale/skills/*.json`; the model chooses a skill by the `description` in its `SKILL.md`, so trimming the plugin page text does not change which skill the model picks:
+<p align="right"><a href="#readme-top"><img src="https://img.shields.io/badge/%E2%86%91%20Back%20to%20top-30363D?style=flat-square" alt="↑ Back to top" height="20" /></a></p>
 
-- `shimo-pptx` — new decks. By default it builds the deck live in the right-side editor (`presentation_create`, then `presentation_edit` in batches of up to four new slides that are animated together). It uses the offline script `scripts/brand_deck.py` instead when the deck needs tables or charts (live tables and charts cannot be saved yet, office-kit K6), when several decks are wanted, when there is no right-side editor (headless, command line), or when the user asks for script output or pixel parity with brand-ppt.
-  Pictures: the user's own, or workspace pictures that fit the topic, come first. Otherwise `scripts/find_images.py` searches Openverse and Wikimedia Commons (no API key; CC0, public domain, CC BY and CC BY-SA only), downloads into the task's `images/` and records title, creator, licence and source in `images/sources.json` / `sources.md`; when nothing fits, `scripts/theme_art.py` draws a theme illustration in the style's colours. Credits go into the slide notes (offline) or the delivery message (live).
-- `shimo-docx` — new Word documents in the official-document layout: live in the right-side editor (`document_create` from the `gongwen` template, then `document_edit` section by section) or by the offline script when the document needs tables or several copies (live tables cannot be saved yet, office-kit K14).
+<a id="docs"></a>
 
-Existing spreadsheets are read and edited live (`spreadsheet_read`, `spreadsheet_edit`); no spreadsheet skill or template ships, so the model does not create new workbooks in the editor.
+## 📚 Plugin developer guides
 
-Since plugin 0.0.37 they replace `dsh-pptx-style` and `dsh-docx-style` (0.0.36) and continue their 1.0.0 as 0.0.2; skill versions now increase like the plugin's, last number only. A manual copy under an old name in `~/.dsh/skills`, `~/.agents/skills` or a project's `.dsh/skills` / `.agents/skills` no longer shadows the bundled skill; it shows up as a separate skill beside it, so delete it. Turning the component off is kept across the rename: DeepSeek Harness records it against the component id `officesdk-skills`, which did not change.
+| Resource | Use it to |
+| --- | --- |
+| [Edit your first Word document](https://officesdk.com/en/docs/first-file) | Edit a paragraph in DeepSeek Harness, save the file, and reopen it to check the result. |
+| [Troubleshoot the plugin](https://officesdk.com/en/help#help-fix) | Resolve problems opening a file or finding a saved copy. |
+| [Plugin architecture and repository layout](https://github.com/officesdk/officesdk-plugin-dsh/blob/main/docs/OVERVIEW.md) | See how the [DeepSeek Harness adapter](https://github.com/officesdk/officesdk-plugin-dsh/tree/main/packages/dsh-adapter), [model editing tools](https://github.com/officesdk/officesdk-plugin-dsh/tree/main/packages/dsh-adapter/src/tools), and [local document engine](https://github.com/officesdk/officesdk-plugin-dsh/blob/main/components/README.md) work together. |
+| [PowerPoint style template](https://github.com/officesdk/officesdk-plugin-dsh/tree/main/packages/dsh-adapter/skills/shimo-pptx/styles/default) | Customize the default [colors and fonts](https://github.com/officesdk/officesdk-plugin-dsh/blob/main/packages/dsh-adapter/skills/shimo-pptx/styles/default/style.json) and [slide layouts](https://github.com/officesdk/officesdk-plugin-dsh/blob/main/packages/dsh-adapter/skills/shimo-pptx/styles/default/template.pptx). |
+| [Build and test the plugin](https://github.com/officesdk/officesdk-plugin-dsh/blob/main/docs/BUILD.md) | Build the plugin from source, run the tests, and install it in DeepSeek Harness. |
+| [Release, update, and roll back](https://github.com/officesdk/officesdk-plugin-dsh/blob/main/docs/NPM.md) | Publish to npm, create a GitHub release, or roll back to an earlier version. |
 
-### Adding a PPT style
+<p align="right"><a href="#readme-top"><img src="https://img.shields.io/badge/%E2%86%91%20Back%20to%20top-30363D?style=flat-square" alt="↑ Back to top" height="20" /></a></p>
 
-A style is a folder `packages/dsh-adapter/skills/shimo-pptx/styles/<name>/` (lower-case letters, digits and hyphens). Both modes pick it by name (`presentation_create { style }`, `brand_deck.py --style`); without one they use `default`. Adding a style changes no code:
+<a id="community"></a>
 
-1. Copy `styles/default` to `styles/<name>`.
-2. Edit `style.json`: `palettes` and `default_palette`, `fonts`, `type_scale_px` (offline sizes on the 960 × 540 px canvas) and `template` (`surface` and `sizes_pt`, the live-mode sizes).
-3. Rebuild its live template with the python that has python-pptx (DeepSeek Harness's runtime python), from the repository root: `python packages/dsh-adapter/skills/shimo-pptx/scripts/build_template.py --style <name>` writes `styles/<name>/template.pptx`.
-4. Update `layouts.md` and `example.json` if its layouts differ, and tell the model when to choose it in `SKILL.md` 「选样式」.
-5. From the repository root, run `node --test packages/dsh-adapter/test/*.test.mjs`: it builds the example with the offline script and checks that every pack's template carries its `style.json` colours and fonts.
+## 💬 Community and feedback
 
-## License
+- [GitHub Issues](https://github.com/officesdk/officesdk-plugin-dsh/issues) — Report a plugin bug or request a feature.
+- [officesdk@shimo.im](mailto:officesdk@shimo.im) — Email us with questions or feedback.
+- [YouTube](https://www.youtube.com/channel/UCxtU8aZIS42F7-FCYkFb_Kg) — Watch OfficeSDK editing walkthroughs.
+- [X · @officesdk](https://x.com/officesdk) — Follow product updates.
 
-The source code in this repository is licensed under the [MIT License](LICENSE). office-kit (the Kit, the
-editor and its resources) is a separate external component with its own owner and terms and is not covered by
-that license; see [NOTICE](NOTICE).
+<p align="right"><a href="#readme-top"><img src="https://img.shields.io/badge/%E2%86%91%20Back%20to%20top-30363D?style=flat-square" alt="↑ Back to top" height="20" /></a></p>
+
+<a id="license"></a>
+
+## 📄 License
+
+<p align="center"><img src="./assets/en-license.webp" alt="MIT for plugin source and the commercial EULA for Core. See the text for external component terms." width="960" /></p>
+
+The [source code for the DeepSeek Harness plugin](https://github.com/officesdk/officesdk-plugin-dsh/tree/main/packages) is licensed under the MIT License. Separate license terms apply to the document engine and editor resources. [Plugin license](https://github.com/officesdk/officesdk-plugin-dsh/blob/main/LICENSE) · [Component notices](https://github.com/officesdk/officesdk-plugin-dsh/blob/main/NOTICE)
+
+OfficeSDK Core is commercial software. Evaluation and production use require a license file or key. [Core license notice](https://github.com/officesdk/officesdk-core/blob/main/LICENSE.md) · [OfficeSDK EULA](https://officesdk.com/legal/eula)
+
+<p align="right"><a href="#readme-top"><img src="https://img.shields.io/badge/%E2%86%91%20Back%20to%20top-30363D?style=flat-square" alt="↑ Back to top" height="20" /></a></p>
