@@ -52,9 +52,9 @@ test('selectTemplate: authorized, per Session, validated by kind; null clears; a
   assert.deepEqual(await self.templatePick(scope, signal()), { kind: 'ppt', id: 'second' });
   assert.deepEqual(await self.templatePick({ ...scope, sessionId: 's2' }, signal()), null, 'another Session has none');
   assert.deepEqual(await self.selectTemplate(scope, 'word', 'gongwen', signal()), { kind: 'word', id: 'gongwen' });
-  await assert.rejects(self.selectTemplate(scope, 'word', 'redhead', signal()), /Unknown word template "redhead"; available: gongwen\./);
+  await assert.rejects(self.selectTemplate(scope, 'word', 'redhead', signal()), /Unknown word template "redhead"; available: meeting-minutes, gongwen\./);
   await assert.rejects(self.selectTemplate(scope, 'excel', 'blank', signal()), /Unknown excel template "blank"; available: none\./);
-  await assert.rejects(self.selectTemplate(scope, 'word', 'second', signal()), /Unknown word template "second"; available: gongwen/);
+  await assert.rejects(self.selectTemplate(scope, 'word', 'second', signal()), /Unknown word template "second"; available: meeting-minutes, gongwen/);
   await assert.rejects(self.selectTemplate(scope, 'ppt', 'gongwen', signal()), /Unknown style/);
   await assert.rejects(self.selectTemplate(scope, 'pdf', 'x', signal()), /Unknown template kind/);
   assert.deepEqual(await self.templatePick(scope, signal()), { kind: 'word', id: 'gongwen' }, 'a failed pick leaves the last one');

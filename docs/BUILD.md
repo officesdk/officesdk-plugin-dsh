@@ -43,8 +43,7 @@ Office documents open through office-kit's Kit only. The manifest lists every pl
 Kit for (`KIT_TRIPLES` in `scripts/platform-package.mjs`); a platform not listed in `capabilities.source.json` is
 `status: test`. On a platform without a Kit, opening a document says so plainly (`本平台暂不支持…`).
 
-The package carries its skills complete: the repository holds exactly the PPT `default` style (the blue house style)
-and the Word `gongwen` template (`scripts/public-skills.mjs` checks the build against that list). `public` is the only
+The package carries its skills complete: the repository includes the blue presentation style, three ready-to-fill presentation templates, the official-document Word style and seven everyday Word templates (`scripts/public-skills.mjs` checks the build against that list). `public` is the only
 download profile.
 
 ## Tests

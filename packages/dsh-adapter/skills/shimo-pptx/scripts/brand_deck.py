@@ -975,6 +975,33 @@ class Deck:
                 'images': list(self.used_images.values()), 'image_credits': self.image_credits, 'warnings': self.warnings}
 
 
+def build_fixed_deck(style, spec, spec_path, target, overwrite):
+    import runpy
+    import os
+    import tempfile
+
+    root = STYLES / style
+    slots = json.loads((root / 'text-slots.json').read_text(encoding='utf-8'))
+    slides = spec.get('slides')
+    if not isinstance(slides, list) or len(slides) != len(slots):
+        raise ValueError(f'请为模板的 {len(slots)} 页各提供一个文本框字典')
+    for page, names in zip(slides, slots):
+        if not isinstance(page, dict) or set(page) - set(names) or any(not isinstance(text, str) for text in page.values()):
+            raise ValueError('请使用 text-slots.json 列出的文本框名称和文本值')
+    target.parent.mkdir(exist_ok=True, parents=True)
+    with tempfile.TemporaryDirectory(dir=target.parent) as tmp:
+        staged = Path(tmp) / 'result.pptx'
+        if style == 'slide-002':
+            runpy.run_path(str(ROOT / 'scripts/fill_reporting_deck.py'))['build'](root / 'template.pptx', spec_path, staged)
+        else:
+            runpy.run_path(str(ROOT / 'scripts/prepare_existing_deck.py'))['build'](root / 'template.pptx', staged, slides)
+        if overwrite:
+            os.replace(staged, target)
+        else:
+            os.link(staged, target)
+    return {'style': style, 'slides': len(slides), 'path': str(target)}
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest='cmd', required=True)
@@ -1009,7 +1036,10 @@ def main():
     try:
         use_style(a.style)
         spec = json.loads(a.spec.read_text(encoding='utf-8'))
-        result = Deck(spec, a.spec.resolve().parent).build(a.out)
+        if STYLE.get('fixed_deck'):
+            result = build_fixed_deck(a.style, spec, a.spec, a.out, a.overwrite)
+        else:
+            result = Deck(spec, a.spec.resolve().parent).build(a.out)
     except (ValueError, KeyError, TypeError, AttributeError, OSError, json.JSONDecodeError) as e:
         print(f'生成失败：{type(e).__name__}: {e}', file=sys.stderr)
         return 1

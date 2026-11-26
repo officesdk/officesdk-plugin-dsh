@@ -1,3 +1,5 @@
+import { finishProjectTable } from './project-plan-stage.mjs';
+import { blankExistingDeck } from './existing-deck.mjs';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { lstat, realpath } from 'node:fs/promises';
 import { createHash, randomUUID } from 'node:crypto';
@@ -43,6 +45,10 @@ for (const name of METHODS) Remote(undefined, {
 });
 const scalar = Object.fromEntries(Object.entries(DEFAULT_LIMITS).filter(([, value]) => typeof value === 'number'));
 export const Config = z.object(Object.fromEntries(Object.entries(scalar).map(([key, value]) => [key, z.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER - 1).default(value)])));
+
+// Only acknowledged batches advance a fixed template's restored sorter.
+const slideSnapshot = generation => generation?.fixedSlides && !generation.stopped
+  ? { done: [...generation.fixedSlides.done], partial: [...generation.fixedSlides.partial] } : undefined;
 
 const readJson = path => JSON.parse(readFileSync(path, 'utf8'));
 /**
@@ -100,7 +106,7 @@ export function loadStyle(root, name = DEFAULT_STYLE) {
   const { primary, onPrimary, ink, paper, secondary, lineOnPaper } = palette;
   return {
     template,
-    summary: { name, palette: { primary, onPrimary, ink, paper, secondary, lineOnPaper }, fonts: { cjk: style.fonts?.cjk, latin: style.fonts?.latin }, sizesPt: style.template?.sizes_pt, layouts },
+    summary: { name, palette: { primary, onPrimary, ink, paper, secondary, lineOnPaper }, fonts: { cjk: style.fonts?.cjk, latin: style.fonts?.latin }, ...(style.template?.sizes_pt !== undefined && { sizesPt:style.template.sizes_pt }), layouts, ...(style.fixed_deck && {fixedDeck:style.fixed_deck}) },
   };
 }
 /**
@@ -256,7 +262,15 @@ export default class ShimoPreview extends TypertRemoteService {
       if (!this.kitDocs && KIT_FORMATS.test(path ?? '')) throw unsupportedError(this.kitUnsupported ?? { platform: 'unknown', reason: 'missing', file: 'offline-kit-runtime' });
       if (selected === 'preview') return this.suite.open(workspaceFileScope, path, revision, signal, peer, { mode: 'view' });
       if (this.kitDocs && KIT_FORMATS.test(path ?? '')) {
-        try { const view = await this.kitDocs.open(workspaceFileScope, path, peer, { mode: selected, signal }); return this.kitHandle(view, revision, await this.kitAccess(view)); }
+        try {
+          const view = await this.kitDocs.open(workspaceFileScope, path, peer, { mode: selected, signal });
+          const handle = this.kitHandle(view, revision, await this.kitAccess(view));
+          if (view.suite === 'presentation' && view.mode === 'edit') {
+            const progress = slideSnapshot(await this.generationOf(workspaceFileScope.sessionId, workspaceFileScope, path));
+            if (progress) handle.slideProgress = progress;
+          }
+          return handle;
+        }
         catch (error) { throw fromKit(error); }
       }
       // Core edits presentations only (§11); its DOCX/XLSX stay the read-only preview they were.
@@ -736,16 +750,16 @@ export default class ShimoPreview extends TypertRemoteService {
   async exportDraft(workspaceFileScope, draftId, target, signal) { return this.remote(peer => this.suite.exportDraft(workspaceFileScope, draftId, { target }, signal, peer), signal); }
 
   /** Client long poll for AI document commands addressed to this Session. */
-  async agentNext(workspaceFileScope, signal) {
+  async agentNext(workspaceFileScope, confirmDelivery, signal) {
     return this.remote(async peer => {
       await this.suite.authorize(peer, workspaceFileScope, signal ?? peer.signal, 'edit', '', 0);
-      return this.agents.next(workspaceFileScope.sessionId, AbortSignal.any([signal, peer.signal].filter(Boolean)));
+      return this.agents.next(workspaceFileScope.sessionId, AbortSignal.any([signal, peer.signal].filter(Boolean)), confirmDelivery === true);
     }, signal);
   }
-  async agentAlive(workspaceFileScope, requestId, signal) {
+  async agentAlive(workspaceFileScope, requestId, deliveryToken, signal) {
     return this.remote(async peer => {
       await this.suite.authorize(peer, workspaceFileScope, signal ?? peer.signal, 'edit', '', 0);
-      return { alive: this.agents.alive(workspaceFileScope.sessionId, requestId) };
+      return { alive: this.agents.alive(workspaceFileScope.sessionId, requestId, deliveryToken) };
     }, signal);
   }
   async agentReply(workspaceFileScope, requestId, ok, result, code, message, signal) {
@@ -790,7 +804,7 @@ export default class ShimoPreview extends TypertRemoteService {
    * workspace only with `approve`), then opened beside the conversation. The file is the model's to generate:
    * its edits apply without a card per batch until the user stops it or the budget runs out.
    */
-  async aiCreate(sessionId, { path, style, slideCount, slideLayouts }, { approve, signal } = {}) {
+  async aiCreate(sessionId, { path, style, slideCount, slideLayouts, reportingData }, { approve, signal } = {}) {
     const scope = await this.scopeOf(sessionId);
     if (typeof path !== 'string' || !/\.pptx$/i.test(path)) throw new SuiteError('invalid-path', 'presentation_create makes .pptx files; give a path ending in .pptx.');
     if (slideCount !== undefined && (!Number.isInteger(slideCount) || slideCount < 1 || slideCount > PPTX_LIMITS.maxPlannedSlides)) {
@@ -808,7 +822,14 @@ export default class ShimoPreview extends TypertRemoteService {
       if (current && resolveStyle(join(current, 'styles'), style)) { styleRoot = join(current, 'styles'); this.ctx.logger?.('officesdk/skills')?.info?.(`shimo-pptx: moved session to ${current} for style ${style}`); }
     }
     const chosen = style === undefined || style === null ? this.defaultStyleFor(scope.workspaceRoot, { refresh: true }) : { style: resolveStyle(styleRoot, style) ?? style, source: 'given' };
-    const { template: data, summary } = loadStyle(styleRoot, chosen.style);
+    const { template, summary } = loadStyle(styleRoot, chosen.style);
+    const fixed=summary.fixedDeck;
+    if (fixed && slideCount !== undefined && slideCount !== fixed.slideCount) throw new SuiteError('invalid-edit', `This original template has ${fixed.slideCount} pages; use that page count.`);
+    if (reportingData !== undefined && (chosen.style !== 'slide-002' || !reportingData || typeof reportingData !== 'object' || Array.isArray(reportingData) || Object.keys(reportingData).some(key => !['chart', 'bars', 'statuses'].includes(key)))) {
+      throw new SuiteError('invalid-edit', 'reportingData accepts chart, bars and statuses for slide-002 only.');
+    }
+    const data = fixed ? await blankExistingDeck({ stylesRoot: styleRoot, style: chosen.style, dataRoot: this.dataRoot, signal, reportingData }) : template;
+    if (fixed && fixed.textSlots === 'text-slots.json') summary.textSlots=readJson(join(styleRoot,chosen.style,'text-slots.json'));
     let created;
     try { created = await this.writer.create(scope, path, data, signal ?? AbortSignal.timeout(30_000)); }
     catch (error) {
@@ -821,15 +842,18 @@ export default class ShimoPreview extends TypertRemoteService {
     const real = created.absolutePath;
     const identity = await lstat(real).catch(() => undefined);
     const windowed = Boolean(identity?.isFile() && await this.realPathOf(scope, real) === real);
-    if (windowed) this.generations.set(`${sessionId}\0${real}`, { steps: slideCount ?? 0, imageBytes: 0, reserved: { steps: 0, imageBytes: 0 }, stopped: false, dev: identity.dev, ino: identity.ino });
+    if (windowed) this.generations.set(`${sessionId}\0${real}`, { ...(fixed && { fixedSlides: { count: fixed.slideCount, done: new Set(), partial: new Set() } }), steps: slideCount ?? 0, imageBytes: 0, reserved: { steps: 0, imageBytes: 0 }, stopped: false, dev: identity.dev, ino: identity.ino });
     // A style is settled once a deck exists: the recommendation strip has nothing left to ask.
     this.styleSuggestions.dismiss(sessionId);
-    const read = await this.agents.request(sessionId, { kind: 'read', path, ...(slideCount && {slideCount, slideLayouts}) }, signal);
+    const read = await this.agents.request(sessionId, { kind: 'read', path, ...(fixed ? {initialBlank:'ppt-template'} : slideCount ? {slideCount, slideLayouts} : {}) }, signal);
     return { created: true, style: summary, styleSource: chosen.source, ...read, generating: windowed };
   }
 
   /** AI tool: a new Word document from a shimo-docx template, generated live like presentation_create (host/document.mjs). */
   async aiCreateDocument(sessionId, args, options) { return createDocument(this, sessionId, args, options); }
+  async aiFinishProjectTable(sessionId, args, signal) { return finishProjectTable(this, sessionId, args, signal); }
+  async aiFinishMeetingTable(sessionId, args, signal) { return finishProjectTable(this, sessionId, {path:args.path,milestones:args.decisions}, signal, 'meeting'); }
+  async aiFinishProposalTable(sessionId, args, signal) { return finishProjectTable(this, sessionId, {path:args.path,milestones:args.rows}, signal, 'proposal'); }
   /** AI tool: a new workbook from a shimo-xlsx template, generated live the same way. */
   async aiCreateSpreadsheet(sessionId, args, options) { return createSpreadsheet(this, sessionId, args, options); }
 
@@ -914,13 +938,14 @@ export default class ShimoPreview extends TypertRemoteService {
     const loaded = await this.loadImages(scope, ops, signal);
     // A file the model created and is still generating applies without a card, within its budget.
     const generation = await this.generationOf(sessionId, scope, path);
+    if (generation?.tableFrozen) throw new SuiteError('busy', 'The project table is being committed; wait until it completes.');
     const steps = Array.isArray(ops) ? ops.length : 0;
     // The budget counts batches still running too, so parallel edits cannot overshoot it.
     const used = generation && { steps: generation.steps + generation.reserved.steps, imageBytes: generation.imageBytes + generation.reserved.imageBytes };
     const auto = Boolean(generation && !generation.stopped && used.steps + steps <= GENERATION_LIMITS.maxSteps && used.imageBytes + loaded.imageBytes <= GENERATION_LIMITS.maxImageBytes);
     if (auto) { generation.reserved.steps += steps; generation.reserved.imageBytes += loaded.imageBytes; }
     let result;
-    try { result = await this.whileAiWrites(sessionId, path, () => this.agents.request(sessionId, { kind: 'edit', path, ops: loaded.ops, summary, editId, ...(completedSlideIds !== undefined && {completedSlideIds}), ...(callId && { callId }), ...(auto && { auto: true }), ...(typeof readToken === 'string' && { readToken }) }, signal)); }
+    try { result = await this.whileAiWrites(sessionId, path, () => this.agents.request(sessionId, { kind: 'edit', path, ops: loaded.ops, summary, editId, ...(completedSlideIds !== undefined && {completedSlideIds}), ...(callId && { callId }), ...(auto && { auto: true }), ...(auto && generation.fixedSlides && { slideProgress: slideSnapshot(generation) }), ...(typeof readToken === 'string' && { readToken }) }, signal)); }
     catch (error) {
       // Stopped from the tab while this batch ran: the window is over (a PPT batch is undone; Word keeps the steps it finished).
       if (generation && error?.code === 'cancelled') generation.stopped = true;
@@ -929,6 +954,15 @@ export default class ShimoPreview extends TypertRemoteService {
       if (auto) { generation.reserved.steps -= steps; generation.reserved.imageBytes -= loaded.imageBytes; }
     }
     if (generation && auto && !result?.declined) { generation.steps += steps; generation.imageBytes += loaded.imageBytes; }
+    if (auto && generation.fixedSlides && result?.applied > 0 && !result.declined && !result.pendingReview) {
+      const pages = generation.fixedSlides, finished = new Set(completedSlideIds ?? result.slideIds);
+      for (const id of result.slideIds ?? []) {
+        pages.done.delete(id);
+        pages.partial.delete(id);
+        (finished.has(id) ? pages.done : pages.partial).add(id);
+      }
+      if (pages.done.size === pages.count) delete generation.fixedSlides;
+    }
     if (result?.declined) return { declined: true };
     if (result?.pendingReview) return { ...result, editId, unsaved: false };
     // Selections still waiting on this file no longer hold what the user selected.
@@ -969,7 +1003,14 @@ export default class ShimoPreview extends TypertRemoteService {
   async aiSave(sessionId, path, { approve, signal } = {}) {
     const scope = await this.scopeOf(sessionId);
     const kitView = this.kitViewFor(sessionId, path);
-    if (kitView) return this.aiSaveKit(sessionId, scope, path, kitView, { approve, signal });
+    if (kitView) {
+      const result = await this.aiSaveKit(sessionId, scope, path, kitView, { approve, signal });
+      if ((result.saved || result.unchanged) && kitView.suite === 'presentation') {
+        const generation = await this.generationOf(sessionId, scope, path);
+        if (generation) delete generation.fixedSlides;
+      }
+      return result;
+    }
     const session = await this.suite.find(scope, path, { principal: 'owner' }, signal);
     if (!session) throw new SuiteError('not-found', nounOf(path) === 'presentation' ? 'That presentation is not open, so there is nothing to save. Use presentation_read first.' : `That ${nounOf(path)} is not open, so there is nothing to save. Read it first.`);
     if (!this.suite.dirty(session)) return { saved: false, unchanged: true, version: session.baseVersion, path: session.absolutePath };

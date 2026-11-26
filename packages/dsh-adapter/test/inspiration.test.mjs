@@ -71,7 +71,7 @@ test('the mixed catalog: Word, Excel then PPT; PPT pages are the thumbnail then 
     { id: 'b', name: { zh: '乙' }, thumb: null, previews: [], scenarios: { zh: ['旅行', '品牌'] } },
   ];
   const all = libraryTemplates(styles);
-  assert.deepEqual(all.map(item => `${item.kind}:${item.id}`), ['word:gongwen', 'ppt:a', 'ppt:b']);
+  assert.deepEqual(all.map(item => `${item.kind}:${item.id}`), ['word:meeting-minutes', 'word:gongwen', 'ppt:a', 'ppt:b']);
   const a = all.find(item => item.id === 'a');
   assert.deepEqual(a.pages, ['data:a', 'data:a2', 'data:a3'], 'thumbnail first, no repeats');
   assert.equal(a.summary, '甲的摘要');
@@ -143,6 +143,6 @@ test('upload checks: one non-empty file of the kind\'s extensions; never reads i
 test('the Host\'s template list keeps only what this copy can create from: the public build has Word gongwen and no Excel card (261113)', () => {
   const ids = list => list.map(item => `${item.kind}:${item.id}`);
   assert.deepEqual(ids(libraryTemplates([], 'zh', { word: ['gongwen'], excel: [] })), ['word:gongwen']);
-  assert.deepEqual(ids(templatesOf('word', [], 'zh')), ['word:gongwen'], 'an older Host sends no list: every built-in');
+  assert.deepEqual(ids(templatesOf('word', [], 'zh')), ['word:meeting-minutes', 'word:gongwen'], 'an older Host sends no list: every built-in');
   assert.deepEqual(ids(templatesOf('excel', [], 'zh', { word: ['gongwen'] })), [], 'no Excel template is built in');
 });

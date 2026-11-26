@@ -1,20 +1,36 @@
 ---
 name: shimo-pptx
-description: 新建 PPT（.pptx）：默认在 DSH 右侧的 OfficeSDK 编辑器里实时生成（presentation_create 按总页数新建，再分批 presentation_edit，用户在幻灯片浏览视图看每页生成）；需要表格或图表、批量出多份、没有右侧编辑器或用户要脚本出稿时，改用离线脚本 brand_deck.py。两种方式共用同一个样式包（用户没点名时用工作区默认样式，没有就是 default：蓝紫主色、Noto Sans SC / Poppins 的品牌风格）。用户没给图时，用随附脚本上网找可商用的照片，找不到就按主题生成配图，并写明图片来源。
-whenToUse: 用户要做新的演示文稿/PPT/幻灯片，且没有给自己的模板或品牌规范时加载。默认走实时方式；需要表格或图表、要批量出多份、当前环境没有 presentation_create（headless、命令行）、用户明确要脚本出稿或要与 brand-ppt 版式像素级一致时走离线方式。编辑已有 PPT 时不用本 skill，直接用 presentation_read / presentation_edit。
+description: 新建 PPT（.pptx）：默认在 DSH 右侧的 OfficeSDK 编辑器里实时生成（presentation_create 按总页数新建，再分批 presentation_edit，用户在幻灯片浏览视图看每页生成）；工作汇报的环形图和柱形支持随模板实时出稿；其他需要新插入表格或图表、批量出多份、当前环境未提供实时工具或用户要脚本出稿时，改用离线脚本 brand_deck.py。两种方式共用同一个样式包（用户没点名时用工作区默认样式，没有就是 default：蓝紫主色、Noto Sans SC / Poppins 的品牌风格）。用户没给图时，用随附脚本上网找可商用的照片，找不到就按主题生成配图，并写明图片来源。
+whenToUse: 用户要做新的演示文稿/PPT/幻灯片，且没有给自己的模板或品牌规范时加载。默认走实时方式；需要模板以外的新表格或图表、要批量出多份、当前环境没有 presentation_create（headless、命令行）、用户明确要脚本出稿或要与 brand-ppt 版式像素级一致时走离线方式。编辑已有 PPT 时不用本 skill，直接用 presentation_read / presentation_edit。
 metadata:
-  version: 0.0.10
+  version: 0.0.11
   distilledFrom: brand-ppt-12 v1.4.1
 ---
 
 # 新建 PPT
+
+收到保存成功回执（含专用表格工具返回 saved）后，用 DSH 的 `present` 交付这份最终文件一次。只交付本次完成的文件，创建占位和写入失败时保留现场。
+
+桌面端切换会话时，编辑器会等待原会话重新显示。实时工具返回 `no-editor` 时，告知用户切回这条会话，回到原路径用读取工具确认文件和写入进度，再继续实时写入。已经创建的文件只读回恢复，不再次新建同名或改名文件，也不要用脚本另出一份。
+
+## 已选基础模板的实时生成
+
+用户要求工作汇报、工作总结或季度复盘 PPT 时，默认用下方“团队工作汇报”原模板；要求培训、员工培训或经验分享 PPT 时用 `slide-008`；要求空白 PPT 时用 `slide-000`。用户明确点名其他样式时按用户要求。用户只给场景也可选择，不要求用户知道模板编号。以下模板优先于本文件其他出稿方式：
+
+- **团队工作汇报**（`slide-002`，8 页）用实时方式。先调用 `presentation_create(path, style="slide-002", slideCount=8, reportingData=…)`。仅准备图表所需的数字，无需先写全稿或运行脚本。`reportingData` 可含 `chart: {title, categories: [三个类别], values: [三个非负数]}`、`bars: [五个非负数]`、`statuses: {page2: [四个状态], page6: [三个状态]}`（green、amber、red、neutral）。只有用户给出或允许模拟时才传对应数据。缺数据时省略该项。原生环形图、图例、可编辑柱条及状态色在创建时准备好，页上文字在右侧逐批生成。根据返回的真实页和形状 ID、`style.textSlots`，一至两页一批用 `presentation_edit` 的 `setText` 填写各页；环形图中央百分比和三行图例已按数据计算，保留其值，柱条数值文字与传入数据一致。用 `completedSlideIds` 标出本批写完的页，八页完成后 `presentation_save`。
+- `slide-008`：`presentation_create(path, style="slide-008", slideCount=7)`；从返回的 `deck.slides` 取得每页真实 `slideId` 与各形状 ID，结合 `style.textSlots` 中每页的形状名，按页用 `presentation_edit` 的 `setText` 填写适合该位置的文字。每个文本框独立填写，字数适应原版；同一页分批时中间传 `completedSlideIds: []`，完成该页时传该页 ID。保留模板页面顺序、样式和可编辑对象。第二页原示例折线的数据点已清除；没有用户数据时不填数值，不画折线，不凭空编造数据。确有数据时可用可编辑形状绘制符合实际数据的图。全部完成后 `presentation_save`。
+- `slide-000`：`presentation_create(path, style="slide-000", slideCount=1)`。只要求空白页时直接 `presentation_save`；要求写内容时根据用户信息在空白页实时添加文本或形状，之后保存。
+
+以上三套模板都应先打开右侧编辑器，再调用编辑。确定页数后先打开右侧，内容准备好一页就提交，可按线上交互并行生成多页；不要为了确认字数而先检索源代码或读取样例 PPT。不要在对话中要求用户描述内部动画步骤。若没有资料，不把模板的样例数字当作事实。
+
+在无实时工具的环境中，固定页模板也可用 `brand_deck.py build --style <编号> --spec <输入.json> --out <文件.pptx>`。每页使用 `text-slots.json` 中的文本框名称，输入示例见该模板的 `example.json`。工作汇报支持同一组图表数据字段。
 
 ## 1. 选出稿方式
 
 | 情况 | 方式 |
 |---|---|
 | 其余情况（默认） | **实时**：右侧编辑器里分批生成，见第 4 节 |
-| 需要表格或图表（实时方式插入的表格、图表目前存不下，office-kit K6） | **离线**：见第 5 节 |
+| 需要新插入表格或图表（工作汇报的既有图表走上述实时方式；实时方式插入的表格、图表目前存不下，office-kit K6） | **离线**：见第 5 节 |
 | 要一次出多份稿 | 离线 |
 | 没有 `presentation_create` 工具（headless、命令行等没有右侧编辑器的环境） | 离线 |
 | 用户明确要脚本出稿，或要与 brand-ppt 版式像素级一致 | 离线 |

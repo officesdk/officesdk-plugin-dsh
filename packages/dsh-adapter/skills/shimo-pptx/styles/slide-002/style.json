@@ -1,0 +1,105 @@
+{
+  "name": "slide-002",
+  "title": "团队工作汇报",
+  "fixed_deck": {
+    "slideCount": 8,
+    "textSlots": "text-slots.json"
+  },
+  "meta": {
+    "id": "slide-002",
+    "name": {
+      "zh": "团队工作汇报",
+      "en": "Team work updates"
+    },
+    "aliases": [
+      "工作汇报",
+      "工作总结",
+      "季度复盘",
+      "工作汇报与复盘"
+    ],
+    "summary": {
+      "zh": "蓝白商务风格，适合工作汇报与复盘",
+      "en": "Blue and white business reporting"
+    },
+    "scenarios": {
+      "zh": [
+        "工作汇报",
+        "工作总结",
+        "季度复盘"
+      ],
+      "en": [
+        "Business reporting"
+      ]
+    },
+    "thumb": "thumb.png",
+    "fonts": [
+      {
+        "family": "Noto Sans SC",
+        "role": "cjk",
+        "license": "OFL-1.1",
+        "source": "https://fonts.google.com/noto/specimen/Noto+Sans+SC",
+        "bundled": false
+      },
+      {
+        "family": "Poppins",
+        "role": "latin",
+        "license": "OFL-1.1",
+        "source": "https://fonts.google.com/specimen/Poppins",
+        "bundled": false
+      },
+      {
+        "family": "Poppins Light",
+        "role": "latin_light",
+        "license": "OFL-1.1",
+        "source": "https://fonts.google.com/specimen/Poppins",
+        "bundled": false
+      }
+    ],
+    "design_source": {
+      "from": "OfficeSDK design record slide-002",
+      "note": "Approved for distribution with the plugin on 2026-11-26.",
+      "cleared": true
+    },
+    "requires": {
+      "photos": {
+        "slots": 0,
+        "required": 0,
+        "per_slide_max": 0
+      },
+      "note": {
+        "zh": "使用模板内的可编辑对象，无需准备照片。",
+        "en": "Uses editable objects in the template. No photos required."
+      }
+    }
+  },
+  "default_palette": "base",
+  "fonts": {
+    "cjk": "Noto Sans SC",
+    "latin": "Poppins",
+    "latin_light": "Poppins Light"
+  },
+  "palettes": {
+    "base": {
+      "primary": "#0075B9",
+      "onPrimary": "#FFFFFF",
+      "ink": "#092C68",
+      "paper": "#FFFFFF",
+      "secondary": "#A2AFBA",
+      "lineOnPaper": "#D7DFE6",
+      "name": "团队工作汇报",
+      "onSecondary": "#092C68",
+      "inkOnSecondary": "#092C68",
+      "chartSecondary": "#A2AFBA",
+      "chartTertiary": "#092C68",
+      "lineOnPrimary": "#FFFFFF"
+    }
+  },
+  "canvas": {
+    "width_px": 960,
+    "height_px": 540,
+    "slide_width_in": 10.0,
+    "slide_height_in": 5.625,
+    "emu_per_px": 9525,
+    "pt_per_px": 0.75
+  }
+}

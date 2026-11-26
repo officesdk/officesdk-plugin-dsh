@@ -35,6 +35,12 @@ test('every style pack has style.json, a live template, a layouts doc and an exa
 test('each live template carries its style.json colours and fonts (one source for both modes)', () => {
   for (const name of PACKS) {
     const style = JSON.parse(readFileSync(join(STYLES, name, 'style.json'), 'utf8'));
+    // Fixed decks keep their source theme and explicitly styled native shapes.
+    if (style.fixed_deck) {
+      const archive = listZip(readFileSync(join(STYLES, name, 'template.pptx')));
+      assert.equal(archive.entries.filter(e => /^ppt\/slides\/slide\d+\.xml$/.test(e.name)).length, style.fixed_deck.slideCount);
+      continue;
+    }
     const palette = style.palettes[style.default_palette];
     const xml = theme(readFileSync(join(STYLES, name, 'template.pptx')));
     assert.equal(style.name, name);

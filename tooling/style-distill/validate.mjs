@@ -157,6 +157,62 @@ function walkLayout(layout, visit) {
   return { names, base };
 }
 
+function checkPackImages(dir, meta, stats, err) {
+  // thumb.png and the optional previews: PNG, 16:9, not too wide or heavy.
+  const image = name => {
+    const png = readFileSync(join(dir, name));
+    const sig = png.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+    let size;
+    if (!sig) err(`${name} 不是 PNG`);
+    else {
+      const width = png.readUInt32BE(16), height = png.readUInt32BE(20);
+      if (width > LIMITS.thumbMaxWidth) err(`${name} 宽 ${width}px，超过 ${LIMITS.thumbMaxWidth}`);
+      if (Math.abs(width / height - 16 / 9) > (16 / 9) * 0.02) err(`${name} 是 ${width}×${height}，不是 16:9`);
+      size = `${width}×${height}, ${png.length} B`;
+    }
+    if (png.length > LIMITS.thumbMaxBytes) err(`${name} 有 ${png.length} 字节，超过 ${LIMITS.thumbMaxBytes}`);
+    return size;
+  };
+  if (isObject(meta) && typeof meta.thumb === 'string' && existsSync(join(dir, meta.thumb))) stats.thumb = image(meta.thumb);
+  else if (isObject(meta)) err(`meta.thumb 指向的文件 ${meta.thumb} 不存在`);
+  if (isObject(meta) && Array.isArray(meta.previews)) {
+    for (const name of meta.previews) if (typeof name === 'string' && !name.includes('/') && !existsSync(join(dir, name))) err(`meta.previews 里的 ${name} 不存在`);
+    stats.previews = meta.previews.filter(name => typeof name === 'string' && !name.includes('/') && existsSync(join(dir, name))).map(image).length;
+  }
+
+}
+
+function checkFixedPages(dir, style, example, err) {
+  const { slideCount, textSlots } = style.fixed_deck;
+  if (textSlots !== 'text-slots.json' || !Number.isInteger(slideCount) || slideCount < 1) {
+    err('fixed_deck requires a positive slideCount and text-slots.json');
+    return;
+  }
+  try {
+    const slots = JSON.parse(readFileSync(join(dir, textSlots), 'utf8'));
+    const archive = listZip(readFileSync(join(dir, 'template.pptx')));
+    const slides = archive.entries.filter(item => /^ppt\/slides\/slide\d+\.xml$/.test(item.name));
+    if (slideCount !== slides.length || slots.length !== slideCount || example?.slides?.length !== slideCount) {
+      err('The original deck, text slot list and example must have the declared number of pages');
+      return;
+    }
+    for (let index = 0; index < slideCount; index++) {
+      const part = slides.find(item => item.name === `ppt/slides/slide${index + 1}.xml`);
+      const xml = readZipEntry(archive, part, 4 * 1024 * 1024).toString('utf8');
+      const shapes = new Set();
+      for (const [shape] of xml.matchAll(/<(?:\w+:)?sp(?:\s[^>]*|)>[\s\S]*?<\/(?:\w+:)?sp>/g)) {
+        if (/<(?:\w+:)?txBody[\s>]/.test(shape)) shapes.add(/<(?:\w+:)?cNvPr\b[^>]*?\bname="([^"]+)"/.exec(shape)?.[1]);
+      }
+      const page = slots[index];
+      if (!Array.isArray(page) || new Set(page).size !== page.length || page.some(key => !shapes.has(key))) {
+        err(`Slide ${index + 1} has a duplicate or missing editable text slot`);
+      }
+    }
+  } catch (error) {
+    err(`Cannot validate fixed pages: ${error.message}`);
+  }
+}
+
 function checkPack(stylesRoot, staging, id, problems, stats, notes, fonts) {
   const dir = join(stylesRoot, id);
   const err = message => problems.push(message);
@@ -195,7 +251,8 @@ function checkPack(stylesRoot, staging, id, problems, stats, notes, fonts) {
   if (style.template?.dark !== undefined && typeof style.template.dark !== 'boolean') err('template.dark 应为 true/false');
   if (style.template?.cover !== undefined && style.template.cover !== 'brand') err('template.cover 只能是 "brand"（或不写）');
   const sizes = style.template?.sizes_pt;
-  if (!isObject(sizes) || !Object.values(sizes).every(v => typeof v === 'number')) err('template.sizes_pt 应为数字表');
+  if (style.fixed_deck && sizes === undefined) { /* Native slide XML owns the type sizes. */ }
+  else if (!isObject(sizes) || !Object.values(sizes).every(v => typeof v === 'number')) err('template.sizes_pt 应为数字表');
   else for (const [name, pt] of Object.entries(sizes)) if (pt < LIMITS.minLivePt) err(`实时字号 template.sizes_pt.${name}=${pt}pt，小于 ${LIMITS.minLivePt}pt`);
 
   // meta
@@ -235,6 +292,12 @@ function checkPack(stylesRoot, staging, id, problems, stats, notes, fonts) {
   // layouts.json, read the way the Host reads it
   try { desc = checkLayouts(JSON.parse(readFileSync(join(dir, 'layouts.json'), 'utf8')), `${id}/layouts.json`); }
   catch (error) { err(`Host 读不了 layouts.json：${error.message}`); return { style, example }; }
+
+  checkPackImages(dir, meta, stats, err);
+  if (style.fixed_deck) {
+    checkFixedPages(dir, style, example, err);
+    return { style, example, desc };
+  }
 
   // live part ↔ template.pptx ↔ layouts.md
   let facts;
@@ -375,28 +438,6 @@ function checkPack(stylesRoot, staging, id, problems, stats, notes, fonts) {
   const declared = meta?.requires?.photos;
   if (isObject(declared)) for (const key of Object.keys(photos)) if (declared[key] !== photos[key]) err(`meta.requires.photos.${key}=${declared[key]}，按 layouts.json 算是 ${photos[key]}`);
   if (example && Array.isArray(example.slides)) for (const [index, slide] of example.slides.entries()) if (!desc.offline.layouts[slide?.layout]) err(`example.json 第 ${index + 1} 页的 layout ${JSON.stringify(slide?.layout)} 不在 layouts.json 里`);
-
-  // thumb.png and the optional previews: PNG, 16:9, not too wide or heavy.
-  const image = name => {
-    const png = readFileSync(join(dir, name));
-    const sig = png.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
-    let size;
-    if (!sig) err(`${name} 不是 PNG`);
-    else {
-      const width = png.readUInt32BE(16), height = png.readUInt32BE(20);
-      if (width > LIMITS.thumbMaxWidth) err(`${name} 宽 ${width}px，超过 ${LIMITS.thumbMaxWidth}`);
-      if (Math.abs(width / height - 16 / 9) > (16 / 9) * 0.02) err(`${name} 是 ${width}×${height}，不是 16:9`);
-      size = `${width}×${height}, ${png.length} B`;
-    }
-    if (png.length > LIMITS.thumbMaxBytes) err(`${name} 有 ${png.length} 字节，超过 ${LIMITS.thumbMaxBytes}`);
-    return size;
-  };
-  if (isObject(meta) && typeof meta.thumb === 'string' && existsSync(join(dir, meta.thumb))) stats.thumb = image(meta.thumb);
-  else if (isObject(meta)) err(`meta.thumb 指向的文件 ${meta.thumb} 不存在`);
-  if (isObject(meta) && Array.isArray(meta.previews)) {
-    for (const name of meta.previews) if (typeof name === 'string' && !name.includes('/') && !existsSync(join(dir, name))) err(`meta.previews 里的 ${name} 不存在`);
-    stats.previews = meta.previews.filter(name => typeof name === 'string' && !name.includes('/') && existsSync(join(dir, name))).map(image).length;
-  }
 
   Object.assign(stats, { layouts: Object.keys(desc.offline.layouts).length, textBoxes: Object.fromEntries(Object.entries(perLayout).map(([k, v]) => [k, v.textBoxes])), photos,
     minTextPt: Number.isFinite(minText) ? +minText.toFixed(2) : null, minChartPt: Number.isFinite(minChart) ? +minChart.toFixed(2) : null });

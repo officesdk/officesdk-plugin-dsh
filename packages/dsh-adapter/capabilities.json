@@ -142,7 +142,7 @@
         {
           "id": "style-packs",
           "supported": true,
-          "summary": "内置蓝色品牌风格（default）"
+          "summary": "内置蓝色品牌风格、团队工作汇报、培训与经验分享和空白幻灯片"
         },
         {
           "id": "ai-tables-charts",
@@ -164,7 +164,10 @@
         "presentation_save"
       ],
       "stylePacks": [
-        "default"
+        "default",
+        "slide-000",
+        "slide-002",
+        "slide-008"
       ]
     },
     {
@@ -227,11 +230,21 @@
         "document_create",
         "document_read",
         "document_edit",
+        "document_finish_meeting_table",
+        "document_finish_project_table",
+        "document_finish_proposal_table",
         "document_save",
         "selection_rewrite"
       ],
       "templates": [
-        "gongwen"
+        "blank",
+        "formal-letter",
+        "gongwen",
+        "meeting-minutes",
+        "product-requirements",
+        "project-plan",
+        "project-proposal",
+        "weekly-report"
       ]
     },
     {
@@ -302,11 +315,11 @@
   "skills": [
     {
       "name": "shimo-docx",
-      "version": "0.0.6"
+      "version": "0.0.7"
     },
     {
       "name": "shimo-pptx",
-      "version": "0.0.10"
+      "version": "0.0.11"
     }
   ],
   "skillsBaseline": true,

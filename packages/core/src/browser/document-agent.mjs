@@ -1,8 +1,9 @@
+import { createTableStage } from './table-stage.mjs';
 import { DOCX_ALIGN, DOCX_LIVE_MARK, DOCX_OPS, DOCX_OUTLINE_STYLES, DOCX_STYLES, DOCX_STYLE_FALLBACK, createDocxReadHistory, docxProgress, validateDocxOps } from '../agent/docx.mjs';
 import { createGenerationSurface, creationBands, writerOpening, writerPaper } from './creation-surface.mjs';
 import { DOC_LABELS, createDocOverlay } from './doc-overlay.mjs';
 import { agentLabel, docxStatus } from './agent-status.mjs';
-import { bodyBlock, paragraphRange, rememberWriterIndents, tableLocator, unionRects } from './writer-geometry.mjs';
+import { bodyBlock, findParagraphElements, paragraphRange, rememberWriterIndents, tableLocator, unionRects } from './writer-geometry.mjs';
 export { findParagraphElements, boxOf } from './writer-geometry.mjs';
 import { textChunks } from './selection.mjs';
 import { docSelectionMethods, previousWriterChange, previewWriterPrefixes, startWriterWork } from './selection-edit.mjs';
@@ -15,6 +16,8 @@ import { docSelectionMethods, previousWriterChange, previewWriterPrefixes, start
  * they are marked as the AI's, so they wait for a save instead of autosaving.
  */
 const agentError = (code, message) => Object.assign(new Error(message), { code });
+const PROJECT_BLANK = '\u2800';
+const isTemplateBlank = text => typeof text === 'string' && text.replace(/[\r\n]+/g,'') === PROJECT_BLANK;
 /** Codes the page passes on as they are; anything else from the editor is `editor-failed`. */
 const PAGE_CODES = new Set(['invalid-edit', 'source-changed', 'cancelled', 'busy', 'read-only', 'unsupported-operation']);
 
@@ -61,7 +64,7 @@ function applyFormat(paragraph, format = {}) {
  * reads the paragraph count before and after and inserts (or removes) that many keys where it acted, so numbers from
  * the read keep naming the same paragraphs. `tableOrder` does the same for tables.
  */
-export async function runDocxSteps(Word, steps, doc, { signal, onStep = () => {}, onDone = () => {}, onSelect = async () => {}, onWrite = () => {}, onFinish = () => {}, chunk = text => [text], tracks = 3, wait = () => Promise.resolve(), pause = 0, writingPause = 0, track = {} } = {}) {
+export async function runDocxSteps(Word, steps, doc, { signal, onStep = () => {}, onDone = () => {}, onSelect = async () => {}, onWrite = () => {}, onFinish = () => {}, chunk = text => [text], tracks = 3, wait = () => Promise.resolve(), pause = 0, writingPause = 0, track = {}, projectCreation = false, templateCreation = false, meetingCreation = false, proposalCreation = false } = {}) {
   const order = doc.paragraphs.map((_, number) => `#${number}`);
   const tableOrder = doc.tables.map((_, number) => `#${number}`);
   const texts = new Map(doc.paragraphs.map((paragraph, number) => [`#${number}`, paragraph.text]));
@@ -289,6 +292,8 @@ export async function runDocxSteps(Word, steps, doc, { signal, onStep = () => {}
       }
       case 'setText': {
         const at = indexOf(step.target);
+        const projectBlank = (projectCreation || templateCreation) && isTemplateBlank(texts.get(order[at])) && !tableParagraphs.has(order[at]);
+        const projectBlock = blockOf(at);
         // A whole rewrite grows in parts like a new paragraph (in this step, not on a track); a replaceText (`find`)
         // changes only part of the paragraph and is written once: growing it would first wipe the rest of the text.
         const parts = staged?.parts ?? (step.find === undefined ? chunk(step.text, at) : [step.text]);
@@ -299,12 +304,34 @@ export async function runDocxSteps(Word, steps, doc, { signal, onStep = () => {}
             if (signal?.aborted) throw agentError('cancelled', 'Stopped by the user.');
           }
           const added = part ? text.slice(parts[part - 1].length) : text;
-          await Word.run(async ctx => { (await load(ctx))[at].insertText(added, part ? 'End' : 'Replace'); await ctx.sync(); });
+          await Word.run(async ctx => {
+            (await load(ctx))[at].insertText(added, part ? 'End' : 'Replace');
+            await ctx.sync();
+            if (projectBlank && !part) {
+              const proposalStyle = doc.paragraphs[at]?.style;
+              const color = meetingCreation && [6,9].includes(projectBlock) ? '#30363C' : proposalCreation ? (['Style14','21'].includes(proposalStyle)?'#357CA2':proposalStyle==='Style17'?'#434343':'#000000') : templateCreation === 'letter' ? '#000000' : (meetingCreation ? false : templateCreation ? projectBlock >= 5 && projectBlock % 2 === 1 : [5, 7, 11].includes(projectBlock)) ? '#53606A' : '#202124';
+              (await load(ctx))[at].font.set({color});
+              await ctx.sync();
+            }
+          });
           texts.set(order[at], text);
           // From the first part on, a stop leaves this paragraph half rewritten.
           if (part < parts.length - 1) track.partial = number;
           const start = step.find === undefined ? 0 : Array.from(step.before.slice(0, step.before.indexOf(step.find))).length;
           onWrite(number, { index: at, block: blockOf(at), text, start, end: start + Array.from(step.replace ?? text).length });
+        }
+        // Split the finished line into its template label and value. The marker starts in the label's
+        // bold run; reset the appended range so only the label retains emphasis.
+        if (meetingCreation && projectBlank && projectBlock >= 1 && projectBlock <= 4) {
+          const label = ['会议主题', '会议时间', '参会人', '记录人'][projectBlock - 1];
+          if (step.text.startsWith(label)) await Word.run(async ctx => {
+            const paragraph = (await load(ctx))[at];
+            paragraph.insertText(label, 'Replace');
+            await ctx.sync();
+            const value = (await load(ctx))[at].insertText(step.text.slice(label.length), 'End');
+            value.font.set({ bold: false });
+            await ctx.sync();
+          });
         }
         focus = { index: at, text: step.text, tone: 'edit' };
         break;
@@ -389,7 +416,7 @@ export async function runDocxSteps(Word, steps, doc, { signal, onStep = () => {}
     // Only a batch's very first insert may fill a new document's empty paragraph; any step ends that.
     state.emptyStart = false;
     if (focus && !focus.cell) await cursorTo(focus.index);
-    onDone(number, focus);
+    await onDone(number, focus);
     if (!grouped) { if (!pending.length) track.partial = undefined; finished(number); }
     if (number < steps.length - 1) await wait(pause);
   }
@@ -413,6 +440,7 @@ export function createKitDocumentAgent({ editor, document, animate = () => true,
   const labels = DOC_LABELS[locale] ?? DOC_LABELS.zh;
   const overlay = createDocOverlay(document, { animate, wait, showStatus: false, followParagraphPaint: true });
   const creation = createGenerationSurface(overlay,locale);
+  let tableStage, tableFrozen = false, projectMode = false, templateMode = false, meetingMode = false, proposalMode = false;
   let applying = false, settled, release;
   const beginWrite = () => {
     applying = true;
@@ -436,6 +464,9 @@ export function createKitDocumentAgent({ editor, document, animate = () => true,
     get applying() { return applying; },
     handOff() {},
     get creating() { return creation.active; },
+    beginTemplateCreation(mode='template') { templateMode = mode; },
+    beginMeetingCreation() { meetingMode = true; },
+    beginProposalCreation() { proposalMode = true; },
     beginCreation(area) {
       return creation.start(()=>{
         const page = writerPaper(document);
@@ -446,8 +477,68 @@ export function createKitDocumentAgent({ editor, document, animate = () => true,
           clip:page.closest('.writer-document-preview__scroll')?.getBoundingClientRect()},Math.ceil(bounds.height/27));
       });
     },
+    async beginTableStage() {
+      if (tableStage?.active) throw agentError('invalid-edit', 'A table is already being prepared.');
+      const doc = await inspectDocument(Word(), document);
+      const index = doc.paragraphs.findIndex(p => p.table);
+      if (doc.tables.length !== 1 || index < 0) throw agentError('invalid-edit', 'The project plan needs exactly one existing table.');
+      const block = bodyBlock(doc.paragraphs, index);
+      const locate = tableLocator(document, block);
+      // An absent paint target must fail closed; never present an unmasked placeholder as completed.
+      for (let attempt = 0; attempt < 40 && !locate(); attempt++) await wait(50);
+      if (!locate()) throw agentError('editor-failed', 'The table is not visible yet; try again after layout.');
+      tableStage = createTableStage({ document, overlay, locate });
+      await tableStage.begin();
+      projectMode = true;
+    },
+    async fillProjectTable(milestones, kind = 'project') {
+      if (!tableStage?.active) throw agentError('invalid-edit', 'No table is being prepared.');
+      if (!Array.isArray(milestones) || !milestones.length) throw agentError('invalid-edit', 'Provide milestones.');
+      if (projectMode && (await inspectDocument(Word(), document)).paragraphs.some(p => !p.table && isTemplateBlank(p.text)))
+        throw agentError('invalid-edit', 'Complete the project plan paragraphs before finishing the table.');
+      beginWrite();
+      try {
+        await Word().run(async ctx => {
+          const tables=ctx.document.body.tables;tables.load('items');await ctx.sync();
+          const table=tables.items[0];table.load('rowCount,values');await ctx.sync();
+          if(table.rowCount !== milestones.length+1) throw agentError('invalid-edit','The table row count changed.');
+          const fields=kind==='meeting'?['decision','owner','deadline']:kind==='proposal'?['description','quantity','unitPrice','amount']:['stage','deliverable','owner','deadline'];
+          if ((kind==='meeting') !== meetingMode || (kind==='proposal') !== proposalMode || !Array.isArray(table.values) || table.values.slice(1).some(row => !Array.isArray(row) || row.length !== fields.length || row.some(value => value !== '待填写')))
+            throw agentError('source-changed','The table was edited during generation; its contents were kept.');
+          for(let i=0;i<milestones.length;i++) for(let col=0;col<fields.length;col++) {
+            const value=milestones[i][fields[col]] || '待填写';
+            table.getCell(i+1,col).body.paragraphs.getFirst().insertText(value,'Replace');
+          }
+          await ctx.sync();
+        });
+      } finally { finishWrite(); }
+    },
+    async freezeTableStage() {
+      if (!tableStage?.active) throw agentError('invalid-edit', 'No table is being prepared.');
+      await tableStage.activate();
+      tableFrozen = true; overlay.busy(true, labels.editing);
+    },
+    endTableStage() {
+      tableStage?.end(); tableStage = undefined; tableFrozen = false; overlay.busy(false);
+    },
     async endGeneration() {
+      if (!tableFrozen && tableStage?.active) { tableStage.end(); tableStage = undefined; }
       if (!creation.finish()) return;
+      // Clear only untouched markers, including when a generation is stopped. User text is never replaced here.
+      const remaining = (projectMode || templateMode) ? await inspectDocument(Word(), document) : {paragraphs:[]};
+      const blanks = remaining.paragraphs.flatMap((p, i) => !p.table && isTemplateBlank(p.text) ? [i] : []);
+      projectMode = false;
+      templateMode = false;
+      meetingMode = false;
+      proposalMode = false;
+      if (blanks.length) {
+        beginWrite();
+        try { await Word().run(async ctx => {
+          const ps=ctx.document.body.paragraphs;ps.load('items/text');await ctx.sync();
+          for (const i of blanks) if (isTemplateBlank(ps.items[i]?.text)) ps.items[i].insertText('', 'Replace');
+          await ctx.sync();
+        }); } finally { finishWrite(); }
+      }
       await overlay.waitForParagraphCursors();
       if (creation.active) return;
       if (document.hasFocus()) {
@@ -537,10 +628,30 @@ export function createKitDocumentAgent({ editor, document, animate = () => true,
           return parts.filter((part,i)=>i===parts.length-1 || Array.from(part).length>=count);
         };
         const outcome = await runDocxSteps(word, steps, doc, {
-          signal, wait, pause:moving ? pauseMs : 0, writingPause:moving && creation.active ? pauseMs / 2 : 0, track, chunk,
+          signal, wait, pause:moving ? pauseMs : 0, writingPause:moving && creation.active ? pauseMs / 2 : 0, track, chunk, projectCreation: creation.active && !!tableStage?.active, templateCreation: creation.active ? templateMode : false, meetingCreation: creation.active && meetingMode, proposalCreation: creation.active && proposalMode,
           onSelect: async (number, target, step, currentTexts) => {
             if (selectionWork) return;
             overlay.say(labels.step(number + 1, total));
+            if (creation.active && (tableStage?.active || templateMode) && step.op === 'setText' && isTemplateBlank(target?.text)) {
+              const find=paragraphRange(document,PROJECT_BLANK,target.block,0,1,true,true);
+              await overlay.select(key(number), () => {
+                const base=find(), element=findParagraphElements(document,PROJECT_BLANK,target.block,true)?.[0];
+                if (!base || !element) return base;
+                const font=document.defaultView.getComputedStyle(element), scale=element.getScreenCTM()?.a || 1;
+                const canvas=document.createElement('canvas'), ctx=canvas.getContext('2d');
+                ctx.font=`${font.fontWeight} ${parseFloat(font.fontSize)*scale}px ${font.fontFamily}`;
+                let lines=1, width=0;
+                for (const char of Array.from(step.text)) {
+                  const advance=ctx.measureText(char).width;
+                  if (char === '\n' || (width && width+advance > base.width)) { lines++; width=0; }
+                  if (char !== '\n') width+=advance;
+                }
+                const height=base.rects[0].height;
+                const rects=Array.from({length:Math.min(lines,30)},(_,i)=>({left:base.left,top:base.top+i*height,width:base.width,height}));
+                return {...unionRects(rects),rects,clip:base.clip,page:base.page};
+              }, {label:agentLabel(locale,target.block === 0 ? 'title' : 'body'),selecting:agentLabel(locale,'selecting'),writer:true,edge:true});
+              return;
+            }
             if(chatBatch && step.op==='setText' && target?.text){
               const original=step.find ?? target.text, start=target.start ?? 0;
               const end = start + Array.from(original).length;
@@ -571,6 +682,10 @@ export function createKitDocumentAgent({ editor, document, animate = () => true,
             await overlay.select(key(number), locate(target), { label: agentLabel(locale, docxStatus(step)), selecting: agentLabel(locale, 'selecting'), edge: true });
           },
           onWrite: followWritten,
+          onDone: async number => {
+            const tableAt=doc.paragraphs.findIndex(p=>p.table), step=steps[number];
+            if (tableStage?.active && !tableStage.framed && tableAt > 0 && step.op === 'setText' && step.target?.paragraph === tableAt-1 && step.text.trim()) await tableStage.activate();
+          },
           onFinish: number => {
             if(writtenChanges.has(number)){chatBatch.record(writtenChanges.get(number),previousChanges.get(number));writtenChanges.delete(number);}
             const work = batchFrames.get(number);
@@ -589,6 +704,9 @@ export function createKitDocumentAgent({ editor, document, animate = () => true,
         if (selectionWork) overlay.holdParagraphCursor(selectionWork.key);
         const refs = outcome.refs;
         const after = await inspectDocument(word, document);
+        const tableAt = after.paragraphs.findIndex(p => p.table);
+        const preceding = after.paragraphs[tableAt-1]?.text;
+        if (tableStage?.active && !tableStage.framed && tableAt > 0 && !isTemplateBlank(preceding) && preceding?.trim()) await tableStage.activate();
         return { applied: steps.length, ...(Object.keys(refs).length && { refs }), readToken: reads.remember(after), ...(outcome.styleFallback && { styleFallback: outcome.styleFallback }) };
       } catch (error) {
         const code = signal?.aborted ? 'cancelled' : PAGE_CODES.has(error?.code) ? error.code : 'editor-failed';

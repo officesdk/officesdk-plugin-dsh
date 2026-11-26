@@ -1,3 +1,5 @@
+import { projectTemplate } from './project-template.mjs';
+import { ordinaryLiveTemplate } from './ordinary-live-template.mjs';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { lstat } from 'node:fs/promises';
@@ -44,7 +46,7 @@ export function createSpreadsheet(service, sessionId, args, options) {
 /** Word template names the shimo-docx skill text may still use; the build ships gongwen alone, so these fall back to it. */
 const FALLBACK_WORD_TEMPLATES = Object.freeze(['redhead', 'basic']);
 
-async function createFromTemplate(service, sessionId, { path, template, outputArea }, { approve, signal } = {}, { extension, root, tool, noun }) {
+async function createFromTemplate(service, sessionId, { path, template, outputArea, projectMetadata, meetingDecisionCount }, { approve, signal } = {}, { extension, root, tool, noun }) {
   const scope = await service.scopeOf(sessionId);
   if (typeof path !== 'string' || !path.toLowerCase().endsWith(extension)) throw new SuiteError('invalid-path', `${tool} makes ${extension} files; give a path ending in ${extension}.`);
   const isWord = extension === '.docx';
@@ -61,7 +63,7 @@ async function createFromTemplate(service, sessionId, { path, template, outputAr
   } else if (service.skillRoot) {
     root = await service.skillRoot(isWord ? 'shimo-docx' : 'shimo-xlsx', sessionId, 'templates', { signal }) ?? root;
   }
-  // A built-in Word template this copy does not ship (the public build has gongwen only, spec 261113-bundle-public-skills):
+  // A built-in Word template this copy does not ship (legacy redhead/basic can fall back to gongwen, spec 261113-bundle-public-skills):
   // the document starts from the default one and the result says so, so the model can tell the user. A misspelt name still fails.
   let fallback;
   if (extension === '.docx' && typeof template === 'string' && template !== DEFAULT_TEMPLATE && FALLBACK_WORD_TEMPLATES.includes(template)) {
@@ -71,7 +73,10 @@ async function createFromTemplate(service, sessionId, { path, template, outputAr
       template = DEFAULT_TEMPLATE;
     }
   }
-  const data = loadTemplate(root, template, extension);
+  if (projectMetadata !== undefined && (!isWord || template !== 'project-plan')) throw new SuiteError('invalid-edit', 'Project metadata is only available with project-plan.');
+  if (meetingDecisionCount !== undefined && (!isWord || template !== 'meeting-minutes' || !Number.isInteger(meetingDecisionCount) || meetingDecisionCount<1 || meetingDecisionCount>12)) throw new SuiteError('invalid-edit','Meeting decision count must be 1–12 for meeting-minutes.');
+  const ordinaryLive = isWord && ['weekly-report','product-requirements','meeting-minutes','formal-letter','project-proposal'].includes(template);
+  const data = isWord && template === 'project-plan' ? await projectTemplate({root, dataRoot:service.dataRoot, metadata:projectMetadata ?? {}, signal}) : ordinaryLive ? await ordinaryLiveTemplate({root,dataRoot:service.dataRoot,template,signal,...(template==='meeting-minutes' && {rows:meetingDecisionCount ?? 3}),...(template==='project-proposal' && {rows:5})}) : loadTemplate(root, template, extension);
   let created;
   try { created = await service.writer.create(scope, path, data, signal ?? AbortSignal.timeout(30_000)); }
   catch (error) {
@@ -83,8 +88,8 @@ async function createFromTemplate(service, sessionId, { path, template, outputAr
   const real = created.absolutePath;
   const identity = await lstat(real).catch(() => undefined);
   const windowed = Boolean(identity?.isFile() && await service.realPathOf(scope, real) === real);
-  if (windowed) service.generations.set(`${sessionId}\0${real}`, { steps: 0, imageBytes: 0, reserved: { steps: 0, imageBytes: 0 }, stopped: false, dev: identity.dev, ino: identity.ino });
-  const read = await service.agents.request(sessionId, { kind: 'read', path, creationArea }, signal);
+  if (windowed) service.generations.set(`${sessionId}\0${real}`, { steps: 0, imageBytes: 0, reserved: { steps: 0, imageBytes: 0 }, stopped: false, dev: identity.dev, ino: identity.ino, template, ...(isWord && template === 'project-plan' && {milestoneCount: projectMetadata?.milestoneCount ?? 4}), ...(template==='meeting-minutes' && {decisionCount:meetingDecisionCount ?? 3}), ...(template==='project-proposal' && {proposalCount:5}) });
+  const read = await service.agents.request(sessionId, { kind: 'read', path, creationArea, ...(isWord && template === 'project-plan' ? {initialBlank:'project'} : template==='meeting-minutes' ? {initialBlank:'meeting'} : template==='project-proposal' ? {initialBlank:'proposal'} : template==='formal-letter' ? {initialBlank:'letter'} : ordinaryLive ? {initialBlank:'template'} : {}) }, signal);
   return { created: true, template, ...fallback && { templateFallback: fallback }, ...read, generating: windowed };
 }
 

@@ -4,6 +4,18 @@
 
 新版本按[发布前确认更新说明](../../docs/NPM.md#发布前确认更新说明)执行。每个明确功能单列一条，纯修复或维护版采用约定的一句说明。发布前确认版本号、渠道和完整中英文文案，将确认稿放在该版本的「### 更新要点」和「### Highlights」中，两种语言逐条对应。运行 `node scripts/whats-new.mjs` 同步随包说明。
 
+## 1.0.0 — 2026-11-26
+
+### 更新要点
+
+- 新增 Word 默认风格，会议纪要、工作周报和项目计划等常用文档可直接按场景起草。
+- 新增 PPT 默认风格，可用于团队工作汇报、员工培训和经验分享，也可从空白幻灯片开始。
+
+### Highlights
+
+- New default styles for Word help you draft meeting minutes, weekly reports, project plans, and other everyday documents.
+- New default styles for PowerPoint let you create team updates, training decks, and knowledge-sharing presentations, or start with a blank slide.
+
 ## 0.0.3 — 2026-11-25
 
 ### 更新要点

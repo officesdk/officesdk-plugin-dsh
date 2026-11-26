@@ -26,8 +26,8 @@ test('every style pack passes the validator (renderer check when a Python with p
   assert.deepEqual(pack.stats.photos, { slots: 7, required: 1, per_slide_max: 3 });
   assert.equal(pack.stats.previews, 3, 'default shows three sample pages in the template gallery');
   assert.ok(pack.stats.minTextPt >= 9 && pack.stats.minChartPt >= 8);
-  // The repository ships the default pack alone (the blue house style).
-  assert.deepEqual(result.packs.map(item => item.id), ['default']);
+  // Keep the original style and the three release templates.
+  assert.deepEqual(result.packs.map(item => item.id), ['default', 'slide-000', 'slide-002', 'slide-008']);
   assert.equal(JSON.parse(readFileSync(join(DEFAULT_SKILL, 'styles', 'default', 'style.json'), 'utf8')).meta.design_source.cleared, true);
 });
 

@@ -133,11 +133,14 @@ async function environment(browser, suite) {
   page.on('console', message => { if (message.type() === 'error' && !/Failed to load resource/.test(message.text())) errors.push(message.text().slice(0, 200)); });
   page.on('response', response => { const where = new URL(response.url()).pathname; if (response.status() >= 400 && response.status() !== 416 && (!where.includes('/kit/v/') || where.includes(`/kit/v/${liveView}/`))) errors.push(`${response.status()} ${where}`); });
   await page.goto(`${origin}/`);
-  const open = async (name, { as = peer, session = scope } = {}) => {
+  const open = async (name, { as = peer, session = scope, generation, slideProgress } = {}) => {
     const view = await docs.open(session, name, as);
     liveView = view.id;
     const started = Date.now();
-    await page.evaluate(({ id, entry }) => window.openView(id, entry), { id: view.id, entry: `/shimo/kit/static/page/index.html?view=${view.id}` });
+    const query = new URLSearchParams({ view: view.id });
+    if (generation) query.set('generation', generation);
+    if (slideProgress) query.set('slideProgress', JSON.stringify(slideProgress));
+    await page.evaluate(({ id, entry }) => window.openView(id, entry), { id: view.id, entry: '/shimo/kit/static/page/index.html?' + query });
     await page.waitForFunction(() => window.ready || window.failed, null, { timeout: 120_000 });
     return { view, failed: await page.evaluate(() => window.failed), ms: Date.now() - started };
   };
@@ -806,9 +809,68 @@ async function newFileSuite(browser) {
   }
 }
 
+async function liveReportingSuite(browser) {
+  const suite = 'live-reporting', env = await environment(browser, suite);
+  const root = path.join(repo, 'packages/dsh-adapter/skills/shimo-pptx');
+  const { blankExistingDeck } = await import('../../packages/dsh-adapter/src/host/existing-deck.mjs');
+  try {
+    const name = 'quarter.pptx', file = path.join(env.workspace, name);
+    const reportingData = { chart: { title: '构成', categories: ['甲','乙','丙'], values: [2,3,5] }, bars: [3,7,11,5,2] };
+    writeFileSync(file, await blankExistingDeck({ stylesRoot: path.join(root, 'styles'), style: 'slide-002', dataRoot: env.workspace, reportingData }));
+    let { view, failed } = await env.open(name, { generation: 'ppt-template' });
+    if (failed) throw Error(failed.message);
+    const call = async (method, params) => {
+      const response = await env.agent(method, params);
+      if (!response.ok) throw Error(response.message);
+      return response.result;
+    };
+    const deck = await call('inspect', {});
+    const waiting = () => env.frame().locator('.office-slide-generation[data-phase=waiting]').count();
+    check(suite, 'eight waiting pages with empty editable titles', await waiting() === 8 && deck.slides.every(s => s.shapes.some(x => x.name === 'title-line0' && !x.text)));
+    await env.shot('opening');
+    await env.frame().evaluate(() => {
+      window.maxAgents = 0;
+      window.observer = new MutationObserver(() => { window.maxAgents = Math.max(window.maxAgents, document.querySelectorAll('.office-slide-generation[data-phase=writing]').length); });
+      window.observer.observe(document.body, { subtree: true, attributes: true, childList: true });
+    });
+    for (let i = 0; i < 8; i += 2) {
+      const pages = deck.slides.slice(i, i+2);
+      const ops = pages.map((page, j) => ({ op: 'setText', slideId: page.id, shapeId: page.shapes.find(x => x.name === 'title-line0').id, text: '季度工作汇报 ' + (i+j+1) }));
+      await call('apply', { ops, completedSlideIds: pages.map(page => page.id), slideProgress: { done: deck.slides.slice(0, i).map(s => s.id), partial: [] } });
+      if (i === 2) check(suite, 'next edit restores sorter progress after loss of the live view', await waiting() === 4);
+      if (i === 0) {
+        check(suite, 'two visible agents completed their own pages; six pages are still waiting', await env.frame().evaluate(() => window.maxAgents) === 2 && await waiting() === 6);
+        await env.shot('first-batch');
+        // The desktop can remount its preview while a different conversation is selected.
+        await call('flush', {}); await env.docs.whenIdle(view.id);
+        await env.closeView(view, { autosave: true });
+        const resume = { done: pages.map(page => page.id), partial: [] };
+        ({ view, failed } = await env.open(name, { generation: 'ppt-template', slideProgress: resume }));
+        if (failed) throw Error(failed.message);
+        check(suite, 'remounted editor shows the first two finished slides, six waiting, and no concealed finished title',
+          await waiting() === 6 && await env.frame().locator('[data-thumbnail-slide-id="' + pages[0].id + '"] .office-slide-generation').count() === 0);
+        await env.shot('resumed');
+        // Also recover when the same frame was returned to normal view between batches.
+        await call('documentUi', { endGeneration: true });
+
+      }
+    }
+    check(suite, 'normal view restored after all eight pages finish', await env.frame().locator('.office-slide-generation').count() === 0 && (await call('inspect', {})).selectedSlideIds?.includes(deck.slides[0].id));
+    await call('flush', {}); await env.docs.whenIdle(view.id);
+    const saved = await env.docs.save(view.id, env.peer);
+    await env.closeView(view, { autosave: false });
+    const reopened = await env.open(name);
+    if (reopened.failed) throw Error(reopened.failed.message);
+    const final = await call('inspect', {});
+    const chart = unzipOptional(file,'ppt/*charts/chart*.xml');
+    check(suite,'eight streamed titles and supplied native chart data survive reopening', saved.saved && final.slides.every((page, i) => page.shapes.some(s => s.text === '季度工作汇报 ' + (i+1))) && chart.includes('doughnutChart') && ['甲','乙','丙',2,3,5].every(x => chart.includes('>'+x+'<')));
+    await env.shot('reopened'); check(suite, 'no editor errors', !env.errors.length, env.errors);
+  } catch (error) { check(suite, 'live reporting', false, error.stack); } finally { await env.dispose(); }
+}
+
 const browser = await chromium.launch({ headless: !values.headed });
 try {
-  for (const [name, run] of [['document', documentSuite], ['sheet', sheetSuite], ['local-edit', localEditSuite], ['presentation-generation', plannedPresentationSuite], ['file-creation', newFileSuite]]) {
+  for (const [name, run] of [['live-reporting', liveReportingSuite], ['document', documentSuite], ['sheet', sheetSuite], ['local-edit', localEditSuite], ['presentation-generation', plannedPresentationSuite], ['file-creation', newFileSuite]]) {
     if (values.suite !== 'all' && values.suite !== name) continue;
     try { await run(browser); } catch (error) { check(name, `the ${name} run finished`, false, error.message); }
   }

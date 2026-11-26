@@ -2,8 +2,8 @@
  * The skills the public npm build ships (spec 261113-bundle-public-skills): complete inside the package, never
  * downloaded. The repository holds exactly these; the trim below keeps a build honest should anything else appear.
  *
- *   shimo-pptx   SKILL.md, references/, scripts/ and the `default` style pack (蓝色品牌风格 brand-ppt-12)
- *   shimo-docx   SKILL.md, references/, scripts/, assets/, the `gongwen` template and the examples that are not
+ *   shimo-pptx   SKILL.md, references/, scripts/ and the published presentation style packs
+ *   shimo-docx   SKILL.md, references/, scripts/, assets/, the published Word templates and the examples that are not
  *                another template's own
  *
  * Only the build's temporary copy is trimmed; the repository's skill directories stay as they are.
@@ -13,8 +13,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 export const PUBLIC_SKILLS = Object.freeze({
-  'shimo-pptx': Object.freeze({ styles: Object.freeze(['default']), drop: Object.freeze([]) }),
-  'shimo-docx': Object.freeze({ templates: Object.freeze(['gongwen']), drop: Object.freeze(['examples/redhead-notice.json']) }),
+  'shimo-pptx': Object.freeze({ styles: Object.freeze(['default', 'slide-000', 'slide-002', 'slide-008']), drop: Object.freeze([]) }),
+  'shimo-docx': Object.freeze({ templates: Object.freeze(['blank', 'formal-letter', 'gongwen', 'meeting-minutes', 'product-requirements', 'project-plan', 'project-proposal', 'weekly-report']), drop: Object.freeze(['examples/redhead-notice.json']) }),
 });
 export const PUBLIC_SKILL_NAMES = Object.freeze(Object.keys(PUBLIC_SKILLS));
 /** Files directly under skills/ that are not a skill (the skills' own change log) and stay out of the public package. */
@@ -87,8 +87,8 @@ async function removeEmptyDirs(dir) {
 
 /** Display text of the skills component for the public build (locale/skills/<lang>.json). */
 export const PUBLIC_SKILLS_LOCALE = Object.freeze({
-  zh: { meta: { title: 'OfficeSDK · 默认风格 skill', description: 'AI 新建文件时用的默认风格：shimo-pptx（PPT，蓝色品牌风格）、shimo-docx（Word，公文版式）。随插件自带，无需下载；你自己放的同名 skill 优先。' } },
-  en: { meta: { title: 'OfficeSDK · Default style skills', description: 'Default styles the AI uses for new files: shimo-pptx (PPT, blue house style) and shimo-docx (Word, official-document layout). They ship with the plugin, nothing to download; a same-named skill of your own takes precedence.' } },
+  zh: { meta: { title: 'OfficeSDK · 默认风格 skill', description: '内置 Word 和 PPT 默认风格。Word 可起草会议纪要、工作周报、产品需求文档、项目计划、项目建议书和正式信函。PPT 可制作团队工作汇报、员工培训和经验分享。两者都可从空白页开始。风格随插件安装，你自己的同名 skill 优先。' } },
+  en: { meta: { title: 'OfficeSDK · Default style skills', description: 'Start Word documents and PowerPoint presentations with built-in styles. In Word, draft meeting minutes, weekly reports, product requirements, project plans, proposals, and formal letters. In PowerPoint, create team updates, training decks, and knowledge-sharing presentations. Both can start from a blank page or slide. The styles ship with the plugin, and your own skills of the same name take precedence.' } },
 });
 
 /**
@@ -102,7 +102,7 @@ export function publicCapabilities(capabilities, entries) {
   for (const product of next.products ?? []) {
     if (product.id === 'presentation') {
       product.stylePacks = [...entries['shimo-pptx']?.stylePacks ?? []];
-      for (const item of product.capabilities ?? []) if (item.id === 'style-packs') item.summary = '内置蓝色品牌风格（default）';
+      for (const item of product.capabilities ?? []) if (item.id === 'style-packs') item.summary = '内置蓝色品牌风格、团队工作汇报、培训与经验分享和空白幻灯片';
     } else if (product.id === 'document') product.templates = [...entries['shimo-docx']?.templates ?? []];
     else if (product.id === 'spreadsheet') {
       product.templates = [...new Set(['blank', ...(entries['shimo-xlsx']?.templates ?? [])])];

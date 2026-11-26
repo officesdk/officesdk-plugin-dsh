@@ -56,10 +56,10 @@ async function load(t, { docTemplateRoot = TEMPLATES } = {}) {
 const readResult = { ok: true, result: { format: 'docx', path: 'new.docx', unsaved: false, document: { paragraphCount: 1, paragraphs: [{ index: 0, text: '' }], tables: [], readToken: 'd1' } } };
 
 test('the bundled template is gongwen, with the official page margins', async () => {
-  assert.deepEqual(templateNames(TEMPLATES), ['gongwen']);
+  assert.deepEqual(templateNames(TEMPLATES), ['blank','formal-letter','gongwen','meeting-minutes','product-requirements','project-plan','project-proposal','weekly-report']);
   const data = loadTemplate(TEMPLATES, 'gongwen');
   assert.ok(data.length > 1000);
-  assert.throws(() => loadTemplate(TEMPLATES, 'letter'), error => error.code === 'invalid-edit' && /available: gongwen/.test(error.message));
+  assert.throws(() => loadTemplate(TEMPLATES, 'letter'), error => error.code === 'invalid-edit' && /available: .*gongwen/.test(error.message));
   assert.equal(nounOf('a.docx'), 'document');
   assert.equal(nounOf('a.PPTX'), 'presentation');
   assert.equal(nounOf('a.xlsx'), 'spreadsheet');
@@ -116,7 +116,7 @@ test('a template name the model may still use (redhead, basic) starts from gongw
   const basic = service.aiCreateDocument('s1', { path: 'plain.docx', template: 'basic' });
   await client(() => readResult);
   assert.equal((await basic).templateFallback.requested, 'basic');
-  await assert.rejects(service.aiCreateDocument('s1', { path: 'x.docx', template: 'redhed' }), /Unknown template "redhed"; available: gongwen/);
+  await assert.rejects(service.aiCreateDocument('s1', { path: 'x.docx', template: 'redhed' }), /Unknown template "redhed"; available: .*gongwen/);
 });
 
 test('tools: document_* call the service with the agent Session and pass readToken through', async () => {
@@ -277,4 +277,14 @@ test('261109: gongwen carries page numbers and starts with one empty paragraph',
   };
   assert.doesNotMatch(part('gongwen', 'word/styles.xml'), /outlineLvl/, 'Kit cannot save outline levels (K15)');
   assert.match(part('gongwen', 'word/document.xml'), /<w:body><w:p\/>/, 'gongwen starts with one empty paragraph');
+});
+
+test('project plan creation opens a real templated file and starts its table frame', async t => {
+  const {service, workspace, client} = await load(t);
+  const creating=service.aiCreateDocument('s1',{path:'project.docx',template:'project-plan',projectMetadata:{name:'演示项目',owner:'林悦',period:'本月'}});
+  const opened=await client(async command => { assert.equal(command.kind,'read'); return readResult; });
+  assert.equal(opened.creationArea,'page');
+  assert.equal(opened.initialBlank,'project');
+  const result=await creating; assert.equal(result.created,true);assert.equal(result.template,'project-plan');assert.equal(result.generating,true);
+  const contents=await readFile(join(workspace,'project.docx'));assert.ok(contents.length>1000);
 });

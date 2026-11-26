@@ -79,10 +79,10 @@ You can undo the agent’s edits to a PowerPoint presentation. In Word and Excel
 
 ### Create files with bundled skills
 
-The plugin includes two skills. DeepSeek Harness selects the appropriate one when you ask the agent to create a file.
+The **OfficeSDK · Default style skills** component includes two skills. DeepSeek Harness selects the appropriate one when you ask the agent to create a file.
 
-- **Word** (`shimo-docx`). The agent drafts the document section by section using a template for official documents in Chinese, such as notices and letters. It uses an offline script when the document needs tables or when you request several documents at once.
-- **PowerPoint** (`shimo-pptx`). The agent builds the presentation a few slides at a time in the editor. It uses an offline script if you need tables or charts, request several presentations at once, or work in a session without the editor. It looks first for images you provide or suitable images in your workspace. If it uses images under an open license, it credits them in the speaker notes or in its final response.
+- **Word** (`shimo-docx`). Ask for meeting minutes, a weekly report, a product requirements document, a project plan, a proposal, a formal letter, or a blank document. The editor writes a section at a time and fills meeting decisions, milestones and proposal budgets in place. The original Chinese official-document style is also available.
+- **PowerPoint** (`shimo-pptx`). Choose a work update or retrospective, training and knowledge sharing, a blank slide, or the original blue presentation style. Watch the slides fill in and return to a report in progress to see which pages are ready. Work reports can include an editable doughnut chart.
 
 For **Excel**, open an existing workbook and ask the agent to enter data or write formulas. The plugin does not currently include a skill or template for creating new workbooks in the editor.
 

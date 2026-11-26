@@ -102,9 +102,9 @@ test('page: centred title without subtitle, the glass switch, 我的模板｜精
   assert.equal(all(ppt).find(node => node.type === 'img').props.src, FILE_ICONS.ppt, 'selected: the colour original');
   assert.match(byClass(radios[0], 'sbi-type-outline')[0].props.style['--sbi-outline'], new RegExp(OUTLINE_ICONS.word.slice(0, 40).replace(/[+/]/g, '\\$&')), 'unselected: the outline');
   // Scenes come from every kind's categories, most used first (ties: first use).
-  assert.deepEqual(byClass(tree, 'sbi-chip').map(words), ['我的模板', '精选', '业务汇报', '公文通知', '城市旅行']);
+  assert.deepEqual(byClass(tree, 'sbi-chip').map(words), ['我的模板', '精选', '业务汇报', '会议协作', '公文通知', '城市旅行']);
   assert.equal(byClass(tree, 'sbi-chip').find(node => node.props['aria-pressed']).props['data-scope'], 'featured');
-  assert.deepEqual(cards(tree), ['word:gongwen', 'ppt:default', 'ppt:dark']);
+  assert.deepEqual(cards(tree), ['word:meeting-minutes', 'word:gongwen', 'ppt:default', 'ppt:dark']);
   // The switch only sets the mode: the cards and the filter stay.
   view.library.setScope('业务汇报');
   view.library.setMode('word');
@@ -157,7 +157,7 @@ test('no Session on screen: the PPT list says why, a use opens a new conversatio
   const view = await page({ sessionId: null });
   const tree = view.render();
   assert.match(words(byClass(tree, 'sbi-state')[0]), /打开一个工作区/);
-  assert.deepEqual(cards(tree), ['word:gongwen']);
+  assert.deepEqual(cards(tree), ['word:meeting-minutes', 'word:gongwen']);
   byClass(byClass(tree, 'sbi-card')[0], 'sbi-quick-use')[0].props.onClick();
   assert.deepEqual(view.calls, [['startSession'], ['selectPanel', null]]);
   assert.equal(view.library.state.pending.target, null);

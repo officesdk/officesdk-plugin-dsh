@@ -191,10 +191,11 @@ export function install(ctx, React, environment = {}) {
     const previousTurn = useRef();
     useEffect(() => {
       const controller = controllers.get(tab.id);
-      if (previousTurn.current === true && running === false && !pendingInteraction && controller?.state.ready && /\.(docx|xlsx|pptx)$/i.test(controller.source?.path ?? '')) {
+      const sessionId = controller?.source.sessionId;
+      if (previousTurn.current?.sessionId === sessionId && previousTurn.current?.running === true && running === false && !pendingInteraction && controller?.state.ready && /\.(docx|xlsx|pptx)$/i.test(controller.source?.path ?? '')) {
         void controller.agent('documentUi', {endGeneration:true}).catch(() => {});
       }
-      if (!pendingInteraction) previousTurn.current = running;
+      if (!pendingInteraction) previousTurn.current = { sessionId, running };
     }, [tab.id, running, pendingInteraction]);
     if (!request) return null;
     const controller = controllers.get(tab.id);

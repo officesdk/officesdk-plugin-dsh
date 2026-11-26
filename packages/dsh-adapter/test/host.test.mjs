@@ -169,10 +169,10 @@ test('Remote parameter names stay the Typert lookup contract', () => {
   assert.deepEqual(params('release'), ['workspaceFileScope', 'id', 'autosave', 'signal']);
   assert.deepEqual(params('renew'), ['workspaceFileScope', 'id', 'signal']);
   assert.deepEqual(params('access'), ['workspaceFileScope', 'id', 'signal']);
-  assert.deepEqual(params('agentNext'), ['workspaceFileScope', 'signal']);
+  assert.deepEqual(params('agentNext'), ['workspaceFileScope', 'confirmDelivery', 'signal']);
   assert.deepEqual(params('save'), ['workspaceFileScope', 'id', 'editRevision', 'approved', 'overwrite', 'signal']);
   assert.deepEqual(params('resolveDiskChange'), ['workspaceFileScope', 'id', 'useDisk', 'signal']);
-  assert.deepEqual(params('agentAlive'), ['workspaceFileScope', 'requestId', 'signal']);
+  assert.deepEqual(params('agentAlive'), ['workspaceFileScope', 'requestId', 'deliveryToken', 'signal']);
   assert.deepEqual(params('agentReply'), ['workspaceFileScope', 'requestId', 'ok', 'result', 'code', 'message', 'signal']);
   assert.deepEqual(params('updateStatus'), ['workspaceFileScope', 'refresh', 'signal']);
   assert.deepEqual(params('probe'), ['workspaceFileScope', 'path', 'kind', 'signal']);

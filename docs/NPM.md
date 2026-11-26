@@ -147,7 +147,7 @@ publish job 总有 OIDC 环境，不设 `NPM_TOKEN` 就由 npm CLI 做 OIDC 交�
 Actions → **npm-publish** → Run workflow（分支选 `main`），填：
 
 - `mode`：`publish`（默认；`dist-tag` 见「移动 dist-tag」）
-- `version`：要发的版本（默认 `0.0.3`，须等于 `packages/dsh-adapter/package.json`）
+- `version`：要发的版本（默认 `1.0.0`，须等于 `packages/dsh-adapter/package.json`）
 - `tag`：dist-tag（alpha / beta / rc / next / latest，默认 `latest`，须是版本的阶段）
 - `dry_run`：默认开。先开着跑一次，确认通过后关掉再跑一次正式发布。第一次演练时顺便看一眼运行日志：
   每一步开头的 env 里 `NPM_GATE_INTERNAL_HOSTS` 显示为 `***`，日志里不出现任何组织域名。

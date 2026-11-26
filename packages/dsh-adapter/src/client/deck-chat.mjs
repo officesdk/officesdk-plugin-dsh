@@ -6,11 +6,12 @@ const parse = value => {
   try { return JSON.parse(value); } catch { return undefined; }
 };
 const counted = args => typeof args?.path === 'string' && Number.isInteger(args.slideCount) && args.slideCount > 0;
+const tableSaves = new Set(['document_finish_project_table', 'document_finish_meeting_table', 'document_finish_proposal_table']);
 const createMatch = event => {
   const { name, arguments: raw, turn } = event.data;
   const args=parse(raw);
   if (Number.isInteger(turn) && ((name==='skill' && /^(office|shimo)-(docx|xlsx|pptx)$/.test(args?.name))
-      || /^(document|spreadsheet)_(read|create|edit|save)$/.test(name) && typeof args?.path==='string')) {
+      || (/^(document|spreadsheet)_(read|create|edit|save)$/.test(name) || tableSaves.has(name) || name === 'presentation_save') && typeof args?.path==='string')) {
     return {id:String(turn),role:'start'};
   }
   return name === 'presentation_create' && Number.isInteger(turn) && counted(parse(raw))
@@ -106,7 +107,7 @@ function officeFileCalls(snapshot,turn) {
   const calls = [];
   function visit(block) {
     if (!block) return;
-    if (/^(?:presentation|document|spreadsheet)_(?:create|edit|save|undo)$/.test(block.name)) calls.push(decode(block));
+    if (tableSaves.has(block.name) || /^(?:presentation|document|spreadsheet)_(?:create|edit|save|undo)$/.test(block.name)) calls.push(decode(block));
     for (const sub of block.subCalls ?? []) visit(sub);
   }
   for (const key of snapshot.locations.getTurn(turn)) {
@@ -303,7 +304,7 @@ function missingOfficeResults(snapshot,turn,cwd) {
       changed.add(key);
       files.delete(key);
     }
-    if(action==='save' && (result.saved===true || (result.unchanged===true && changed.has(key)))){
+    if ((action === 'save' || tableSaves.has(name)) && (result.saved === true || (action === 'save' && result.unchanged === true && changed.has(key)))) {
       const path=typeof result.path==='string' && result.path.length ? result.path : args.path;
       if(!presented.has(key) && !presented.has(pathKey(path,cwd)))files.set(key,{path,...fileTypes[suite]});
     }

@@ -1,7 +1,18 @@
 {
   "v": 1,
-  "latestReleased": "0.0.3",
+  "latestReleased": "1.0.0",
   "entries": [
+    {
+      "version": "1.0.0",
+      "highlights": [
+        "新增 Word 默认风格，会议纪要、工作周报和项目计划等常用文档可直接按场景起草。",
+        "新增 PPT 默认风格，可用于团队工作汇报、员工培训和经验分享，也可从空白幻灯片开始。"
+      ],
+      "highlightsEn": [
+        "New default styles for Word help you draft meeting minutes, weekly reports, project plans, and other everyday documents.",
+        "New default styles for PowerPoint let you create team updates, training decks, and knowledge-sharing presentations, or start with a blank slide."
+      ]
+    },
     {
       "version": "0.0.3",
       "highlights": [

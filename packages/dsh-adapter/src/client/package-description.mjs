@@ -1,12 +1,13 @@
 import zh from '../../locale/zh.json' with { type: 'json' };
 
 const [intro, capabilities, example] = zh.meta.description.split('\n\n');
-const [heading, details] = capabilities.split('\n');
-const parts = details.split(/(\d+ 项功能)/);
 
 /** The host renders package metadata as plain text. Use the detail slot to format the same copy in place. */
 export function registerPackageDescription(ctx, React, createPortal) {
-  if (!createPortal) return;
+  // Only the legacy three-section copy needs custom formatting.
+  if (!createPortal || !example || !capabilities?.includes('\n')) return;
+  const [heading, details] = capabilities.split('\n');
+  const parts = details.split(/(\d+ 项功能)/);
   const { createElement: h, useLayoutEffect, useRef, useState } = React;
   function Description({ subject, t }) {
     const marker = useRef(null);

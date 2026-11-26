@@ -144,6 +144,10 @@ export async function startKitPage({ window, document, fetch: fetchImpl = window
     const resourcesBase = new URL('resources/', staticRoot).href;
     const catalog = editorModule.parseResourceCatalog(await (await call(fetchImpl, new URL('catalog.json', resourcesBase))).json());
     const root = document.getElementById('editor-root');
+    const generationMode = params.get('generation');
+    const initiallyBlank = ['project','meeting','proposal','template','letter'].includes(generationMode) && meta.suite === 'document' && meta.mode === 'edit';
+    const initiallyBlankDeck = generationMode === 'ppt-template' && meta.suite === 'presentation' && meta.mode === 'edit';
+    if (initiallyBlank || initiallyBlankDeck) root.style.visibility = 'hidden';
     // The editor only reads resources under `assets.baseUrl`, so each reference becomes one path segment there.
     // The editor's asset proxy resolves every URL the SDK requests, including one it already resolved and
     // extended (Sheet adds `?sm_xform=` for thumbnails): a URL under this view's media/ stays as it is.
@@ -244,7 +248,17 @@ export async function startKitPage({ window, document, fetch: fetchImpl = window
         chrome?.dispose();
         chrome = installEditorChrome({ root, window, document, suite: meta.suite, locale, signal: lifetime.signal, onWebsite:()=>channel.notify('open-website'), onGeometry:()=>selection?.layoutChanged(), onStatusInset: dockBottom => channel.notify('document-ui', { dockBottom }) });
       }
-      if (meta.suite === 'document') void fitWholeWriterPage(document);
+      if (meta.suite === 'document') {
+        // Limit the font correction to our meeting template; it survives opening an already saved file.
+        try {
+          await editor.api.writer.Word.run(async ctx => {
+            const styles = ctx.document.getStyles(); styles.load('items/nameLocal'); await ctx.sync();
+            if (Array.from(styles.items).some(item => String(item.nameLocal) === 'OfficeSDK Meeting Font'))
+              root.setAttribute('data-meeting-font-fix', '');
+          });
+        } catch (error) { console.warn('officesdk: meeting font detection unavailable', error); }
+        void fitWholeWriterPage(document);
+      }
       watchHistory();
       agent = createAgent?.({ editor, document, channel, view: base, locale });
       if (meta.mode === 'edit' && document.body && agent && (meta.suite === 'presentation' || typeof agent.readSelection === 'function')) {
@@ -339,6 +353,10 @@ export async function startKitPage({ window, document, fetch: fetchImpl = window
       // Selection rewrite: the conversation's state, the answer to a request, and the model's replacement.
       composer: async args => selection ? selection.composer(args) : { ok: false },
       documentUi: async args => {
+        if (args?.beginTableStage && meta.mode === 'edit' && agent?.beginTableStage) { await agent.beginTableStage(); return {ok:true}; }
+        if (args?.fillProjectTable && meta.mode === 'edit' && agent?.fillProjectTable) { await agent.fillProjectTable(args.fillProjectTable, args.tableKind); return {ok:true}; }
+        if (args?.freezeTableStage && meta.mode === 'edit' && agent?.freezeTableStage) { await agent.freezeTableStage(); return {ok:true}; }
+        if (args?.endTableStage && agent?.endTableStage) { agent.endTableStage(); return {ok:true}; }
         if (args?.beginCreation && meta.mode === 'edit' && agent?.beginCreation) {
           const start = agent.beginCreation(args.beginCreation);
           await selection?.refresh?.();
@@ -410,6 +428,13 @@ export async function startKitPage({ window, document, fetch: fetchImpl = window
     }, { signal: lifetime.signal });
 
     await mount();
+    if (initiallyBlank) {
+      await agent.beginCreation('page');
+      if (['project','meeting','proposal'].includes(generationMode)) { await agent.beginTableStage(); if(generationMode === 'meeting') agent.beginMeetingCreation(); if(generationMode==='proposal') agent.beginProposalCreation(); }
+      else agent.beginTemplateCreation(generationMode);
+      root.style.visibility = '';
+    }
+    if (initiallyBlankDeck) { await agent.beginExistingTemplate(JSON.parse(params.get('slideProgress') || '{}')); root.style.visibility = ''; }
     channel.notify('ready', { mode: meta.mode, ...(meta.diskChanged && { diskChanged: true }) });
     // Unloading tears the editor down with the page; destroying it during pagehide only trips the SDK's own disposal.
     window.addEventListener('pagehide', () => lifetime.abort(), { once: true });

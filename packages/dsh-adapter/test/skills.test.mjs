@@ -48,12 +48,12 @@ test('261109: the docx skill writes red letterhead live and keeps the script for
   assert.match(live, /用 `setText` 改这两段/);
   assert.match(live, /不要因为是红头、要页码就改用离线脚本/);
   assert.match(live, /一句话告诉用户为什么没在右侧生成/);
-  for (const reason of [/要\*\*表格\*\*/, /要图片/, /签发人/, /一次要出多份/]) assert.match(live, reason);
+  for (const reason of [/要\*\*普通表格\*\*/, /要图片/, /签发人/, /一次要出多份/]) assert.match(live, reason);
   assert.doesNotMatch(docx, /要红头（发文机关标志、红线、发文字号、版记）/, 'red letterhead is no longer a reason to go offline');
 });
 
-test('skill versions follow the plugin rule (shimo-pptx 0.0.10, shimo-docx 0.0.6) and the old names are gone from the shipped skills', () => {
-  const versions = { 'shimo-pptx': '0.0.10', 'shimo-docx': '0.0.6' };
+test('skill versions follow the plugin rule (shimo-pptx 0.0.11, shimo-docx 0.0.7) and the old names are gone from the shipped skills', () => {
+  const versions = { 'shimo-pptx': '0.0.11', 'shimo-docx': '0.0.7' };
   assert.deepEqual(Object.keys(versions).toSorted(), [...SKILL_NAMES].toSorted());
   for (const name of SKILL_NAMES) assert.match(readFileSync(join(ROOT, name, 'SKILL.md'), 'utf8'), new RegExp(`\\n {2}version: ${versions[name].replaceAll('.', '\\.')}\\n`), name);
   // Plan the whole deck before page content is available.

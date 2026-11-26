@@ -1,0 +1,102 @@
+{
+  "name": "slide-008",
+  "title": "培训与经验分享",
+  "fixed_deck": {
+    "slideCount": 7,
+    "textSlots": "text-slots.json"
+  },
+  "meta": {
+    "id": "slide-008",
+    "name": {
+      "zh": "培训与经验分享",
+      "en": "Training and knowledge sharing"
+    },
+    "aliases": [
+      "培训",
+      "经验分享"
+    ],
+    "summary": {
+      "zh": "白底、深蓝封面和蓝色强调，适合培训与知识分享",
+      "en": "Navy and white layouts for training"
+    },
+    "scenarios": {
+      "zh": [
+        "员工培训",
+        "经验分享"
+      ],
+      "en": [
+        "Training"
+      ]
+    },
+    "thumb": "thumb.png",
+    "fonts": [
+      {
+        "family": "Noto Sans SC",
+        "role": "cjk",
+        "license": "OFL-1.1",
+        "source": "https://fonts.google.com/noto/specimen/Noto+Sans+SC",
+        "bundled": false
+      },
+      {
+        "family": "Poppins",
+        "role": "latin",
+        "license": "OFL-1.1",
+        "source": "https://fonts.google.com/specimen/Poppins",
+        "bundled": false
+      },
+      {
+        "family": "Poppins Light",
+        "role": "latin_light",
+        "license": "OFL-1.1",
+        "source": "https://fonts.google.com/specimen/Poppins",
+        "bundled": false
+      }
+    ],
+    "design_source": {
+      "from": "OfficeSDK design record slide-008",
+      "note": "Approved for distribution with the plugin on 2026-11-26.",
+      "cleared": true
+    },
+    "requires": {
+      "photos": {
+        "slots": 0,
+        "required": 0,
+        "per_slide_max": 0
+      },
+      "note": {
+        "zh": "使用模板内的可编辑对象，无需准备照片。",
+        "en": "Uses editable objects in the template. No photos required."
+      }
+    }
+  },
+  "default_palette": "base",
+  "fonts": {
+    "cjk": "Noto Sans SC",
+    "latin": "Poppins",
+    "latin_light": "Poppins Light"
+  },
+  "palettes": {
+    "base": {
+      "primary": "#4A8BE0",
+      "onPrimary": "#FFFFFF",
+      "ink": "#102233",
+      "paper": "#FFFFFF",
+      "secondary": "#A2AFBA",
+      "lineOnPaper": "#D7DFE6",
+      "name": "培训与经验分享",
+      "onSecondary": "#102233",
+      "inkOnSecondary": "#102233",
+      "chartSecondary": "#A2AFBA",
+      "chartTertiary": "#102233",
+      "lineOnPrimary": "#FFFFFF"
+    }
+  },
+  "canvas": {
+    "width_px": 960,
+    "height_px": 540,
+    "slide_width_in": 10.0,
+    "slide_height_in": 5.625,
+    "emu_per_px": 9525,
+    "pt_per_px": 0.75
+  }
+}

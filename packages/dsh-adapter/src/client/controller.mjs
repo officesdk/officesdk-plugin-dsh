@@ -105,6 +105,11 @@ export class DocumentController {
       url.searchParams.set('parentOrigin', new URL(this.base).origin);
       // The interface language the tab opened with: the Kit page's editor language, selection UI and AI overlay follow it.
       if (this.locale) url.searchParams.set('lang', this.locale);
+      if (this.initialGeneration) { url.searchParams.set('generation', this.initialGeneration); this.initialGeneration = undefined; }
+      if (lease.slideProgress) {
+        url.searchParams.set('generation', 'ppt-template');
+        url.searchParams.set('slideProgress', JSON.stringify(lease.slideProgress));
+      }
       // A parked session comes back in edit mode with its unsaved changes, whatever mode was asked for.
       this.set({ url: url.href, capabilities: lease.capabilities, format: lease.format, mode: lease.mode ?? mode, dirty: lease.unsaved === true, saveNeedsApproval: lease.saveNeedsApproval === true || undefined,
         backend: lease.backend, diskChanged: lease.diskChanged === true || undefined, overwritePrompt: undefined,
@@ -128,7 +133,9 @@ export class DocumentController {
    * clean or read-only session reopens. Rule 3: unsaved edits survive as a diverged session.
    */
   async adopt(revision, currentVersion, { loaded, failed }) {
+    if (this.tableCommit) { this.tableDeferredAdopt = { revision, currentVersion, loaded, failed }; return; }
     await this.switched;
+    if (this.tableCommit) { this.tableDeferredAdopt = { revision, currentVersion, loaded, failed }; return; }
     if (revision === this.revision) return;
     // The last open failed (the retry button bumps the revision): open again rather than keep the error.
     if (!this.lease && this.state.error) return this.open(revision, { mode: this.resumeMode(), loaded, failed });
@@ -605,6 +612,14 @@ export class DocumentController {
 
   /** The tab's own mode (edit or view), never the preview it may have fallen back to. */
   resumeMode() { return this.state.mode === 'preview' || this.state.fallback ? this.editorMode ?? 'view' : this.state.mode; }
+
+  /** Keep Harness revision notifications from reopening this frame during a staged table commit. */
+  beginTableCommit() { this.tableCommit = true; this.pauseAutosave(true); }
+  endTableCommit() {
+    this.tableCommit = false; this.pauseAutosave(false);
+    const pending = this.tableDeferredAdopt; this.tableDeferredAdopt = undefined;
+    if (pending) void this.adopt(pending.revision, pending.currentVersion, pending).catch(() => {});
+  }
 
   /** The disk copy changed while edits were kept: use it (the editor reloads) or keep editing. */
   async resolveDiskChange(useDisk) {

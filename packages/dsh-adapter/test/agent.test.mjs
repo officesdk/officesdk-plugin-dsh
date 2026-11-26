@@ -363,7 +363,7 @@ test('tools: model-facing tools call the service with the agent Session; save as
   };
   const approval = { request: async request => { asked.push(request); return 'allowed-once'; } };
   applyTools({ tools: { register: tool => tools.set(tool.name, tool) }, shimoPreview: service, get: name => name === 'approval' ? approval : undefined });
-  assert.deepEqual([...tools.keys()], ['presentation_create', 'presentation_suggest_styles', 'presentation_read', 'presentation_edit', 'presentation_undo', 'presentation_save', 'document_create', 'document_read', 'document_edit', 'document_save', 'spreadsheet_create', 'spreadsheet_read', 'spreadsheet_edit', 'spreadsheet_save', 'selection_rewrite']);
+  assert.deepEqual([...tools.keys()], ['presentation_create', 'presentation_suggest_styles', 'presentation_read', 'presentation_edit', 'presentation_undo', 'presentation_save', 'document_create', 'document_read', 'document_edit', 'document_finish_project_table', 'document_finish_meeting_table', 'document_finish_proposal_table', 'document_save', 'spreadsheet_create', 'spreadsheet_read', 'spreadsheet_edit', 'spreadsheet_save', 'selection_rewrite']);
   const exec = { agent: { session: { id: 's9' } }, name: 'presentation_save', callId: 'c1', signal: new AbortController().signal };
   assert.deepEqual(await tools.get('presentation_read').execute({ path: 'a.pptx' }, exec), { deck: {} });
   await assert.rejects(tools.get('presentation_edit').execute({ path: 'a.pptx', summary: 'x', operations: [] }, exec), /invalid-edit: Operation 1: bad/);
@@ -485,4 +485,63 @@ test('background PPT rewrite and save leave the user in Word; concurrent first o
   assert.deepEqual(ppt.calls.filter(([name]) => name !== 'mode'), [
     ['rewrite', {selectionId:'title', text:'新标题'}], ['flush'], ['saved','v2',1],
   ]);
+});
+
+test('client: project table commands freeze, mark saved, refresh, and release the same editor', async () => {
+  const controller=fakeController(); controller.source={sessionId:'s1',path:'project.docx'};
+  controller.beginTableCommit=()=>controller.calls.push(['beginTableCommit']); controller.endTableCommit=()=>controller.calls.push(['endTableCommit']);
+  controller.flushEditor=async()=>controller.calls.push(['flush']);
+  controller.resolveDiskChange=async useDisk=>{controller.calls.push(['reload',useDisk]);controller.savedVersion='v2';};
+  controller.whenReady=async()=>controller.calls.push(['ready']);
+  const {bridge}=bridgeFor(controller);
+  for (const kind of ['table-begin','table-freeze','table-fill','table-mark-saved','table-refresh','table-release']) {
+    await bridge.run('s1',{kind,path:'project.docx',version:'v1',revision:3,milestones:[{stage:'启动'}]},new AbortController().signal);
+  }
+  assert.ok(controller.calls.some(x=>x[0]==='documentUi' && x[1].beginTableStage));
+  assert.ok(controller.calls.some(x=>x[0]==='documentUi' && x[1].freezeTableStage));
+  assert.ok(controller.calls.some(x=>x[0]==='flush'));
+  assert.ok(controller.calls.some(x=>x[0]==='saved' && x[1]==='v1'));
+  assert.ok(controller.calls.some(x=>x[0]==='reload' && x[1]===true));
+  assert.ok(controller.calls.some(x=>x[0]==='documentUi' && x[1].endTableStage));
+});
+
+test('a lost poll on conversation switch is offered again only to the owner; one claim runs the write', async () => {
+  const timers = fakeTimers();
+  const hub = new AgentHub({ scheduler: timers, offerMs: 3, pickupMs: 5, resumeMs: 100, aliveMs: 9 });
+  const pending = hub.request('prd', { kind: 'edit', path: '需求.docx', auto: true });
+  const lost = await hub.next('prd', undefined, true);
+  timers.fire(3);
+  timers.fire(5);
+  const next = await hub.next('prd', undefined, true);
+  assert.equal(next.requestId, lost.requestId);
+  assert.notEqual(next.deliveryToken, lost.deliveryToken);
+  assert.equal(hub.alive('prd', lost.requestId, lost.deliveryToken), false);
+  assert.equal(hub.alive('ppt', next.requestId, next.deliveryToken), false);
+  assert.equal(hub.alive('prd', next.requestId, next.deliveryToken), true);
+  assert.equal(hub.alive('prd', next.requestId, next.deliveryToken), false);
+  timers.fire(3);
+  assert.equal(hub.queue('prd').length, 0);
+  hub.reply('prd', next.requestId, { ok: true, result: 'written once' });
+  assert.equal(await pending, 'written once');
+});
+
+test('an opening interrupted by a session switch resumes in the original session without opening in another', async () => {
+  const listeners = new Set(), visits = [];
+  let session = 'prd';
+  const mounted = { getSnapshot: () => session, subscribe: callback => { listeners.add(callback); return () => listeners.delete(callback); } };
+  const switchTo = value => { session = value; for (const callback of [...listeners]) callback(); };
+  const registry = new ControllerRegistry(), controller = fakeController();
+  const bridge = new AgentBridge({ mounted, controllers: registry, openResource: address => {
+    visits.push(session);
+    if (visits.length === 1) switchTo('report');
+    else registry.add(address, controller);
+  } });
+  const opened = bridge.document('prd', '需求.docx', undefined, { kind: 'read', initialBlank: 'template' });
+  await tick();
+  assert.deepEqual(visits, ['prd']);
+  switchTo('prd');
+  assert.equal((await opened).controller, controller);
+  assert.equal(controller.initialGeneration, 'template');
+  assert.deepEqual(visits, ['prd', 'prd']);
+  assert.equal(listeners.size, 0);
 });

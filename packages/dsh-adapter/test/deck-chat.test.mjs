@@ -133,6 +133,15 @@ test('completion folds only intermediate replies and leaves the native deliverab
   assert.equal(tail().children.length,3);
   snap.nodes.set('edit-later',call('edit',{}, {applied:1},26));
   assert.equal(tail().children.length,2);
+  for (const kind of ['meeting', 'project', 'proposal']) {
+    const filename = kind + '.docx';
+    const receipt = call('save', { path: filename }, { saved: true, applied: true, path: '/work/'+filename }, 30);
+    receipt.data.root.name = 'document_finish_' + kind + '_table';
+    snap.nodes.set(filename, receipt);
+  }
+  assert.equal(tail().children.length,5);
+  info.data.set('deliverables', { presented: [{ path: '/work/meeting.docx' }] });
+  assert.equal(tail().children.length,4, 'native result and the table-save receipt share one card');
   info.status='open';
   assert.equal(tail(),null);
 });

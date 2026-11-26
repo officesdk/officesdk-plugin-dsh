@@ -30,7 +30,7 @@
         { "id": "ai-animation", "supported": true, "summary": "AI 写入时显示 Agent 框、光标与打字效果" },
         { "id": "ai-selection-rewrite", "supported": false, "summary": "选中文字 AI 改写暂不支持 PPT" },
         { "id": "ai-undo", "supported": true, "summary": "撤销 AI 修改（整批回滚）" },
-        { "id": "style-packs", "supported": true, "summary": "内置蓝色品牌风格（default）" },
+        { "id": "style-packs", "supported": true, "summary": "内置蓝色品牌风格、团队工作汇报、培训与经验分享和空白幻灯片" },
         { "id": "ai-tables-charts", "supported": false, "summary": "实时方式暂不插入表格、图表" },
         { "id": "print", "supported": false, "summary": "暂不提供打印" }
       ],
@@ -51,7 +51,7 @@
         { "id": "ai-tables", "supported": false, "summary": "实时方式暂不插入表格，需要表格时用离线脚本" },
         { "id": "print", "supported": true, "summary": "打开系统打印对话框" }
       ],
-      "aiTools": ["document_create", "document_read", "document_edit", "document_save", "selection_rewrite"]
+      "aiTools": ["document_create", "document_read", "document_edit", "document_finish_meeting_table", "document_finish_project_table", "document_finish_proposal_table", "document_save", "selection_rewrite"]
     },
     {
       "id": "spreadsheet",

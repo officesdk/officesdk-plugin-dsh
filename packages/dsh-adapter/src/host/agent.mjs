@@ -7,8 +7,8 @@ import { SuiteError } from '../../../core/src/index.mjs';
  */
 export class AgentHub {
   /** `platform`: the Host's `process.platform`, put on every command so the Client spells its path the Host's way. */
-  constructor({ pollMs = 20_000, pickupMs = 60_000, aliveMs = 45_000, scheduler = globalThis, platform } = {}) {
-    Object.assign(this, { pollMs, pickupMs, aliveMs, scheduler, platform });
+  constructor({ pollMs = 20_000, pickupMs = 60_000, aliveMs = 45_000, resumeMs = 600_000, offerMs = 3_000, scheduler = globalThis, platform } = {}) {
+    Object.assign(this, { pollMs, pickupMs, aliveMs, resumeMs, offerMs, scheduler, platform });
     this.queues = new Map();
     this.pollers = new Map();
     this.waiting = new Map();
@@ -37,14 +37,16 @@ export class AgentHub {
   request(sessionId, command, signal) {
     const requestId = randomUUID();
     return new Promise((resolve, reject) => {
-      const entry = { sessionId, resolve, reject, picked: false };
-      const cleanup = () => { this.scheduler.clearTimeout(entry.timer); signal?.removeEventListener('abort', onAbort); this.waiting.delete(requestId); };
+      const live = !!(command.initialBlank || command.creationArea || command.slideCount || command.auto);
+      const entry = { sessionId, resolve, reject, picked: false, command: { ...command, requestId } };
+      const cleanup = () => { this.scheduler.clearTimeout(entry.timer); this.scheduler.clearTimeout(entry.offerTimer); signal?.removeEventListener('abort', onAbort); this.waiting.delete(requestId); };
       entry.settle = (error, value) => { cleanup(); error ? reject(error) : resolve(value); };
       entry.timer = this.scheduler.setTimeout(() => {
         if (entry.picked) return;
         this.withdraw(sessionId, requestId);
+        if (live) return entry.settle(new SuiteError('no-editor', 'Return to the conversation that owns this document and resume by reading the same path. The file already exists. Keep live editing; do not recreate it or switch to an offline script.'));
         entry.settle(new SuiteError('no-editor', 'No DSH window is showing this conversation, so the document could not be opened. Ask the user to open the conversation, then try again.'));
-      }, this.pickupMs);
+      }, live ? this.resumeMs : this.pickupMs);
       const onAbort = () => {
         if (entry.picked) this.deliver(sessionId, { kind: 'cancel', target: requestId });
         else this.withdraw(sessionId, requestId);
@@ -53,7 +55,7 @@ export class AgentHub {
       if (signal?.aborted) return onAbort();
       signal?.addEventListener('abort', onAbort, { once: true });
       this.waiting.set(requestId, entry);
-      this.deliver(sessionId, { ...command, requestId });
+      this.deliver(sessionId, entry.command);
     });
   }
 
@@ -72,13 +74,14 @@ export class AgentHub {
   }
 
   /** Long poll: the next command for this Session, or null after `pollMs`. */
-  next(sessionId, signal) {
+  next(sessionId, signal, confirmDelivery = false) {
+    if (signal?.aborted) return Promise.resolve(null);
     const queued = this.queues.get(sessionId)?.shift();
-    if (queued) return Promise.resolve(this.pick(queued));
+    if (queued) return Promise.resolve(this.pick(queued, confirmDelivery));
     return new Promise(resolve => {
       const pollers = this.pollers.get(sessionId) ?? [];
       this.pollers.set(sessionId, pollers);
-      const finish = command => { this.scheduler.clearTimeout(timer); signal?.removeEventListener('abort', abort); const index = pollers.indexOf(finish); if (index >= 0) pollers.splice(index, 1); resolve(command ? this.pick(command) : null); };
+      const finish = command => { this.scheduler.clearTimeout(timer); signal?.removeEventListener('abort', abort); const index = pollers.indexOf(finish); if (index >= 0) pollers.splice(index, 1); resolve(command ? this.pick(command, confirmDelivery) : null); };
       const abort = () => finish(null);
       const timer = this.scheduler.setTimeout(() => finish(null), this.pollMs);
       signal?.addEventListener('abort', abort, { once: true });
@@ -86,8 +89,19 @@ export class AgentHub {
     });
   }
 
-  pick(command) {
+  pick(command, confirmDelivery) {
     const entry = this.waiting.get(command.requestId);
+    if (entry && confirmDelivery) {
+      // A long poll may be cancelled by a conversation switch just as it returns.
+      // Only the Client which claims this offer may run the command.
+      const token = randomUUID();
+      entry.offer = token;
+      entry.offerTimer = this.scheduler.setTimeout(() => {
+        entry.offer = undefined;
+        this.deliver(entry.sessionId, entry.command);
+      }, this.offerMs);
+      return { ...command, deliveryToken: token };
+    }
     if (entry) { entry.picked = true; this.watch(entry); }
     return command;
   }
@@ -95,12 +109,18 @@ export class AgentHub {
   watch(entry) {
     this.scheduler.clearTimeout(entry.timer);
     entry.timer = this.scheduler.setTimeout(() => entry.settle(new SuiteError('no-editor',
-      'The DSH window stopped responding while working on the document. Ask the user to check the side panel, then try again.')), this.aliveMs);
+      'The editor stopped responding. Return to this conversation and read the same file to check what was applied before continuing live. Do not repeat a write or use an offline script.')), this.aliveMs);
   }
 
   /** A Client still working on a picked command; only the Session it went to may report. */
-  alive(sessionId, requestId) {
+  alive(sessionId, requestId, deliveryToken) {
     const entry = this.waiting.get(requestId);
+    if (deliveryToken !== undefined) {
+      if (!entry || entry.sessionId !== sessionId || entry.offer !== deliveryToken || entry.picked) return false;
+      this.scheduler.clearTimeout(entry.offerTimer);
+      entry.offer = undefined;
+      entry.picked = true;
+    }
     if (!entry || entry.sessionId !== sessionId || !entry.picked) return false;
     this.watch(entry);
     return true;
@@ -118,6 +138,7 @@ export class AgentHub {
   dispose() {
     for (const entry of [...this.waiting.values()]) entry.settle(new SuiteError('unavailable', 'The document service stopped.'));
     for (const pollers of this.pollers.values()) for (const finish of [...pollers]) finish(null);
+    this.queues.clear();
   }
 }
 

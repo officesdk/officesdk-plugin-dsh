@@ -9,6 +9,7 @@ export const PICK_KINDS = Object.freeze(['word', 'excel', 'ppt']);
 /** Built-in Word and Excel templates: the live templates the bundled skills ship (skills/<skill>/templates): Word gongwen, no Excel one. */
 export const BUILTIN_TEMPLATES = Object.freeze({
   word: Object.freeze([
+    { id: 'meeting-minutes', name: { zh: '会议纪要', en: 'Meeting minutes' } },
     { id: 'gongwen', name: { zh: '公文版式', en: 'Official document' } },
   ]),
   excel: Object.freeze([]),

@@ -28,6 +28,7 @@ export const UPLOAD_EXTENSIONS = Object.freeze({
  */
 export const BUILTIN = Object.freeze({
   word: Object.freeze([
+    { id: 'meeting-minutes', name: { zh: '会议纪要', en: 'Meeting minutes' }, category: { zh: '会议协作', en: 'Meetings' } },
     { id: 'gongwen', name: { zh: '公文版式', en: 'Official document' }, category: { zh: '公文通知', en: 'Official notices' } },
   ]),
   excel: Object.freeze([]),

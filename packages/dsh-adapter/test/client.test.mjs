@@ -1549,3 +1549,12 @@ test('while open waits on the document engine download the tab shows its progres
   await pending;
   assert.equal(h.controller.lease.id, 'lease1');
 });
+
+test('project table commit defers file revision notifications until the refreshed editor is ready', async () => {
+  const h=harness({open:args=>({id:'view1',backend:'kit',format:'docx',revision:args.revision,version:'v1',editRevision:0,mode:'edit',entry:'/shimo/kit/static/page/index.html?view=view1',expiresInMs:900000})});
+  await h.controller.open(1,{mode:'edit'});h.fromFrame({type:'officesdk:ready',id:'view1',revision:1});
+  h.controller.beginTableCommit();await h.controller.adopt(2,'v2',{});await h.controller.adopt(3,'v3',{});
+  assert.equal(h.calls.filter(([name])=>name==='rebind').length,0);assert.equal(h.controller.revision,1);
+  h.controller.endTableCommit();await tick();await tick();
+  assert.equal(h.controller.revision,3);assert.equal(h.calls.filter(([name])=>name==='rebind').length,1);assert.equal(h.controller.autosavePaused,false);h.tab.abort();
+});

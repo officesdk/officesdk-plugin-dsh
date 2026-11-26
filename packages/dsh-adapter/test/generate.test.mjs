@@ -67,6 +67,18 @@ async function load(t, extra = {}) {
 const read = { ok: true, result: { format: 'pptx', path: 'new.pptx', unsaved: false, deck: { slides: [], layouts: [] } } };
 const applied = { ok: true, result: { applied: 1, slideIds: ['s1'], refs: { p: 's1' }, undoable: 'x' } };
 
+test('fixed training and blank styles return lossless JSON and open with generation masking', async t => {
+  const { service, client } = await load(t);
+  for (const [style, count] of [['slide-008', 7], ['slide-000', 1]]) {
+    const creating = service.aiCreate('s1', { path: `${style}.pptx`, style, slideCount: count });
+    const command = await client(() => read);
+    const result = await creating;
+    assert.equal(command.initialBlank, 'ppt-template');
+    assert.equal(result.style.fixedDeck.slideCount, count);
+    assert.deepEqual(result, JSON.parse(JSON.stringify(result)));
+  }
+});
+
 test('presentation_create ends the Session\'s style recommendation: the strip has nothing left to ask', async t => {
   const { service, client } = await load(t);
   await service.aiSuggestStyles('s1', { candidates: [{ style: 'default', reason: '稳妥' }] });
@@ -257,7 +269,8 @@ test('tools: presentation_create calls the Host with the agent Session and asks 
   assert.deepEqual(calls, [['s9', { path: '/far/a.pptx', style: undefined, slideCount: 6 }]], 'no style is left for the Host to choose (the workspace default)');
   const create = tools.get('presentation_create');
   assert.doesNotMatch(create.parameters.properties.style.description, /default "default"/);
-  assert.match(create.description, /Pass it only when the user named a style/);
+  assert.match(create.description, /quarterly\/work report \(slide-002\)/);
+  assert.match(create.description, /leave it out otherwise/);
   assert.match(create.description, /styleSource/);
   assert.match(asked[0].displayReason, /\/far\/a\.pptx/);
   const edit = tools.get('presentation_edit');
@@ -373,7 +386,7 @@ test('tools: the workspace\'s remembered PPT style reaches the model as runtime 
   // A composition without inject (or without systemPrompt) still gets the tools.
   const tools = new Map();
   applyTools({ tools: { register: tool => tools.set(tool.name, tool) }, shimoPreview: service, get: () => undefined });
-  assert.equal(tools.size, 15, 'presentation_* (with presentation_suggest_styles), document_*, spreadsheet_* and selection_rewrite');
+  for (const name of ['presentation_create','presentation_edit','presentation_save','document_create','document_finish_meeting_table','document_finish_project_table','document_finish_proposal_table','spreadsheet_create','selection_rewrite']) assert.ok(tools.has(name), name);
 });
 
 test('tools + Host: the context names the remembered style through a real Host, through cordis inject', async t => {
@@ -398,4 +411,27 @@ test('tools + Host: the context names the remembered style through a real Host, 
   await mkdir(join(workspace, 'sub'));
   assert.equal(entries[0].text({ agent: { session: { header: { cwd: join(workspace, 'sub') } } } }),
     'Workspace default PPT style (shimo-pptx): second (黑底画报 / Dark editorial). When the user names no style, use it: leave style out of presentation_create, and pass --style second to brand_deck.py.');
+});
+
+test('reporting create validates chart inputs before creating, and returns eight live pages with target slots', async t => {
+  const { service, client, created } = await load(t);
+  const args = { path: 'quarter.pptx', style: 'slide-002', slideCount: 8 };
+  await assert.rejects(service.aiCreate('s1', { ...args, reportingData: { chart: { values: [1] } } }), { code: 'invalid-edit' });
+  assert.equal(created.length, 0);
+  const creating = service.aiCreate('s1', { ...args, reportingData: { chart: { categories: ['甲', '乙', '丙'], values: [2, 3, 5] }, bars: [5, 4, 3, 2, 1] } });
+  const command = await client(() => read);
+  assert.equal(command.initialBlank, 'ppt-template');
+  const result = await creating;
+  assert.equal(result.style.textSlots.length, 8);
+  assert.deepEqual(result, JSON.parse(JSON.stringify(result)));
+  const editPage = async (id, completedSlideIds, expected, appliedCount = 1) => {
+    const writing = service.aiEdit('s1', { path: args.path, ops: [{ op: 'setText', slideId: id, shapeId: 'title', text: '正文' }], completedSlideIds });
+    const cmd = await client(() => ({ ok: true, result: { applied: appliedCount, slideIds: [id] } }));
+    assert.deepEqual(cmd.slideProgress, expected);
+    await writing;
+  };
+  await editPage('s1', [], { done: [], partial: [] });
+  await editPage('s2', ['s2'], { done: [], partial: ['s1'] }, 0);
+  await editPage('s2', ['s2'], { done: [], partial: ['s1'] });
+  await editPage('s1', ['s1'], { done: ['s2'], partial: ['s1'] });
 });

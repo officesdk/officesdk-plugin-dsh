@@ -32,8 +32,8 @@ test('capabilities agree with package.json, the office-kit pin, the skills and t
   // except spreadsheet_create, which needs a spreadsheet skill no build bundles.
   assert.deepEqual([...new Set(capabilities.products.flatMap(product => product.aiTools))].sort(), [...tools].filter(tool => tool !== 'spreadsheet_create').sort(), 'every registered tool belongs to a product');
   assert.deepEqual(capabilities.products.find(product => product.id === 'spreadsheet').templates, []);
-  assert.deepEqual(capabilities.products.find(product => product.id === 'document').templates, ['gongwen']);
-  assert.deepEqual(capabilities.products.find(product => product.id === 'presentation').stylePacks, ['default']);
+  assert.deepEqual(capabilities.products.find(product => product.id === 'document').templates, ['blank', 'formal-letter', 'gongwen', 'meeting-minutes', 'product-requirements', 'project-plan', 'project-proposal', 'weekly-report']);
+  assert.deepEqual(capabilities.products.find(product => product.id === 'presentation').stylePacks, ['default', 'slide-000', 'slide-002', 'slide-008']);
   assert.deepEqual(capabilities.products.map(product => product.id), ['presentation', 'document', 'spreadsheet']);
   assert.ok(capabilities.products[0].stylePacks.includes('default'));
   assert.deepEqual(capabilities.platforms, [{ name: 'darwin-arm64', status: 'stable' }, { name: 'win32-x64', status: 'test' }], 'v2: platform maturity only, no repository or tag');

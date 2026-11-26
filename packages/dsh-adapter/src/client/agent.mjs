@@ -59,13 +59,20 @@ export class AgentBridge {
   async poll({ sessionId, controller }) {
     while (!controller.signal.aborted) {
       let command;
-      try { command = await this.call(sessionId, 'agentNext', {}, controller.signal); }
+      try { command = await this.call(sessionId, 'agentNext', { confirmDelivery: true }, controller.signal); }
       catch {
         if (controller.signal.aborted) return;
         await new Promise(resolve => this.scheduler.setTimeout(resolve, this.retryMs));
         continue;
       }
-      if (command) void this.serve(sessionId, command);
+      if (!command) continue;
+      if (command.deliveryToken) {
+        if (controller.signal.aborted || this.mounted.getSnapshot() !== sessionId) continue;
+        const { requestId, deliveryToken } = command;
+        const receipt = await this.call(sessionId, 'agentAlive', { requestId, deliveryToken }).catch(() => null);
+        if (!receipt?.alive) continue;
+      }
+      void this.serve(sessionId, command);
     }
   }
 
@@ -85,7 +92,7 @@ export class AgentBridge {
     this.running.set(command.requestId, abort);
     // The Host gives up on a command whose Client goes quiet; report while the work (or the user) is pending.
     let beat;
-    const alive = () => { beat = this.scheduler.setTimeout(() => { void this.call(sessionId, 'agentAlive', { requestId: command.requestId }).catch(() => {}); alive(); }, this.aliveMs); };
+    const alive = () => { beat = this.scheduler.setTimeout(() => { void this.call(sessionId, 'agentAlive', { requestId: command.requestId }).then(receipt => { if (receipt?.alive === false) abort.abort(); }, () => {}); alive(); }, this.aliveMs); };
     alive();
     let reply;
     try { reply = { ok: true, result: await this.run(sessionId, command, abort.signal) }; }
@@ -124,20 +131,57 @@ export class AgentBridge {
   }
 
   /** The tab for `path`, open in the mode the AI needs and rendered. */
-  async document(sessionId, path, signal, command) {
+  async document(sessionId, path, signal = new AbortController().signal, command) {
     const format = formatOf(path);
     const mode = AGENT_FORMATS[format];
     if (!mode) throw failure('unsupported-operation', `AI editing supports ${Object.keys(AGENT_FORMATS).join(', ')} files for now.`);
     const address = await this.documentAddress(sessionId, path, command);
-    const controller = await this.controllers.wait(address, signal, () => this.openResource(address));
-    await controller.ensureMode(mode, signal);
-    return { controller, format };
+    // A conversation switch can unmount the panel even after accepting the
+    // command. Wait for that same conversation and retry only the open phase.
+    while (true) {
+      signal.throwIfAborted();
+      if (this.mounted && this.mounted.getSnapshot() !== sessionId) await this.waitForSession(sessionId, signal);
+      const switched = new AbortController();
+      const follow = () => { if (this.mounted && this.mounted.getSnapshot() !== sessionId) switched.abort(); };
+      const unsubscribe = this.mounted?.subscribe(follow);
+      const opening = AbortSignal.any([signal, switched.signal]);
+      try {
+        follow();
+        opening.throwIfAborted();
+        if (['docx', 'pptx'].includes(format) && command?.kind === 'read' && command.initialBlank && !this.controllers.byAddress.has(address)) {
+          this.controllers.reserveCreation(address, command.initialBlank === true ? 'project' : command.initialBlank);
+        }
+        const controller = await this.controllers.wait(address, opening, () => this.openResource(address));
+        await controller.ensureMode(mode, opening);
+        opening.throwIfAborted();
+        if (command?.deliveryToken) {
+          const receipt = await this.call(sessionId, 'agentAlive', { requestId: command.requestId }, opening);
+          if (!receipt?.alive) throw failure('cancelled', 'This command is no longer active.');
+          opening.throwIfAborted();
+        }
+        return { controller, format };
+      } catch (error) {
+        if (signal.aborted || !switched.signal.aborted) throw error;
+      } finally { unsubscribe?.(); }
+    }
+  }
+
+  waitForSession(sessionId, signal) {
+    return new Promise((resolve, reject) => {
+      let off;
+      const cleanup = () => { off?.(); signal.removeEventListener('abort', cancel); };
+      const cancel = () => { cleanup(); reject(signal.reason); };
+      const check = () => { if (this.mounted.getSnapshot() === sessionId) { cleanup(); resolve(); } };
+      off = this.mounted.subscribe(check);
+      signal.addEventListener('abort', cancel, { once: true });
+      if (signal.aborted) cancel(); else check();
+    });
   }
 
   async run(sessionId, command, signal) {
     const { controller, format } = await this.document(sessionId, command.path, signal, command);
     // selection_rewrite: the user's own request, so no approval card; the page checks the selection still holds.
-    if (command.kind === 'read' && command.creationArea && (format === 'docx' || format === 'xlsx')) {
+    if (command.kind === 'read' && command.creationArea && !command.initialBlank && (format === 'docx' || format === 'xlsx')) {
       await controller.agent('documentUi', {beginCreation:command.creationArea}, signal);
     }
     if (command.kind === 'rewrite') {
@@ -145,6 +189,27 @@ export class AgentBridge {
       return controller.agent('rewrite', { ...selection, ...(text !== undefined && { text }), ...(values !== undefined && { values }) }, signal);
     }
     // Word has its own operations, card rows and no AI undo (client/document-agent.mjs); below is the presentation path.
+    if (format === 'docx' && command.kind === 'table-begin') {
+      await controller.agent('documentUi', {beginTableStage:true}, signal); return {ready:true};
+    }
+    if (format === 'docx' && command.kind === 'table-fill') {
+      await controller.agent('documentUi', {fillProjectTable:command.milestones,tableKind:command.tableKind}, signal); await controller.flushEditor(); return {revision:controller.editRevision};
+    }
+    if (format === 'docx' && command.kind === 'table-freeze') {
+      controller.beginTableCommit();
+      try { await controller.agent('documentUi', {freezeTableStage:true}, signal); await controller.flushEditor(); return {revision:controller.editRevision}; }
+      catch (error) { controller.endTableCommit(); throw error; }
+    }
+    if (format === 'docx' && command.kind === 'table-release') {
+      try { await controller.agent('documentUi', {endTableStage:true}, signal); return {released:true}; }
+      finally { controller.endTableCommit(); }
+    }
+    if (format === 'docx' && command.kind === 'table-mark-saved') {
+      controller.markSaved(command.version, command.revision); return {marked:true};
+    }
+    if (format === 'docx' && command.kind === 'table-refresh') {
+      await controller.resolveDiskChange(true); await controller.whenReady(signal); return {ready:true, version:controller.savedVersion};
+    }
     if (format === 'docx') return runDocumentCommand(this, sessionId, command, controller, signal);
     if (format === 'xlsx') return runSpreadsheetCommand(this, sessionId, command, controller, signal);
     if (command.kind === 'read') {
@@ -181,7 +246,7 @@ export class AgentBridge {
       if (!approved) return { declined: true };
     }
     try {
-      const result = await controller.agent('apply', { ops: command.ops, editId: command.editId, ...(command.completedSlideIds !== undefined && {completedSlideIds:command.completedSlideIds}) }, signal);
+      const result = await controller.agent('apply', { ops: command.ops, editId: command.editId, ...(command.slideProgress && { slideProgress: command.slideProgress }), ...(command.completedSlideIds !== undefined && {completedSlideIds:command.completedSlideIds}) }, signal);
       controller.set({ edits: [...(controller.state.edits ?? []), { editId: command.editId, summary: command.summary }].slice(-20) });
       record?.settle(controller, result);
       return result;
@@ -241,8 +306,11 @@ export class ControllerRegistry {
     Object.assign(this, { scheduler, timeoutMs });
     this.byAddress = new Map();
     this.waiters = new Map();
+    this.creationPending = new Map();
   }
+  reserveCreation(address, mode = 'project') { this.creationPending.set(address, mode); }
   add(address, controller) {
+    if (this.creationPending.has(address)) { controller.initialGeneration = this.creationPending.get(address); this.creationPending.delete(address); }
     this.byAddress.set(address, controller);
     for (const waiter of this.waiters.get(address) ?? []) waiter(controller);
     this.waiters.delete(address);

@@ -13,6 +13,8 @@ const CSS = `
 .toolbar-ribbon-header:has(>.office-website-link) .toolbar-ribbon-header__tabs{min-width:0;flex:1}
 
 #editor-root[data-office-v31-writer] .writer-document-preview__scroll{overscroll-behavior-y:none}
+/* Meeting template: keep the specified PingFang for bold SVG text instead of the renderer’s Heiti substitution. */
+#editor-root[data-meeting-font-fix] text[data-writer-document-content][font-family*="Heiti SC"][font-family*="PingFang SC"]{font-family:"PingFang SC",sans-serif!important}
 #editor-root[data-office-v31-writer] rect[data-paint-key^="overlay:selection:"][style*="--office-selection-y"]{y:var(--office-selection-y);height:var(--office-selection-height)}
 #editor-root[data-office-v31-writer] [data-paint-key^="overlay:caret:"]:is(rect,path),#editor-root[data-office-v31-writer] [data-paint-key^="overlay:caret:"] :is(rect,path){fill:#202124!important}
 #editor-root[data-office-v31-writer] rect[data-paint-key^="overlay:caret:"][style*="--office-caret-top"]{y:var(--office-caret-top);height:var(--office-caret-height);width:var(--office-caret-width)}
@@ -233,6 +235,7 @@ export function installEditorChrome({ root, window, document, suite, locale, sig
     document.removeEventListener('fullscreenchange', onFullscreen);
     document.documentElement.classList.remove('office-v31-layout-sync');
     root.removeAttribute('data-office-v31-writer');
+    root.removeAttribute('data-meeting-font-fix');
     root.removeEventListener('input', scheduleMount, true);
     root.removeEventListener('compositionupdate', scheduleMount, true);
     root.removeEventListener('compositionend', scheduleMount, true);

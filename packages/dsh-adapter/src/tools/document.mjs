@@ -54,14 +54,21 @@ const json = { schema: { type: 'json' }, render: (_args, value) => [{ type: 'tex
  * gongwen alone, spec 261113-bundle-public-skills; asking for another one falls back to gongwen).
  */
 const TEMPLATE_TEXT = {
+  'meeting-minutes': '"meeting-minutes" (meeting minutes; write body live and finish the decisions table with document_finish_meeting_table)',
   gongwen: '"gongwen" (default; Chinese official-document layout: A4, margins 37/35/28/26 mm, page numbers 「— 1 —」 odd right / even left, 小标宋 title, 仿宋 body 16 pt with exact 29 pt lines, 黑体/楷体 headings)',
+  'project-plan': '"project-plan" (ordinary A4 project plan with a staged milestone table; supply projectMetadata, write sections with document_edit, then finish with document_finish_project_table)',
+  'weekly-report': '"weekly-report" (ordinary work report; preformatted empty paragraphs for live writing)',
+  'product-requirements': '"product-requirements" (product requirements; preformatted empty paragraphs for live writing)',
+  'formal-letter': '"formal-letter" (formal letter; preformatted paragraphs for live writing)',
+  'project-proposal': '"project-proposal" (multi-page project proposal with a staged budget table)',
+  blank: '"blank" (plain blank document)',
 };
 export function templateText(templates) {
   const names = Object.keys(TEMPLATE_TEXT).filter(name => !templates || templates.includes(name));
   if (!names.includes('gongwen')) names.unshift('gongwen');
   if (names.length === 1) return `template: ${TEMPLATE_TEXT.gongwen}; it is the only template in this build (write a red letterhead, if wanted, as ordinary paragraphs). It starts with one empty paragraph, which the first inserted paragraph fills.`;
   const list = names.map(name => TEMPLATE_TEXT[name]);
-  return `template: ${list.slice(0, -1).join(', ')} or ${list.at(-1)}. Each starts with one empty paragraph, which the first inserted paragraph fills.`;
+  return `template: ${list.slice(0, -1).join(', ')} or ${list.at(-1)}. The gongwen template starts with one empty paragraph; the project plan contains headings and a staged table.`;
 }
 
 export function registerDocumentTools(ctx, { service, approvalFor, failure, templates }) {
@@ -72,11 +79,11 @@ export function registerDocumentTools(ctx, { service, approvalFor, failure, temp
   };
   ctx.tools.register(defineTool({
     name: 'document_create',
-    description: `Create a new .docx from a template of the shimo-docx skill and open it in the side panel next to this conversation, so the user can watch it being written. Once the requested file type is clear, call this tool before drafting content or gathering assets. Write the content as each section is ready. This is the default way to make a new Word document, red letterhead and page numbers included: do not generate the .docx with a script (python-docx, the shimo-docx offline script) instead; use the script only for what the editor cannot do (tables, images, a document number with 签发人, letter format, several files at once) and then tell the user in one sentence why it was not written in the editor. ${templateText(templates)} Page setup, headers and footers come only from the template. While you write a file you created, your edits apply without asking the user each time; they can press Stop in the panel, after which each edit asks again. Fails if the file exists. ${GENERATE} Save with document_save when done. Result: the same fields as document_read, plus created: true, template and generating.`,
-    parameters: { path: PATH, outputArea: {type:'string', enum:['page','opening'], description:'Use page for a whole new document (default), opening for just a heading or short passage.'}, template: { type: 'string', description: 'Template name; default "gongwen".' } },
+    description: `Create a new .docx from a template of the shimo-docx skill and open it in the side panel next to this conversation, so the user can watch it being written. Once the requested file type is clear, call this tool before drafting content or gathering assets. Write the content as each section is ready. For project-plan, meeting-minutes, and project-proposal, write body paragraphs live, then finish the staged table with document_finish_project_table, document_finish_meeting_table, or document_finish_proposal_table respectively. For weekly-report, product-requirements, and formal-letter write the preformatted paragraphs live and save. This is the default way to make a new Word document, red letterhead and page numbers included: do not generate the .docx with a script (python-docx, the shimo-docx offline script) instead; use the script only for what the editor cannot do (tables, images, a document number with 签发人, letter format, several files at once) and then tell the user in one sentence why it was not written in the editor. ${templateText(templates)} Page setup, headers and footers come only from the template. While you write a file you created, your edits apply without asking the user each time; they can press Stop in the panel, after which each edit asks again. Fails if the file exists. ${GENERATE} Save with document_save when done, except that the three document_finish_*_table tools save their respective documents. Result: the same fields as document_read, plus created: true, template and generating.`,
+    parameters: { path: PATH, outputArea: {type:'string', enum:['page','opening'], description:'Use page for a whole new document (default), opening for just a heading or short passage.'}, template: { type: 'string', description: 'Template name; default "gongwen".' }, meetingDecisionCount:{type:'integer',description:'For meeting-minutes: number of decision rows, 1–12; default 3.'}, projectMetadata: {type:'object', additionalProperties:false, description:'For project-plan only: metadata shown when creation starts.',properties:{name:{type:'string'},owner:{type:'string'},period:{type:'string'},milestoneCount:{type:'integer',description:'Number of milestone rows to reserve; default 4. Choose before creation.'}}} },
     output: json,
     async execute(args, exec) {
-      try { return await service.aiCreateDocument(sessionOf(exec), { path: args.path, template: args.template ?? 'gongwen', ...(args.outputArea !== undefined && {outputArea:args.outputArea}) }, { approve: approvalFor(exec, `在工作区外新建文档：${args.path}`), signal: exec.signal }); }
+      try { return await service.aiCreateDocument(sessionOf(exec), { path: args.path, template: args.template ?? 'gongwen', ...(args.outputArea !== undefined && {outputArea:args.outputArea}), ...(args.projectMetadata !== undefined && {projectMetadata:args.projectMetadata}), ...(args.meetingDecisionCount !== undefined && {meetingDecisionCount:args.meetingDecisionCount}) }, { approve: approvalFor(exec, `在工作区外新建文档：${args.path}`), signal: exec.signal }); }
       catch (error) { throw failure(error); }
     },
   }));
@@ -99,7 +106,7 @@ export function registerDocumentTools(ctx, { service, approvalFor, failure, temp
   }));
   ctx.tools.register(defineTool({
     name: 'document_edit',
-    description: `Change a .docx file in the editor beside the conversation, one step at a time while the user watches: they approve each call first, except while you write a file you made with document_create (until they press Stop). ${GENERATE} ${LOCATE} Paragraph and table numbers are the ones document_read (or the last document_edit's refs) gave; within one call they keep naming the same paragraphs even after earlier steps insert or delete; objects created in the same call are named by ref. A call that names numbers needs readToken from the document_read or document_edit you used. For setText and replaceText on existing body text, submit with that token even if another passage finished in the meantime. The editor checks the target at write time. Read again only after a source-changed conflict. At most ${DOCX_LIMITS.maxOps} operations and ${DOCX_LIMITS.maxText} characters per call; one paragraph per operation (no line breaks in text). ${NO_ROLLBACK} Changes stay in the editor (unsaved) until document_save or the panel's Save; while the document is open never change the file with any other tool (shell, python, copies). Only the listed operations exist: tables cannot be inserted live yet (the document could not be saved with them), nor images, headers/footers, comments or page setup. Say so plainly when a request needs one; a document with tables can be made with the shimo-docx offline script instead, and then tell the user in one sentence why it was not written in the editor beside the conversation. For an existing text region, pendingReview: true means the editor shows a candidate awaiting the user; report this status and do not save or repeat the edit. Result: { declined: true } when the user said no; otherwise { applied, refs, readToken, styleFallback?, editId, unsaved: true, generating? }. ${CLARIFY_EDIT}`,
+    description: `Change a .docx file in the editor beside the conversation, one step at a time while the user watches: they approve each call first, except while you write a file you made with document_create (until they press Stop). ${GENERATE} ${LOCATE} Paragraph and table numbers are the ones document_read (or the last document_edit's refs) gave; within one call they keep naming the same paragraphs even after earlier steps insert or delete; objects created in the same call are named by ref. A call that names numbers needs readToken from the document_read or document_edit you used. For setText and replaceText on existing body text, submit with that token even if another passage finished in the meantime. The editor checks the target at write time. Read again only after a source-changed conflict. At most ${DOCX_LIMITS.maxOps} operations and ${DOCX_LIMITS.maxText} characters per call; one paragraph per operation (no line breaks in text). ${NO_ROLLBACK} Changes stay in the editor (unsaved) until document_save or the panel's Save; while the document is open never change the file with any other tool (shell, python, copies). Only the listed operations exist: tables cannot be inserted live yet (the document could not be saved with them), nor images, headers/footers, comments or page setup. For project-plan, meeting-minutes, and project-proposal, use their corresponding document_finish_*_table tools after editing the body. Other documents needing tables can be made with the shimo-docx offline script; explain the limitation briefly. For an existing text region, pendingReview: true means the editor shows a candidate awaiting the user; report this status and do not save or repeat the edit. Result: { declined: true } when the user said no; otherwise { applied, refs, readToken, styleFallback?, editId, unsaved: true, generating? }. ${CLARIFY_EDIT}`,
     parameters: {
       path: PATH,
       summary: { type: 'string', required: true, description: 'One sentence, in the user\'s language, describing the change for the approval card.' },
@@ -111,6 +118,35 @@ export function registerDocumentTools(ctx, { service, approvalFor, failure, temp
       try { return await service.aiEdit(sessionOf(exec), { path: args.path, ops: args.operations, summary: args.summary, callId: exec.callId, ...(typeof args.readToken === 'string' && { readToken: args.readToken }) }, exec.signal); }
       catch (error) { throw failure(error); }
     },
+  }));
+  ctx.tools.register(defineTool({
+    name: 'document_finish_project_table',
+    description: 'Finish the milestone table for an actively generated project-plan Word file. The pre-existing table is filled under the Agent working frame, saved in the same editor, and revealed as a whole without reloading; existing prose is preserved. Use only after writing the other sections via document_edit, and only for a new file created with template project-plan. This saves the document. Do not change the file using shell or another tool while it is open.',
+    parameters: {
+      path: PATH,
+      milestones: { type:'array', required:true, items: { type:'object', additionalProperties:false, properties: {
+        stage:{type:'string'}, deliverable:{type:'string'}, owner:{type:'string'}, deadline:{type:'string'},
+      } } },
+    },
+    output: json,
+    async execute(args,exec) {
+      try { return await service.aiFinishProjectTable(sessionOf(exec), {path:args.path,milestones:args.milestones}, exec.signal); }
+      catch(error) { throw failure(error); }
+    },
+  }));
+  ctx.tools.register(defineTool({
+    name: 'document_finish_meeting_table',
+    description: 'Finish and save the decisions table of a newly created meeting-minutes document in the same editor. First write all non-table paragraphs with document_edit; decisions must match meetingDecisionCount. The table appears as a whole under the agent frame without a page reload.',
+    parameters: {path:PATH, decisions:{type:'array',required:true,items:{type:'object',additionalProperties:false,properties:{decision:{type:'string'},owner:{type:'string'},deadline:{type:'string'}}}}},
+    output:json,
+    async execute(args,exec) { try { return await service.aiFinishMeetingTable(sessionOf(exec),args,exec.signal); } catch(error) { throw failure(error); } },
+  }));
+  ctx.tools.register(defineTool({
+    name: 'document_finish_proposal_table',
+    description: 'Finish the five existing rows of the project-proposal budget table and save in place. Write all non-table text first. Five rows include the final total row; each row may contain description, quantity, unitPrice and amount. Use 待填写 for unknown values.',
+    parameters: {path:PATH, rows:{type:'array',required:true,items:{type:'object',additionalProperties:false,properties:{description:{type:'string'},quantity:{type:'string'},unitPrice:{type:'string'},amount:{type:'string'}}}}},
+    output:json,
+    async execute(args,exec) { try { return await service.aiFinishProposalTable(sessionOf(exec),args,exec.signal); } catch(error) { throw failure(error); } },
   }));
   ctx.tools.register(defineTool({
     name: 'document_save',

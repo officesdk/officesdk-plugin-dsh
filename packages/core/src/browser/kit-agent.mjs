@@ -88,6 +88,26 @@ export function createKitPresentationAgent({ editor, document, animate = () => t
       throw error;
     }
   }
+  async function beginExistingTemplate({ done = [], partial = [] } = {}) {
+    if (progress) return;
+    const jsApi = api(), deck = await inspectDeck(jsApi);
+    if (!deck.slides.length) throw agentError('invalid-edit', 'The template is not ready.');
+    const ids = deck.slides.map(slide => slide.id);
+    await switchDeckView(jsApi, document, SORTER);
+    progress = deckProgress(document, ids, locale, deck.slideSize);
+    const pause = wait ?? (ms => new Promise(resolve => setTimeout(resolve, ms)));
+    // Restore acknowledged pages before the first visible paint on remount.
+    const resuming = done.length > 0 || partial.length > 0;
+    if (resuming) {
+      progress.phase(ids, 'waiting');
+      progress.phase(partial, 'partial');
+      progress.phase(done, 'done');
+    }
+    await Promise.race([progress.firstThumbnail, pause(1800)]);
+    showViewTab(document);
+    if (animate() && !resuming) await pause(320);
+    if (!resuming) progress.phase(ids, 'waiting');
+  }
   const selection=presentationSelectionMethods({api,document,animate,locale,wait,locked:async run=>{
     if(applying) throw agentError('busy','Another edit is still running.');
     applying=true;
@@ -95,6 +115,7 @@ export function createKitPresentationAgent({ editor, document, animate = () => t
   }});
   return {
     ...selection,
+    beginExistingTemplate,
     /** True while an AI edit or undo is writing: its changes are not the user's. */
     get applying() { return applying; },
     async endGeneration() { if (progress) await leaveSorter(); },
@@ -105,12 +126,13 @@ export function createKitPresentationAgent({ editor, document, animate = () => t
     locate(target) {
       return target?.kind==='document-context' ? unionRects((target.geometry ?? []).map(g=>screenRect(document,g,target.slide)).filter(Boolean)) : selection.locate(target);
     },
-    async apply({ ops, editId, prepareSlideCount, slideLayouts, completedSlideIds }, signal) {
+    async apply({ ops, editId, prepareSlideCount, slideLayouts, completedSlideIds, slideProgress }, signal) {
       if (applying) throw agentError('busy', 'Another edit is still running.');
       applying = true;
-      const plan = progress;
-      if (prepareSlideCount === undefined) overlay.busy(true, plan ? undefined : labels.editing);
       try {
+        if (slideProgress && !progress) await beginExistingTemplate(slideProgress);
+        const plan = progress;
+        if (prepareSlideCount === undefined) overlay.busy(true, plan ? undefined : labels.editing);
         if (prepareSlideCount !== undefined) return await preparePages(prepareSlideCount, slideLayouts, signal);
         const jsApi = api();
         const baseline = store().encodeBinary();

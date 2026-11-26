@@ -1,0 +1,101 @@
+{
+  "name": "slide-000",
+  "title": "空白幻灯片",
+  "fixed_deck": {
+    "slideCount": 1,
+    "textSlots": "text-slots.json"
+  },
+  "meta": {
+    "id": "slide-000",
+    "name": {
+      "zh": "空白幻灯片",
+      "en": "Blank slide"
+    },
+    "aliases": [
+      "空白",
+      "空白幻灯片"
+    ],
+    "summary": {
+      "zh": "一张空白幻灯片",
+      "en": "One blank slide"
+    },
+    "scenarios": {
+      "zh": [
+        "自由创作"
+      ],
+      "en": [
+        "Blank slide"
+      ]
+    },
+    "thumb": "thumb.png",
+    "fonts": [
+      {
+        "family": "Noto Sans SC",
+        "role": "cjk",
+        "license": "OFL-1.1",
+        "source": "https://fonts.google.com/noto/specimen/Noto+Sans+SC",
+        "bundled": false
+      },
+      {
+        "family": "Poppins",
+        "role": "latin",
+        "license": "OFL-1.1",
+        "source": "https://fonts.google.com/specimen/Poppins",
+        "bundled": false
+      },
+      {
+        "family": "Poppins Light",
+        "role": "latin_light",
+        "license": "OFL-1.1",
+        "source": "https://fonts.google.com/specimen/Poppins",
+        "bundled": false
+      }
+    ],
+    "design_source": {
+      "from": "OfficeSDK blank slide",
+      "note": "Original editable OfficeSDK blank slide.",
+      "cleared": true
+    },
+    "requires": {
+      "photos": {
+        "slots": 0,
+        "required": 0,
+        "per_slide_max": 0
+      },
+      "note": {
+        "zh": "使用模板内的可编辑对象，无需准备照片。",
+        "en": "Uses editable objects in the template. No photos required."
+      }
+    }
+  },
+  "default_palette": "base",
+  "fonts": {
+    "cjk": "Noto Sans SC",
+    "latin": "Poppins",
+    "latin_light": "Poppins Light"
+  },
+  "palettes": {
+    "base": {
+      "primary": "#202124",
+      "onPrimary": "#FFFFFF",
+      "ink": "#202124",
+      "paper": "#FFFFFF",
+      "secondary": "#9AA0A6",
+      "lineOnPaper": "#DADCE0",
+      "name": "空白幻灯片",
+      "onSecondary": "#202124",
+      "inkOnSecondary": "#202124",
+      "chartSecondary": "#9AA0A6",
+      "chartTertiary": "#202124",
+      "lineOnPrimary": "#FFFFFF"
+    }
+  },
+  "canvas": {
+    "width_px": 960,
+    "height_px": 540,
+    "slide_width_in": 10.0,
+    "slide_height_in": 5.625,
+    "emu_per_px": 9525,
+    "pt_per_px": 0.75
+  }
+}

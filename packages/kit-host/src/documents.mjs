@@ -163,6 +163,7 @@ export class KitDocuments {
   #enqueue(viewId, peer, { seq, format, body, inert = false }) {
     const view = this.view(viewId, peer);
     if (!view.writer) fail('read-only', 'Only the editing tab can change this document.');
+    if (view.tableLock) fail('busy', 'A table is being safely applied; wait for it to finish.');
     if (view.fault) fail('edit-conflict', 'The editor must reload from the document service.', { rebuild: true });
     if (typeof body !== 'string' || !body) fail('invalid-body', 'A change must be the suite change text.');
     if (format !== SUITES[view.suite].format) fail('invalid-body', `A ${view.suite} change must be ${SUITES[view.suite].format}.`);

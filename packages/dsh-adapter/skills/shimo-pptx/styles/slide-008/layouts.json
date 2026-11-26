@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "offline": {
+    "canvas": {
+      "width": 960,
+      "height": 540
+    },
+    "order": [
+      "blank"
+    ],
+    "layouts": {
+      "blank": {
+        "description": "保留原模板页面及其可编辑对象",
+        "fields": {},
+        "objects": []
+      }
+    }
+  },
+  "live": {
+    "canvas": {
+      "width": 720,
+      "height": 405,
+      "unit": "pt"
+    },
+    "layouts": [
+      {
+        "id": "blank",
+        "name": "原版页面",
+        "placeholders": [],
+        "boxes": {}
+      }
+    ],
+    "slots": []
+  }
+}

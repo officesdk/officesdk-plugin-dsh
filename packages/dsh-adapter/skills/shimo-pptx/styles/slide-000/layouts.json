@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "offline": {
+    "canvas": {
+      "width": 960,
+      "height": 540
+    },
+    "order": [
+      "blank"
+    ],
+    "layouts": {
+      "blank": {
+        "description": "空白页面",
+        "fields": {},
+        "objects": []
+      }
+    }
+  },
+  "live": {
+    "canvas": {
+      "width": 720,
+      "height": 405,
+      "unit": "pt"
+    },
+    "layouts": [
+      {
+        "id": "blank",
+        "name": "空白页面",
+        "placeholders": [],
+        "boxes": {}
+      }
+    ],
+    "slots": []
+  }
+}
