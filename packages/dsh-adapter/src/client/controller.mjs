@@ -57,20 +57,22 @@ export class DocumentController {
   get origin() { return this.lease ? new URL(hostUrl(this.lease.entry, this.base)).origin : undefined; }
 
   /** A fresh open for this revision; any previous session is released first. */
-  async open(revision, { mode = this.state.mode, loaded, failed } = {}) {
+  async open(revision, { mode = this.state.mode, loaded, failed, retainPreview = false } = {}) {
     // While the account holds edits back, a new or reopened view is a read-only one.
     if (this.accountHold && mode === 'edit') mode = 'view';
+    const reconnecting = retainPreview && this.state.ready && !this.state.dirty && !this.accountHold && this.state.mode === mode && this.state.authorized;
+    const previousUrl = reconnecting ? this.state.url : undefined;
     this.closeSession();
     this.revision = revision;
     this.request = { loaded, failed };
     this.controller = new AbortController();
     const { signal } = this.controller;
-    this.set({ mode, dirty: false, diverged: false, loading: true, ready: false, error: undefined, engine: undefined, url: undefined, fallback: undefined, handEdited: undefined, autosaveFailed: undefined, modeBlocked: undefined, history: undefined,
+    this.set({ mode, dirty: false, diverged: false, loading: true, ready: false, error: undefined, errorCode:undefined, diskSaveConfirmed:false, autoSaving:false, engine: undefined, reconnecting, url: previousUrl, fallback: undefined, handEdited: undefined, autosaveFailed: undefined, modeBlocked: undefined, history: undefined,
       saveState: undefined, saveFailed: undefined, saveFailedSeen: undefined, authorizePrompt: undefined, pendingOpen: undefined, changeAnchors:undefined });
     this.scheduler.clearTimeout(this.savedTick);
     // The mode a retry or reopen returns to; a preview is only ever a fallback from it.
     if (mode !== 'preview') this.editorMode = mode;
-    this.timer = this.scheduler.setTimeout(() => this.fail(new Error('Document rendering timed out')), this.timeoutMs);
+    this.timer = this.scheduler.setTimeout(() => this.fail(Object.assign(new Error('Document rendering timed out'),{code:'officesdk/timeout'})), this.timeoutMs);
     // The universal package downloads its document engine on first use (spec 261110-universal-package §4.2 step 7):
     // while open waits, show how far it is and do not count the download against the rendering timeout.
     const watchEngine = () => {
@@ -81,7 +83,7 @@ export class DocumentController {
           // `fallback`: the editor gave up on npm and comes from another source (only when the download profile lists one after npm).
           this.set({ engine: { received: status.received ?? 0, total: status.total ?? 0, ...status.fallback?.includes('npm') && { fallback: true }, ...status.platformStatus === 'test' && { testing: true } } });
           this.scheduler.clearTimeout(this.timer);
-          this.timer = this.scheduler.setTimeout(() => this.fail(new Error('Document rendering timed out')), this.timeoutMs);
+          this.timer = this.scheduler.setTimeout(() => this.fail(Object.assign(new Error('Document rendering timed out'),{code:'officesdk/timeout'})), this.timeoutMs);
         } else if (this.state.engine) this.set({ engine: undefined });
       }, () => {}).finally(() => { if (!signal.aborted && !this.lease && this.state.loading) this.engineTimer = this.scheduler.setTimeout(watchEngine, 1000); });
     };
@@ -90,7 +92,17 @@ export class DocumentController {
     try {
       // Never abort the open RPC itself: a lease the host grants after we stop listening would be
       // orphaned until it expires. Stop waiting when the tab gives up, and release the lease if it comes.
-      const opening = this.call('open', { path: this.source.path, revision, mode }, NEVER);
+      const openLease = async () => {
+        for (const delay of [120,350,0]) {
+          signal.throwIfAborted();
+          try { return await this.call('open', {path:this.source.path,revision,mode}, NEVER); }
+          catch (error) {
+            if (!delay || mode === 'preview' || !(error?.code === 'officesdk/not-found' || error?.code === 'officesdk/unavailable' && error?.details?.source?.startsWith('workspace-file/'))) throw error;
+            await new Promise(resolve => this.scheduler.setTimeout(resolve,delay));
+          }
+        }
+      };
+      const opening = openLease();
       const release = lease => { if (lease?.id) void this.call('release', { id: lease.id, autosave: true }, NEVER).catch(() => {}); };
       const lease = await Promise.race([opening, new Promise((_, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true }))])
         .catch(error => { if (!signal.aborted) throw error; opening.then(release, () => {}); });
@@ -139,6 +151,10 @@ export class DocumentController {
     if (revision === this.revision) return;
     // The last open failed (the retry button bumps the revision): open again rather than keep the error.
     if (!this.lease && this.state.error) return this.open(revision, { mode: this.resumeMode(), loaded, failed });
+    if (this.state.loading && !this.state.ready && (!this.lease || this.lease.backend === 'kit' && this.lease.format === 'pptx')) {
+      this.pendingAdoption = {revision,currentVersion,loaded,failed};
+      return;
+    }
     if (!this.lease) return;
     // A Kit view shows Kit's record, not the disk. The Host checks the file against what this view opened or
     // saved: our own write rebinds; any other change reopens the view, and Kit reloads a clean record or reports
@@ -147,7 +163,7 @@ export class DocumentController {
       if (await this.rebind(revision, false, loaded, failed, { quiet: true })) return;
       if (!this.lease) return;
       await this.flushEditor().catch(() => {});
-      return this.open(revision, { mode: this.state.mode, loaded, failed });
+      return this.open(revision, { mode: this.state.mode, loaded, failed, retainPreview:true });
     }
     if (this.state.mode === 'edit') {
       if (await this.rebind(revision, false, loaded, failed, { quiet: currentVersion !== this.savedVersion })) return;
@@ -188,7 +204,12 @@ export class DocumentController {
     if (!this.lease) return;
     const message = acceptFrameMessage(event, { frame: this.frame, origin: this.origin, id: this.lease.id, revision: this.revision });
     if (!message) return;
-    if (message.event === 'ready') { this.scheduler.clearTimeout(this.timer); this.set({ loading: false, ready: true }); this.request?.loaded?.(this.lease.version); this.settleReady(); this.onReady?.(); }
+    if (message.event === 'ready') { this.scheduler.clearTimeout(this.timer); this.set({ loading: false, ready: true, reconnecting:false }); this.request?.loaded?.(this.lease.version); this.settleReady(); this.onReady?.();
+      const pending = this.pendingAdoption;
+      this.pendingAdoption = undefined;
+      const adoptedLease = this.lease;
+      if (pending) void this.adopt(pending.revision,pending.currentVersion,pending).catch(error => { if (adoptedLease === this.lease) this.fail(error); });
+    }
     else if (message.event === 'agent-result') {
       const failure = message.ok ? undefined : Object.assign(new Error(message.message || 'The editor could not do that'), { code: `officesdk/${message.code ?? 'editor-failed'}` });
       this.settle(`agent:${message.requestId}`, message.result, failure);
@@ -319,6 +340,7 @@ export class DocumentController {
         signal?.addEventListener('abort', () => reject(signal.reason ?? new Error('Cancelled')), { once: true });
       })]);
     }
+    if (this.state.mode === mode && this.state.loading && this.controller && !this.controller.signal.aborted) return this.whenReady(signal);
     if (this.state.mode !== mode || !this.lease) await this.open(this.revision, { mode, ...this.request });
     return this.whenReady(signal);
   }
@@ -500,6 +522,7 @@ export class DocumentController {
     // the Host answered, Save As, a switch's last save, the account hold or a reopen may have begun: check again.
     const lease = this.lease;
     if (await this.refreshAccess() === 'denied' || this.lease !== lease || !this.autosaveReady()) return;
+    this.set({autoSaving:true});
     try { await this.save({ auto: true, approved: this.autosaveApproved === true }); }
     catch (error) {
       // A Host that did not report the file's access finds out here: the tab then asks for authorization.
@@ -515,7 +538,7 @@ export class DocumentController {
         this.set({ autosaveFailed: error?.message || String(error) });
         if (!error?.code || AUTOSAVE_RETRY.has(error.code)) this.scheduleAutosave(AUTOSAVE_RETRY_MS);
       }
-    }
+    } finally { if (this.lease === lease) this.set({autoSaving:false}); }
   }
 
   autosaveReady() {
@@ -587,7 +610,7 @@ export class DocumentController {
     // Kit's save reports the file's new version; the save is current when nothing was edited meanwhile.
     if (this.state.backend === 'kit') {
       if (result.version !== undefined) { this.savedVersion = result.version; this.lease.version = result.version; }
-      if (result.saved && this.editRevision === editRevision) this.set({ dirty: false, saveOutside: undefined, saveNeedsApproval: undefined, overwritePrompt: undefined, ...this.cleared() });
+      if (result.saved && this.editRevision === editRevision) this.set({ dirty: false, diskSaveConfirmed:true, saveOutside: undefined, saveNeedsApproval: undefined, overwritePrompt: undefined, ...this.cleared() });
       if (result.saved) this.set({ autosaveFailed: undefined });
     }
     else this.markSaved(result.version, result.editRevision);
@@ -635,7 +658,7 @@ export class DocumentController {
     // A Kit save (here or the AI's) reports the file's version; only the change count says whether it is current.
     if (this.state.backend === 'kit') {
       if (version !== undefined) { this.savedVersion = version; this.lease.version = version; }
-      if (editRevision === undefined || editRevision === this.editRevision) this.set({ ...this.cleared(),  dirty: false, saveOutside: undefined, saveNeedsApproval: undefined, overwritePrompt: undefined });
+      if (editRevision === undefined || editRevision === this.editRevision) this.set({ ...this.cleared(), diskSaveConfirmed:version !== undefined, dirty: false, saveOutside: undefined, saveNeedsApproval: undefined, overwritePrompt: undefined });
       return;
     }
     if (version === undefined) return;
@@ -707,7 +730,7 @@ export class DocumentController {
     this.scheduler.clearTimeout(this.renewTimer);
     this.scheduler.clearTimeout(this.accessTimer);
     const message = error instanceof Error ? error.message : String(error);
-    this.set({ loading: false, error: message, errorCode: error?.code });
+    this.set({ loading:false, error:message, errorCode:error?.code, ...(this.state.reconnecting && {url:undefined, reconnecting:false}) });
     this.request?.failed?.();
     for (const kind of [...this.pending.keys()]) this.settle(kind, undefined, error);
     this.settleReady(error);
@@ -715,6 +738,7 @@ export class DocumentController {
   }
 
   closeSession() {
+    this.pendingAdoption = undefined;
     // Agent requests belong to one frame; a replaced or released session cannot answer them.
     const gone = Object.assign(new Error('The document session was replaced'), { code: 'officesdk/no-editor' });
     for (const kind of [...this.pending.keys()]) if (kind.startsWith('agent:')) this.settle(kind, undefined, gone);
@@ -724,7 +748,12 @@ export class DocumentController {
     this.scheduler.clearTimeout(this.accessTimer);
     this.scheduler.clearTimeout(this.autosaveTimer);
     let released;
-    if (this.lease) { const { id } = this.lease; this.lease = undefined; released = this.call('release', { id, autosave: !this.abandoning && !this.accountHold }, undefined).catch(() => {}); }
+    if (this.lease) {
+      const { id } = this.lease;
+      this.lease = undefined;
+      // Releasing the Host view must outlive the editor requests cancelled above.
+      released = this.call('release', { id, autosave: !this.abandoning && !this.accountHold }, NEVER).catch(() => {});
+    }
     this.abandoning = false;
     return released;
   }

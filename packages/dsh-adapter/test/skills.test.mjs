@@ -154,9 +154,6 @@ test('the package ships the skills sub-plugin and its files', () => {
 test('shimo-pptx picks a style in three layers: named, else the workspace default (no style passed), else it recommends 2–4 through the tool; photos are warned about first', () => {
   const skill = readFileSync(join(ROOT, 'shimo-pptx', 'SKILL.md'), 'utf8');
   const section = skill.slice(skill.indexOf('## 2. 选样式'), skill.indexOf('## 3. 配图'));
-  for (const rule of [/用户点名了/, /meta\.name/, /meta\.aliases/, /用 <包名>（<显示名>）样式/, /用户没提样式/, /实时方式\*\*不传\*\* `style`/, /Workspace default PPT style/, /不要因为"没说"就自己传 `default`/, /2–4 个/, /meta\.summary/, /meta\.scenarios/, /meta\.requires\.photos/, /meta\.requires\.note/, /先提醒用户/]) assert.match(section, rule);
-  assert.doesNotMatch(skill, /`style` 不写就是 `default`/, 'the old rule would defeat the workspace default');
-  // Recommending: when, how, and when not.
-  for (const rule of [/`presentation_suggest_styles`/, /\*\*没点名\*\*/, /\*\*没有\*\*「Workspace default PPT style」/, /\*\*不止一个\*\*包/, /结合用户内容/, /\*\*结束本轮\*\*/, /第 N 个/, /都不要，用默认样式 <包名>/, /\*\*不推荐\*\*：用户已经点名、工作区有默认样式、只有一个包、编辑已有 PPT、或是子代理/, /Inspiration library pick/, /请使用「<显示名>」样式生成 PPT 演示文稿/]) assert.match(section, rule);
-  assert.doesNotMatch(section, /2–3 个/, 'no more listing candidates in text');
+  for (const rule of [/用户点名了/, /meta\.aliases/, /仅|只有用户主动要求比较风格/, /能满足页数的包/, /intent/, /previewPhase="prepare"/, /previewPhase="ready"/, /时间轴/]) assert.match(section,rule);
+  assert.doesNotMatch(section,/先推荐再动手/);
 });

@@ -342,7 +342,7 @@ export function toolViewModel(t, { toolName, callId, phase, block }, recall = ()
   const model = { kind, path, file: path ? fileName(path) : '', state: 'running', tone: undefined, title: '', pages: '', summary: '', rows: [], slides: [], lines: [], error: undefined };
   // Without a named style the Host picks the workspace default, so the style is said only once it is named or known.
   // document_create / spreadsheet_create default to the gongwen / blank template; while the arguments stream, a template not yet written is left out.
-  if (kind === 'create' && doc && (phase !== 'preparing' || str(args.template))) model.summary = format(t, 'template', { name: str(args.template) || (sheet ? 'blank' : 'gongwen') });
+  if (kind === 'create' && doc && (str(args.template) || sheet && phase !== 'preparing')) model.summary = format(t, 'template', { name: str(args.template) || 'blank' });
   else if (kind === 'create' && !doc && str(args.style)) model.summary = format(t, 'style', { name: str(args.style) });
   if (doc && kind === 'edit') {
     model.summary = firstLine(str(args.summary) ?? '');

@@ -100,6 +100,20 @@ function fakePage({ meta = { v: 1, id: 'v1', suite: 'document', mode: 'edit', na
   return { window, document, fetch, posted, requests };
 }
 
+test('a playback frame that cannot load the bundle reports the failure without closing the reader', async () => {
+  const page = fakePage();
+  page.window.location.href += '&playback=1';
+  const frame = new EventTarget();
+  frame.hasAttribute = name => name === 'data-officesdk-playback';
+  page.window.frameElement = frame;
+  let reason;
+  frame.addEventListener('officesdk-playback-error', event => { reason = event.detail; });
+  await startKitPage({ ...page, loadEditor: async () => { throw new Error('bundle missing'); } });
+  assert.equal(reason, 'bundle missing');
+  assert.deepEqual(page.requests, []);
+  assert.deepEqual(page.posted, []);
+});
+
 test('a page that cannot load its editor abandons the view, then reports failed with the unsaved flag', async () => {
   const page = fakePage();
   await assert.rejects(startKitPage({ ...page, loadEditor: async () => { throw new Error('bundle missing'); } }), /bundle missing/);

@@ -30,9 +30,9 @@ export function toRemote(error, signal, RemoteError) {
   error = fromKit(error);
   if (signal?.aborted) return new RemoteError('gateway/cancelled', 'The document operation was cancelled.', {});
   if (isSuiteError(error)) {
-    const { draftId, limit, resource, status: componentStatus, outside, rebuild, overwrite, engine } = error.details ?? {};
+    const { draftId, limit, resource, source, status: componentStatus, outside, rebuild, overwrite, engine } = error.details ?? {};
     return new RemoteError(`officesdk/${error.code}`, error.message, { status: error.status,
-      ...(draftId && { draftId }), ...(limit && { limit }), ...(resource && { resource }), ...(componentStatus !== undefined && { componentStatus }),
+      ...(typeof source === 'string' && source.startsWith('workspace-file/') && { source }), ...(draftId && { draftId }), ...(limit && { limit }), ...(resource && { resource }), ...(componentStatus !== undefined && { componentStatus }),
       ...(outside === true && { outside }), ...(rebuild === true && { rebuild }), ...(overwrite === true && { overwrite }), ...(typeof engine === 'string' && { engine }) });
   }
   if (error?.isDSHRemoteError) return error;

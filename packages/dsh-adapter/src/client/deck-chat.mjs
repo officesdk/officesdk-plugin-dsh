@@ -312,7 +312,7 @@ function missingOfficeResults(snapshot,turn,cwd) {
   return [...files.values()];
 }
 
-export function registerDeckChat(ctx,React) {
+export function registerDeckChat(ctx,React,onTurnDelivery) {
   const h=React.createElement;
   function CompletedOfficeTurn({node,useChat}) {
     const turn=node.data.turn, snapshot=useChat(s=>s);
@@ -333,6 +333,7 @@ export function registerDeckChat(ctx,React) {
   function OfficeFileTail({turn,useChat,useSessions,sessionId,openFile,useContextMenu,t}) {
     const snapshot=useChat(s=>s);
     const cwd=useSessions(s=>s.byId[sessionId]?.cwd);
+    React.useEffect?.(()=>{onTurnDelivery?.(sessionId,turn,cwd);},[sessionId,turn,cwd,turn.data?.get?.('deliverables')]);
     const menu=useContextMenu?.();
     if(turn.status!=='closed' || !focusOfficeTurn(turn))return null;
     const files=missingOfficeResults(snapshot,turn,cwd);

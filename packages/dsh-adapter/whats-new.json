@@ -1,7 +1,18 @@
 {
   "v": 1,
-  "latestReleased": "1.0.0",
+  "latestReleased": "1.0.1",
   "entries": [
+    {
+      "version": "1.0.1",
+      "highlights": [
+        "Word 和 PPT 生成效果优化。",
+        "修复部分已知问题。"
+      ],
+      "highlightsEn": [
+        "Improved document generation in Word and PowerPoint.",
+        "Fixed some known issues."
+      ]
+    },
     {
       "version": "1.0.0",
       "highlights": [

@@ -71,8 +71,8 @@ test('document_create writes the template, opens it, and its edits apply without
   const opened = await client(() => readResult);
   assert.deepEqual([opened.kind, opened.path, opened.creationArea], ['read', 'docs/new.docx', 'page']);
   const result = await creating;
-  assert.deepEqual([result.created, result.template, result.generating, result.format], [true, 'gongwen', true, 'docx']);
-  assert.deepEqual(await readFile(join(workspace, 'docs/new.docx')), await readFile(join(TEMPLATES, 'gongwen.docx')));
+  assert.deepEqual([result.created, result.template, result.generating, result.format], [true, 'blank', true, 'docx']);
+  assert.deepEqual(await readFile(join(workspace, 'docs/new.docx')), await readFile(join(TEMPLATES, 'blank.docx')));
   assert.deepEqual(created, [{ path: 'docs/new.docx', approved: false }]);
   // Generating: the edit goes out with auto and the readToken the model passed.
   const editing = service.aiEdit('s1', { path: 'docs/new.docx', ops: [{ op: 'insertParagraph', text: '标题', style: 'title' }], summary: 's', callId: 'c1', readToken: 'd1' });
@@ -138,7 +138,7 @@ test('tools: document_* call the service with the agent Session and pass readTok
   await tools.get('document_edit').execute({ path: 'a.docx', summary: 'y', operations: [] }, exec);
   assert.deepEqual(await tools.get('document_save').execute({ path: '/far/a.docx' }, exec), { outcome: 'allowed-once' });
   assert.deepEqual(calls, [
-    ['create', 's9', { path: 'a.docx', template: 'gongwen' }], ['read', 's9', 'a.docx', { callId: 'c1' }],
+    ['create', 's9', { path: 'a.docx' }], ['read', 's9', 'a.docx', { callId: 'c1' }],
     ['edit', 's9', { path: 'a.docx', ops: [], summary: 'x', callId: 'c1', readToken: 'd5' }], ['edit', 's9', { path: 'a.docx', ops: [], summary: 'y', callId: 'c1' }],
     ['save', 's9', '/far/a.docx'],
   ]);
@@ -257,7 +257,7 @@ test('chat rows: Word tools have their own titles, paragraph rows and the steps 
   assert.equal(documentProgress(t, 'cancelled: Stopped by the user. Steps 1–3 of 7 were applied and stay'), '已完成第 1–3 步（共 7 步），这些改动留在编辑器里，没有撤销，也没有保存');
   assert.equal(documentProgress(t, 'source-changed: x None of the 2 steps was applied.'), '一步也没有执行');
   const running = toolViewModel(t, { toolName: 'document_create', phase: 'start', block: { argsRaw: JSON.stringify({ path: 'a/通知.docx' }) } });
-  assert.deepEqual([running.title, running.summary, running.file], ['正在新建文档', '模板 gongwen', '通知.docx']);
+  assert.deepEqual([running.title, running.summary, running.file], ['正在新建文档', '', '通知.docx']);
   const read = toolViewModel(t, { toolName: 'document_read', phase: 'result', block: { content: [{ type: 'text', text: JSON.stringify({ unsaved: true, document: { paragraphs: [{}, {}, {}], tables: [{}] } }) }], call: { argsRaw: '{"path":"a.docx"}' } } });
   assert.deepEqual([read.title, read.summary], ['读取了文档', '共 3 段 · 1 个表格 · 有未保存的修改']);
   const edited = toolViewModel(t, { toolName: 'document_edit', phase: 'result', block: { content: [{ type: 'text', text: JSON.stringify({ applied: 4, unsaved: true, editId: 'e' }) }], call: { argsRaw: JSON.stringify({ path: 'a.docx', summary: '写第一节', operations: [] }) } } });
@@ -277,6 +277,14 @@ test('261109: gongwen carries page numbers and starts with one empty paragraph',
   };
   assert.doesNotMatch(part('gongwen', 'word/styles.xml'), /outlineLvl/, 'Kit cannot save outline levels (K15)');
   assert.match(part('gongwen', 'word/document.xml'), /<w:body><w:p\/>/, 'gongwen starts with one empty paragraph');
+});
+
+test('a neutral filename and meeting intent open the live minutes template', async t => {
+  const {service, client} = await load(t);
+  const creation = service.aiCreateDocument('s1', {path:'draft.docx', intent:'整理例会记录'});
+  const opening = await client(() => readResult);
+  assert.equal((await creation).template, 'meeting-minutes');
+  assert.equal(opening.creationArea, 'page');
 });
 
 test('project plan creation opens a real templated file and starts its table frame', async t => {

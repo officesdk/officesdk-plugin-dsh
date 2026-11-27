@@ -1,3 +1,4 @@
+import { wordTemplate } from './template-match.mjs';
 import { projectTemplate } from './project-template.mjs';
 import { ordinaryLiveTemplate } from './ordinary-live-template.mjs';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -35,7 +36,7 @@ export function loadTemplate(root, name = DEFAULT_TEMPLATE, extension = '.docx')
  * write: its edits apply without a card each time until the user presses Stop or the budget runs out.
  */
 export function createDocument(service, sessionId, args, options) {
-  return createFromTemplate(service, sessionId, { ...args, template: args?.template ?? DEFAULT_TEMPLATE }, options, { extension: '.docx', root: service.docTemplateRoot, tool: 'document_create', noun: 'document' });
+  return createFromTemplate(service, sessionId, args, options, { extension: '.docx', root: service.docTemplateRoot, tool: 'document_create', noun: 'document' });
 }
 
 /** AI tool: a new .xlsx from a shimo-xlsx template, generated live the same way (spreadsheet_create). */
@@ -46,7 +47,7 @@ export function createSpreadsheet(service, sessionId, args, options) {
 /** Word template names the shimo-docx skill text may still use; the build ships gongwen alone, so these fall back to it. */
 const FALLBACK_WORD_TEMPLATES = Object.freeze(['redhead', 'basic']);
 
-async function createFromTemplate(service, sessionId, { path, template, outputArea, projectMetadata, meetingDecisionCount }, { approve, signal } = {}, { extension, root, tool, noun }) {
+async function createFromTemplate(service, sessionId, { path, template, intent, outputArea, projectMetadata, meetingDecisionCount }, { approve, signal } = {}, { extension, root, tool, noun }) {
   const scope = await service.scopeOf(sessionId);
   if (typeof path !== 'string' || !path.toLowerCase().endsWith(extension)) throw new SuiteError('invalid-path', `${tool} makes ${extension} files; give a path ending in ${extension}.`);
   const isWord = extension === '.docx';
@@ -63,6 +64,7 @@ async function createFromTemplate(service, sessionId, { path, template, outputAr
   } else if (service.skillRoot) {
     root = await service.skillRoot(isWord ? 'shimo-docx' : 'shimo-xlsx', sessionId, 'templates', { signal }) ?? root;
   }
+  if (isWord && template == null) template = wordTemplate(intent, path, templateNames(root, extension));
   // A built-in Word template this copy does not ship (legacy redhead/basic can fall back to gongwen, spec 261113-bundle-public-skills):
   // the document starts from the default one and the result says so, so the model can tell the user. A misspelt name still fails.
   let fallback;

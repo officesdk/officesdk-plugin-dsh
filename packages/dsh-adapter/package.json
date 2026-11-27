@@ -1,6 +1,6 @@
 {
   "name": "officesdk",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Word, Excel and PowerPoint documents opened, edited and saved in DeepSeek Harness, with live AI editing",
   "private": true,
   "license": "MIT",

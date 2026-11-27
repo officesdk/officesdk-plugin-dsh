@@ -4,6 +4,18 @@
 
 新版本按[发布前确认更新说明](../../docs/NPM.md#发布前确认更新说明)执行。每个明确功能单列一条，纯修复或维护版采用约定的一句说明。发布前确认版本号、渠道和完整中英文文案，将确认稿放在该版本的「### 更新要点」和「### Highlights」中，两种语言逐条对应。运行 `node scripts/whats-new.mjs` 同步随包说明。
 
+## 1.0.1 — 2026-11-27
+
+### 更新要点
+
+- Word 和 PPT 生成效果优化。
+- 修复部分已知问题。
+
+### Highlights
+
+- Improved document generation in Word and PowerPoint.
+- Fixed some known issues.
+
 ## 1.0.0 — 2026-11-26
 
 ### 更新要点

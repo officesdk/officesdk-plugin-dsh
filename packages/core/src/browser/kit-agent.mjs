@@ -67,11 +67,15 @@ export function createKitPresentationAgent({ editor, document, animate = () => t
           list.getItem(id).moveTo(index);
           order.splice(index, 0, order.splice(order.indexOf(id),1)[0]);
         }
+        // Adding slides leaves the native selection on the last insert. The
+        // sorter scrolls to that selection again when it finishes laying out.
+        ctx.presentation.setSelectedSlides([ids[0]]);
         await ctx.sync();
         return ids;
       });
       if (slides.length !== count) throw agentError('editor-failed', 'The editor did not create the planned slides.');
       progress = deckProgress(document, slides, locale, deck.slideSize);
+      progress.track(slides[0]);
       // The sorter mounts its thumbnail grid after the document mutation. Start the
       // creation gesture clock from that paint, including on cold editor startup.
       const pause = wait ?? (ms => new Promise(resolve => setTimeout(resolve, ms)));
@@ -106,6 +110,7 @@ export function createKitPresentationAgent({ editor, document, animate = () => t
     await Promise.race([progress.firstThumbnail, pause(1800)]);
     showViewTab(document);
     if (animate() && !resuming) await pause(320);
+    progress.track(ids.find(id => partial.includes(id)) ?? ids.find(id => !done.includes(id)) ?? ids[0]);
     if (!resuming) progress.phase(ids, 'waiting');
   }
   const selection=presentationSelectionMethods({api,document,animate,locale,wait,locked:async run=>{

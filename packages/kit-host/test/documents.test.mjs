@@ -19,6 +19,17 @@ test('open: the first edit view is the writer; another tab or conversation gets 
   assert.equal(docs.views.get(third.id).realPath, path.join(workspace, 'deck.pptx'));
 });
 
+test('the native preparation view reads only its bundled template and never acquires a writer', async t => {
+  const {docs,scope,workspace} = setup(t);
+  const bundledPreview = path.join(workspace,'deck.pptx');
+  const view = await docs.open(scope,'Untitled.pptx',owner(),{mode:'edit',bundledPreview});
+  assert.equal(view.mode,'view');
+  assert.equal(docs.views.get(view.id).preparingPresentation,true);
+  assert.equal(existsSync(path.join(workspace,'Untitled.pptx')),false);
+  await assert.rejects(docs.change(view.id,owner(),{seq:0,format:'mop-v1',body:'x'}),code('read-only'));
+  await docs.close(view.id,owner());
+});
+
 test('authorization comes first: refused requests never reach Kit', async t => {
   const { docs, scope, commands } = setup(t);
   await assert.rejects(docs.open({ ...scope, sessionId: 'gone' }, 'deck.pptx', owner()), code('forbidden'));

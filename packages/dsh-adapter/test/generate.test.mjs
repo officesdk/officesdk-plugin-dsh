@@ -67,6 +67,17 @@ async function load(t, extra = {}) {
 const read = { ok: true, result: { format: 'pptx', path: 'new.pptx', unsaved: false, deck: { slides: [], layouts: [] } } };
 const applied = { ok: true, result: { applied: 1, slideIds: ['s1'], refs: { p: 's1' }, undoable: 'x' } };
 
+test('a neutral filename and training intent create the seven original training slides', async t => {
+  const {service, client} = await load(t);
+  const creation = service.aiCreate('s1', {path:'draft.pptx', intent:'新员工入职培训'});
+  const opening = await client(() => read);
+  const result = await creation;
+  assert.equal(result.styleSource, 'scenario');
+  assert.equal(result.style.name, 'slide-008');
+  assert.equal(result.style.fixedDeck.slideCount, 7);
+  assert.equal(opening.initialBlank, 'ppt-template');
+});
+
 test('fixed training and blank styles return lossless JSON and open with generation masking', async t => {
   const { service, client } = await load(t);
   for (const [style, count] of [['slide-008', 7], ['slide-000', 1]]) {
@@ -269,8 +280,8 @@ test('tools: presentation_create calls the Host with the agent Session and asks 
   assert.deepEqual(calls, [['s9', { path: '/far/a.pptx', style: undefined, slideCount: 6 }]], 'no style is left for the Host to choose (the workspace default)');
   const create = tools.get('presentation_create');
   assert.doesNotMatch(create.parameters.properties.style.description, /default "default"/);
-  assert.match(create.description, /quarterly\/work report \(slide-002\)/);
-  assert.match(create.description, /leave it out otherwise/);
+  assert.match(create.description, /closest installed/);
+  assert.match(create.description, /page-count-compatible/);
   assert.match(create.description, /styleSource/);
   assert.match(asked[0].displayReason, /\/far\/a\.pptx/);
   const edit = tools.get('presentation_edit');
@@ -410,7 +421,7 @@ test('tools + Host: the context names the remembered style through a real Host, 
   await service.styleMemory.set(workspace, 'second');
   await mkdir(join(workspace, 'sub'));
   assert.equal(entries[0].text({ agent: { session: { header: { cwd: join(workspace, 'sub') } } } }),
-    'Workspace default PPT style (shimo-pptx): second (黑底画报 / Dark editorial). When the user names no style, use it: leave style out of presentation_create, and pass --style second to brand_deck.py.');
+    'Workspace default PPT style (shimo-pptx): second (黑底画报 / Dark editorial). For automatic matching leave style out of presentation_create. Use it as a fallback when no closer scenario matches. Offline fallback: --style second.');
 });
 
 test('reporting create validates chart inputs before creating, and returns eight live pages with target slots', async t => {

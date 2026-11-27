@@ -181,7 +181,6 @@ ${PROMPT_CSS}
 .sbp-group{display:flex;align-items:center;gap:1px}
 .sbp-icon{position:relative;display:inline-flex;align-items:center;justify-content:center;width:25px;height:24px;padding:4px;flex-shrink:0;border:0;border-radius:5px;background:transparent;color:var(--sbp-icon);cursor:pointer;box-sizing:border-box}
 .sbp-icon svg{width:16px;height:16px;stroke-width:1.35}
-.sbp-icon[data-more] svg{stroke-width:3.2}
 .sbp-icon:hover:not([aria-disabled=true]){background:var(--sbp-hover)}
 .sbp-icon:active:not([aria-disabled=true]),.sbp-icon[aria-pressed=true]{background:var(--sbp-pressed)}
 .sbp-icon[aria-expanded=true]{background:var(--sbp-open)}
@@ -218,11 +217,13 @@ html[data-input-modality=pointer] .sbp :focus-visible:not(:read-write){outline-c
 .sbp-update-opening{animation:sbp-update-open .24s cubic-bezier(.2,.8,.2,1) both}
 @keyframes sbp-update-open{from{opacity:0;clip-path:inset(0 0 75% 0 round 14px)}to{opacity:1;clip-path:inset(0 round 14px)}}
 @media (prefers-reduced-motion:reduce){.sbp-update-opening{animation:none}}
-.sbp-update-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.sbp-update-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .sbp-update-meta{flex:1;min-width:0}
-.sbp-update-version{overflow-wrap:anywhere;font-size:18px;line-height:24px;font-weight:600;letter-spacing:-.3px}
-.sbp-update-date{display:block;margin-top:4px;color:#86868b;font-size:12px;line-height:18px}
+.sbp-update-version{overflow-wrap:anywhere;font-size:18px;line-height:22px;font-weight:600;letter-spacing:-.3px}
+.sbp-update-date{display:block;color:#86868b;font-size:12px;line-height:16px}
 .sbp .sbp-pop .sbp-update-primary.sbp-primary{flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;min-width:72px;height:30px;padding:0 14px;border:0;border-radius:7px;background:#202124;color:#fff;font:500 13px/30px ${FONT};cursor:pointer}
+/* Trim the leading above the version and below the date so the button aligns with the visible text. */
+.sbp-update-head:has(.sbp-update-date) > button.sbp-update-primary.sbp-primary{align-self:stretch;height:auto;margin-block:3px 2px;line-height:18px}
 .sbp .sbp-pop .sbp-update-primary.sbp-primary:hover:not(:disabled){background:#08090a}
 .sbp .sbp-pop .sbp-update-primary.sbp-primary:disabled{background:#ededf0;color:#96969c;cursor:default}
 .sbp-update-primary .sbp-spin{--sbp-spin-track:#00000026;--sbp-spin-head:#96969c}
@@ -232,13 +233,8 @@ html[data-input-modality=pointer] .sbp :focus-visible:not(:read-write){outline-c
 .sbp-update-notes li{margin:0 0 7px;padding-left:1px}
 .sbp-update-notes li:last-child{margin-bottom:0}
 .sbp-update-fallback{margin:0;color:#424245}
-.sbp-update .sbp-actions{margin-top:16px}
 .sbp-update-message{margin:16px 0 0;font-size:12px;line-height:18px;color:#6e6e73}
 .sbp-update-warning{color:#956021}
-.sbp-whats-new{width:300px}
-.sbp-notes{display:grid;gap:6px;max-height:260px;overflow:auto}
-.sbp-notes ul{margin:0;padding-left:16px;display:grid;gap:4px}
-.sbp-notes li{line-height:18px}
 .sbp-save-as{width:377px}
 .sbp-account{width:196px}
 .sbp-account-row svg{flex:0 0 16px;width:16px;height:16px;color:#62666b;stroke-width:1.6}

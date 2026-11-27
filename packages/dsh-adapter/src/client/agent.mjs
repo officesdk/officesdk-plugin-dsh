@@ -32,8 +32,8 @@ const failure = (code, message) => Object.assign(new Error(message), { code: `of
  * `platform`: the Host's, as a value or a getter (a lease says it); a command that carries its own wins.
  */
 export class AgentBridge {
-  constructor({ rpc, openResource, controllers, mounted, views, platform, scheduler = globalThis, retryMs = 2_000, aliveMs = 15_000, generatingMs = 60_000 }) {
-    Object.assign(this, { rpc, openResource, controllers, mounted, views, platform, scheduler, retryMs, aliveMs, generatingMs });
+  constructor({ rpc, openResource, openPreview, controllers, mounted, views, platform, scheduler = globalThis, retryMs = 2_000, aliveMs = 15_000, generatingMs = 60_000 }) {
+    Object.assign(this, { rpc, openResource, openPreview, controllers, mounted, views, platform, scheduler, retryMs, aliveMs, generatingMs });
     this.running = new Map();
     this.loop = undefined;
   }
@@ -151,7 +151,9 @@ export class AgentBridge {
         if (['docx', 'pptx'].includes(format) && command?.kind === 'read' && command.initialBlank && !this.controllers.byAddress.has(address)) {
           this.controllers.reserveCreation(address, command.initialBlank === true ? 'project' : command.initialBlank);
         }
-        const controller = await this.controllers.wait(address, opening, () => this.openResource(address));
+        const creating = format === 'pptx' && (command?.initialBlank || command?.slideCount);
+        if (creating && this.openPreview) await this.openPreview(sessionId,path,'ready',address);
+        const controller = await this.controllers.wait(address, opening, () => creating && this.openPreview ? undefined : this.openResource(address));
         await controller.ensureMode(mode, opening);
         opening.throwIfAborted();
         if (command?.deliveryToken) {
@@ -179,6 +181,17 @@ export class AgentBridge {
   }
 
   async run(sessionId, command, signal) {
+    if (command.previewPhase) {
+      if (this.mounted && this.mounted.getSnapshot() !== sessionId) await this.waitForSession(sessionId, signal);
+      const address = command.previewPhase === 'ready' ? await this.documentAddress(sessionId,command.path,command) : undefined;
+      signal.throwIfAborted();
+      const result = await this.openPreview(sessionId,command.path,command.previewPhase,address);
+      if (command.previewPhase === 'ready') {
+        const controller = await this.controllers.wait(address,signal);
+        await controller.whenReady(signal);
+      }
+      return result;
+    }
     const { controller, format } = await this.document(sessionId, command.path, signal, command);
     // selection_rewrite: the user's own request, so no approval card; the page checks the selection still holds.
     if (command.kind === 'read' && command.creationArea && !command.initialBlank && (format === 'docx' || format === 'xlsx')) {

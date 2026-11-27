@@ -96,9 +96,14 @@ export class KitDocuments {
    * Opens `path` of the Session for one tab. The first edit-mode view of a document is its writer; any
    * other view — another tab, conversation or principal — is read only.
    */
-  async open(scope, filePath, peer, { mode = 'edit', signal } = {}) {
+  async open(scope, filePath, peer, { mode = 'edit', signal, bundledPreview } = {}) {
+    // Only the host supplies this installed, immutable template. A preparation
+    // view never obtains a writer on it or resolves a user-supplied disk path.
+    if (bundledPreview) mode = 'view';
     await this.authorize(peer, scope, signal, { action: mode === 'edit' ? 'edit' : 'open', path: filePath });
-    const { absolutePath, version } = await this.stat(scope, filePath, signal);
+    const { absolutePath, version } = bundledPreview
+      ? { absolutePath: bundledPreview, version: 'bundled-blank-presentation' }
+      : await this.stat(scope, filePath, signal);
     const real = await realpath(absolutePath);
     const client = await this.#client();
     const generation = this.kit.generation;
@@ -116,6 +121,7 @@ export class KitDocuments {
     if (mode === 'edit' && previous?.peerId === peer.id) { previous.closed = true; this.views.delete(previous.id); }
     const writer = mode === 'edit' && !this.#writerOf(opened.documentId);
     const view = { id: randomUUID(), peerId: peer.id, principal: peer.principal ?? 'owner', peer, scope, path: filePath, realPath: real,
+      ...(bundledPreview && {preparingPresentation:true}),
       documentId: opened.documentId, suite: opened.suite, writer, generation, nextSeq: 0, accepted: 0, queue: Promise.resolve(),
       // Kit restarted between the request and now: the document id may belong to the old process.
       stale: this.kit.generation !== generation || Boolean(client.broken) || (this.kit.client !== undefined && this.kit.client !== client),

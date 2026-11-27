@@ -12,7 +12,7 @@ export const COMMANDS = Object.freeze(['save', 'flush', 'rebind', 'agent']);
  * Selection rewrite: `composer` tells the page whether the conversation can take a message, `selectionStatus` answers a
  * selection-request, `rewrite` carries the model's selection_rewrite.
  */
-export const AGENT_OPS = Object.freeze(['inspect', 'preview', 'apply', 'undo', 'cancel', 'flush', 'snapshot', 'history', 'print', 'composer', 'submitChatRegion', 'readSelection', 'documentUi', 'selectionStatus', 'rewrite', 'changeDetail']);
+export const AGENT_OPS = Object.freeze(['inspect', 'preview', 'apply', 'undo', 'cancel', 'flush', 'snapshot', 'history', 'print', 'slideshow', 'composer', 'submitChatRegion', 'readSelection', 'documentUi', 'selectionStatus', 'rewrite', 'changeDetail']);
 const REQUEST_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
 /** Parent side: only the session's own frame, origin, id and current revision are accepted. */

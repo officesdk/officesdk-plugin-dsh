@@ -1,10 +1,11 @@
+import { pptTemplate } from './template-match.mjs';
 import { finishProjectTable } from './project-plan-stage.mjs';
 import { blankExistingDeck } from './existing-deck.mjs';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { lstat, realpath } from 'node:fs/promises';
 import { createHash, randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { basename, join, resolve as resolvePath } from 'node:path';
+import { basename, join, relative, isAbsolute, sep, resolve as resolvePath } from 'node:path';
 import { userInfo } from 'node:os';
 import z from '@deepseek-ai/schemastery';
 import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol';
@@ -63,6 +64,12 @@ const STYLE_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
  * A pack is a folder with all three — loadStyle needs layouts.json too, so a pack without it is not offered (the picker
  * would otherwise list and remember a style presentation_create then rejects). scripts/brand_deck.py uses the same rule.
  */
+function sidebarPath(scope, path) {
+  if (!scope.workspaceRoot || !isAbsolute(path)) return path;
+  const local = relative(scope.workspaceRoot,path);
+  return local && local !== '..' && !local.startsWith('..'+sep) && !isAbsolute(local) ? local : path;
+}
+
 const PACK_FILES = ['style.json', 'template.pptx', 'layouts.json'];
 export function styleNames(root) {
   try { return readdirSync(root, { withFileTypes: true }).filter(entry => entry.isDirectory() && STYLE_NAME.test(entry.name) && PACK_FILES.every(file => existsSync(join(root, entry.name, file)))).map(entry => entry.name).sort(); }
@@ -205,7 +212,7 @@ export default class ShimoPreview extends TypertRemoteService {
       kitHandler = createKitHttpHandler({ documents: this.kitDocs, admit, allowedOrigin, prefix: '/shimo',
         reviews:new ReviewStore(join(dataRoot,'pending-reviews'),environment.atomic ?? {withFileLock,writeFileAtomic}),
         staticRoots: environment.kitStaticRoots ?? staticRootsOf(packageRoot, this.officeKit),
-        meta: view => ({ v: 1, id: view.id, suite: view.suite, mode: view.writer ? 'edit' : 'view', name: basename(view.path), diskChanged: view.diskChanged, user: editorUser(view.principal) }) });
+        meta: view => ({ v: 1, id: view.id, suite: view.suite, mode: view.writer ? 'edit' : 'view', ...(view.preparingPresentation && {preparingPresentation:true}), name: basename(view.path), diskChanged: view.diskChanged, user: editorUser(view.principal) }) });
       // Start the engine download soon after start-up, and drop other versions not used for 30 days.
       this.officeKit?.prefetch();
       void this.officeKit?.prune({ kitWork: join(dataRoot, 'kit') }).catch(() => {});
@@ -257,6 +264,12 @@ export default class ShimoPreview extends TypertRemoteService {
   async open(workspaceFileScope, path, revision, mode, signal) {
     return this.remote(async peer => {
       const selected = mode ?? 'view';
+      if (selected === 'ppt-preparation') {
+        if (!this.kitDocs) throw unsupportedError(this.kitUnsupported ?? {platform:this.platform,reason:'missing'});
+        const bundledPreview = join(packageRoot,'skills','shimo-pptx','styles','slide-000','template.pptx');
+        const view = await this.kitDocs.open(workspaceFileScope, 'Untitled.pptx', peer, {mode:'view', signal, bundledPreview});
+        return this.kitHandle(view, revision, 'denied');
+      }
       if (!MODES.has(selected)) throw new SuiteError('unsupported-operation', 'Mode must be view or edit.');
       // No Kit can open it here: say so plainly instead of a generic failure (spec §4.1).
       if (!this.kitDocs && KIT_FORMATS.test(path ?? '')) throw unsupportedError(this.kitUnsupported ?? { platform: 'unknown', reason: 'missing', file: 'offline-kit-runtime' });
@@ -542,7 +555,7 @@ export default class ShimoPreview extends TypertRemoteService {
     let card;
     try { card = styleCard(this.styleRoot, style, { thumb: false }); } catch {}
     const title = card ? ` (${card.name.zh}${card.name.en !== card.name.zh ? ` / ${card.name.en}` : ''})` : '';
-    return `Workspace default PPT style (shimo-pptx): ${style}${title}. When the user names no style, use it: leave style out of presentation_create, and pass --style ${style} to brand_deck.py.`;
+    return `Workspace default PPT style (shimo-pptx): ${style}${title}. For automatic matching leave style out of presentation_create. Use it as a fallback when no closer scenario matches. Offline fallback: --style ${style}.`;
   }
   /** The input box's style picker: every pack's card, and this workspace's default. */
   async listStyles(workspaceFileScope, signal) {
@@ -804,7 +817,7 @@ export default class ShimoPreview extends TypertRemoteService {
    * workspace only with `approve`), then opened beside the conversation. The file is the model's to generate:
    * its edits apply without a card per batch until the user stops it or the budget runs out.
    */
-  async aiCreate(sessionId, { path, style, slideCount, slideLayouts, reportingData }, { approve, signal } = {}) {
+  async aiCreate(sessionId, { path, style, intent, slideCount, slideLayouts, reportingData }, { approve, signal } = {}) {
     const scope = await this.scopeOf(sessionId);
     if (typeof path !== 'string' || !/\.pptx$/i.test(path)) throw new SuiteError('invalid-path', 'presentation_create makes .pptx files; give a path ending in .pptx.');
     if (slideCount !== undefined && (!Number.isInteger(slideCount) || slideCount < 1 || slideCount > PPTX_LIMITS.maxPlannedSlides)) {
@@ -821,12 +834,34 @@ export default class ShimoPreview extends TypertRemoteService {
       const current = this.skills.repin('shimo-pptx', sessionId);
       if (current && resolveStyle(join(current, 'styles'), style)) { styleRoot = join(current, 'styles'); this.ctx.logger?.('officesdk/skills')?.info?.(`shimo-pptx: moved session to ${current} for style ${style}`); }
     }
-    const chosen = style === undefined || style === null ? this.defaultStyleFor(scope.workspaceRoot, { refresh: true }) : { style: resolveStyle(styleRoot, style) ?? style, source: 'given' };
+    let chosen;
+    if (style != null) chosen = { style: resolveStyle(styleRoot, style) ?? style, source: 'given' };
+    else {
+      const ids = styleNames(styleRoot);
+      const packs = ids.flatMap(id => {
+        try {
+          const spec = readJson(join(styleRoot,id,'style.json'));
+          const meta = spec.meta ?? {};
+          const terms = [meta.name?.zh,meta.name?.en,...(meta.aliases ?? []),...Object.values(meta.scenarios ?? {}).flat()].filter(term => typeof term === 'string');
+          return [{ id, terms, count:spec.fixed_deck?.slideCount }];
+        } catch { return []; }
+      });
+      const match = pptTemplate(intent,path,packs,slideCount);
+      chosen = match ? {style:match,source:'scenario'} : this.defaultStyleFor(scope.workspaceRoot,{refresh:true});
+      const fallback = packs.find(pack => pack.id === chosen.style);
+      if (!match && fallback?.count && (slideCount && slideCount !== fallback.count || chosen.style === 'slide-000')) chosen = {style:DEFAULT_STYLE,source:'default'};
+    }
     const { template, summary } = loadStyle(styleRoot, chosen.style);
     const fixed=summary.fixedDeck;
     if (fixed && slideCount !== undefined && slideCount !== fixed.slideCount) throw new SuiteError('invalid-edit', `This original template has ${fixed.slideCount} pages; use that page count.`);
     if (reportingData !== undefined && (chosen.style !== 'slide-002' || !reportingData || typeof reportingData !== 'object' || Array.isArray(reportingData) || Object.keys(reportingData).some(key => !['chart', 'bars', 'statuses'].includes(key)))) {
       throw new SuiteError('invalid-edit', 'reportingData accepts chart, bars and statuses for slide-002 only.');
+    }
+    // Flexible layouts retain the original placeholders for callers that chose them.
+    // A new scenario-guided deck gives the writer space for independent editable objects.
+    if (!fixed && intent && !slideLayouts && slideCount >= 3) {
+      slideLayouts = Array.from({length:slideCount},(_,i) =>
+        i === 0 ? 'cover' : i === slideCount-1 ? 'closing' : i === 1 ? 'content' : 'title');
     }
     const data = fixed ? await blankExistingDeck({ stylesRoot: styleRoot, style: chosen.style, dataRoot: this.dataRoot, signal, reportingData }) : template;
     if (fixed && fixed.textSlots === 'text-slots.json') summary.textSlots=readJson(join(styleRoot,chosen.style,'text-slots.json'));
@@ -845,7 +880,7 @@ export default class ShimoPreview extends TypertRemoteService {
     if (windowed) this.generations.set(`${sessionId}\0${real}`, { ...(fixed && { fixedSlides: { count: fixed.slideCount, done: new Set(), partial: new Set() } }), steps: slideCount ?? 0, imageBytes: 0, reserved: { steps: 0, imageBytes: 0 }, stopped: false, dev: identity.dev, ino: identity.ino });
     // A style is settled once a deck exists: the recommendation strip has nothing left to ask.
     this.styleSuggestions.dismiss(sessionId);
-    const read = await this.agents.request(sessionId, { kind: 'read', path, ...(fixed ? {initialBlank:'ppt-template'} : slideCount ? {slideCount, slideLayouts} : {}) }, signal);
+    const read = await this.agents.request(sessionId, { kind: 'read', path:sidebarPath(scope,path), ...(fixed ? {initialBlank:'ppt-template'} : slideCount ? {slideCount, slideLayouts} : {}) }, signal);
     return { created: true, style: summary, styleSource: chosen.source, ...read, generating: windowed };
   }
 
@@ -908,8 +943,13 @@ export default class ShimoPreview extends TypertRemoteService {
   }
 
   /** AI tool: open the document beside the conversation and describe it. `callId` lets the Client label the chat row. */
-  async aiRead(sessionId, path, signal, { callId, editTarget } = {}) {
-    await this.scopeOf(sessionId);
+  async aiRead(sessionId, path, signal,  { callId, editTarget, previewPhase } = {}) {
+    const scope = await this.scopeOf(sessionId);
+    if (previewPhase) {
+      if (!['prepare','ready'].includes(previewPhase) || typeof path !== 'string' || !/\.pptx$/i.test(path)) throw new SuiteError('invalid-path','Presentation preview requires a .pptx target.');
+      if (previewPhase === 'ready') await this.suite.source.stat(scope,path,signal);
+      return this.agents.request(sessionId,{kind:'read',path:sidebarPath(scope,path),previewPhase},signal);
+    }
     return this.agents.request(sessionId, { kind: 'read', path, ...(callId && { callId }), ...(editTarget && { editTarget }) }, signal);
   }
 

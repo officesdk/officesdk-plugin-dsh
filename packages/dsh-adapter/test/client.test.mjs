@@ -4,7 +4,7 @@ import { DocumentController } from '../src/client/controller.mjs';
 import { failureKind, fileAddress, parseSource, unwrapRemote } from '../src/client/address.mjs';
 import { baseName, isAbsolute, joinPath, parentOf, rootOf, segments } from '../src/client/paths.mjs';
 import { AgentBridge, ControllerRegistry, sessionAddress } from '../src/client/agent.mjs';
-import { MODULES, UPDATE_CHECK_MS, WITHDRAWN_MODULES, anyUnsaved, cancelKey, copyName, createToolbarPrefs, createUpdateWatch, editButtons, menuKey, nameProblem, pickedPath, savedForSwitch, switchPlan, modeButtons, offeredModules, placeMenu, rovingKey, toolbarBusy, updateEntry, updatePanelView } from '../src/client/toolbar.mjs';
+import { MODULES, UPDATE_CHECK_MS, WITHDRAWN_MODULES, anyUnsaved, cancelKey, copyName, createToolbarPrefs, createUpdateWatch, editButtons, menuKey, nameProblem, pickedPath, savedForSwitch, switchPlan, modeButtons, offeredModules, placeMenu, rovingKey, toolbarBusy, updateEntry, updatePanelView, watchTabEdits } from '../src/client/toolbar.mjs';
 import { CSS, mountStyles } from '../src/client/styles.mjs';
 import { DEMO_STATES, MOCK_KEY, PREVIEW_KEY, demoState, accountGate, accountHeld, accountMenuKey, createAccountSource, heldButtons, parseAccount } from '../src/client/account.mjs';
 
@@ -18,7 +18,8 @@ const failure = code => ({ status: 'failure', error: { code: `officesdk/${code}`
 function harness({ open, host = {}, locale } = {}) {
   const calls = [];
   let leases = 0;
-  const rpc = { call: async (_, method, { args }) => {
+  const rpc = { call: async (_, method, { args }, signal) => {
+    signal?.throwIfAborted();
     calls.push([method.split('/')[1], args]);
     const name = method.split('/')[1];
     if (host[name]) return host[name](args);
@@ -214,6 +215,17 @@ test('a parked session the autosave could not write comes back flagged for a con
   const plain = harness({ open: args => ({ ...lease(args), saveNeedsApproval: undefined }) });
   await plain.controller.open(1, { mode: 'view' });
   assert.equal(plain.controller.state.saveNeedsApproval, undefined);
+});
+
+test('closing an edited tab releases its existing lease even after the tab signal aborts', async () => {
+  const h = harness();
+  await h.controller.open(1, { mode: 'edit' });
+  h.controller.set({ dirty: true });
+  h.tab.abort();
+  await tick();
+  assert.deepEqual(h.calls.filter(([name]) => name === 'release'), [
+    ['release', { workspaceFileScopeId: 's1', id: 'lease1', autosave: true }],
+  ]);
 });
 
 test('a late open after the tab closed is released immediately', async () => {
@@ -698,6 +710,27 @@ test('DOCX, XLSX and PPTX: an editor that cannot mount falls back to the preview
   }
 });
 
+test('the update panel follows edits, saves and closing other tabs while the current tab stays clean', () => {
+  const current = harness().controller;
+  const other = harness().controller;
+  const tabs = new Map([['current', current]]);
+  const watchers = new Set();
+  const states = [];
+  const off = watchTabEdits(tabs, watchers, () => states.push(anyUnsaved(tabs)));
+  tabs.set('other', other);
+  for (const notify of watchers) notify();
+  other.set({ dirty: true });
+  other.set({ dirty: false });
+  other.set({ unstaged: 'pending' });
+  tabs.delete('other');
+  for (const notify of watchers) notify();
+  other.set({ dirty: true });
+  off();
+  current.set({ dirty: true });
+  assert.deepEqual(states, [false, false, true, false, true, false]);
+  assert.equal(watchers.size, 0);
+});
+
 test('the update entry shows only for a confirmed newer release the owner may install, while it installs, and once ready (V3.0)', () => {
   const ready = { current: '0.0.28', latest: '0.0.29', available: true, canUpdate: true };
   assert.equal(updateEntry(ready), 'available');
@@ -725,6 +758,7 @@ test('the update bubble: Host values only, notes before installation, off while 
   const busy = updatePanelView({ ...check, updating: true }, 'updating');
   assert.deepEqual([busy.action.disabled, busy.action.busy, busy.message.key], [true, true, 'updatePreparingNote']);
   const restart = updatePanelView({ ...check, available: false, installed: '0.0.29', restartRequired: true }, 'ready');
+  assert.deepEqual(restart.notes, [], 'release notes are shown before installation only');
   assert.deepEqual([restart.version, restart.action, restart.message.key], ['0.0.29', { label: 'updateGotIt', close: true }, 'updateReadyRestart']);
   assert.equal(updatePanelView({ ...check, installed: '0.0.29', restartRequired: false }, 'ready').message.key, 'updateReadyLoaded');
   // No date without one from the Host (a git install), junk dropped; highlights only when the Host has them.
@@ -909,20 +943,35 @@ test('pen/eye: a tab closed mid-switch opens nothing, and a cancelled AI request
 });
 
 test('P toolbar: modules keep the fixed order and only those offered here appear', () => {
-  assert.deepEqual(MODULES, ['undo', 'redo', 'save', 'saveAs', 'folder', 'print', 'layout', 'mode', 'update', 'account']);
+  assert.deepEqual(MODULES, ['undo', 'redo', 'save', 'saveAs', 'folder', 'print', 'layout', 'focus', 'slideshow', 'mode', 'update', 'account']);
   assert.deepEqual(offeredModules({ update: true, mode: true }), ['mode', 'update']);
   // A Core tab has no pen/eye, so the menu does not offer them.
   assert.deepEqual(offeredModules({ mode: false, update: true }), ['update']);
 });
 
 test('V3.1 toolbar: Open, Undo and Redo are withdrawn from quick access and customization', () => {
-  assert.deepEqual(WITHDRAWN_MODULES, ['folder', 'undo', 'redo']);
-  const all = { undo: true, redo: true, save: true, saveAs: true, folder: true, print: true, mode: true, update: true, account: true };
-  assert.deepEqual(offeredModules(all), ['save', 'saveAs', 'print', 'mode', 'update', 'account']);
+  assert.deepEqual(WITHDRAWN_MODULES, ['folder', 'undo', 'redo', 'account', 'skills']);
+  const all = { undo: true, redo: true, save: true, saveAs: true, folder: true, print: true, focus: true, mode: true, update: true, account: true, skills: true };
+  assert.deepEqual(offeredModules(all), ['save', 'saveAs', 'print', 'focus', 'mode', 'update']);
+  const hidden = createToolbarPrefs(() => undefined).hidden();
+  assert.deepEqual(offeredModules(all).filter(id => !hidden.includes(id)), ['save', 'focus']);
   // The tab still supports it (the open flow stays); only the toolbar and its menu no longer show it.
   const kit = { backend: 'kit', format: 'docx', mode: 'edit', capabilities: { save: true } };
   assert.deepEqual(editButtons(kit).folder, { disabled: false });
   assert.equal(offeredModules({ folder: Boolean(editButtons(kit).folder) }).includes('folder'), false);
+});
+
+test('the slideshow shortcut follows Focus and is available for ready, editable or read-only PPT files', () => {
+  const state = { backend: 'kit', format: 'pptx', ready: true, mode: 'view', capabilities: { save: false } };
+  for (const mode of ['view', 'edit']) {
+    assert.deepEqual(editButtons({ ...state, mode }).slideshow, { disabled: false });
+  }
+  assert.equal(editButtons({ ...state, ready: false }).slideshow.disabled, true);
+  for (const patch of [{ format: 'docx' }, { format: 'xlsx' }, { fallback: 'preview' }, { backend: 'core' }]) {
+    assert.equal(editButtons({ ...state, ...patch }).slideshow, undefined);
+  }
+  const prefs = createToolbarPrefs(() => undefined);
+  assert.deepEqual(offeredModules({ save: true, focus: true, slideshow: true, mode: true }).filter(id => !prefs.hidden().includes(id)), ['save', 'focus', 'slideshow']);
 });
 
 test('P toolbar: busy is the header\'s own work, a mode switch or a reload, never a Kit autosave', () => {
@@ -938,14 +987,14 @@ test('P toolbar: shown/hidden choices are shared, persist, survive refusing stor
   const prefs = createToolbarPrefs(() => storage);
   let changes = 0;
   prefs.subscribe(() => { changes += 1; });
-  assert.deepEqual(prefs.hidden(), ['print', 'update']);
+  assert.deepEqual(prefs.hidden(), ['saveAs', 'mode', 'print', 'update']);
   prefs.toggle('update');
-  assert.deepEqual(prefs.hidden(), ['print']);
-  assert.deepEqual(JSON.parse(store.get(prefs.key)), { hidden: ['print'] });
+  assert.deepEqual(prefs.hidden(), ['saveAs', 'mode', 'print']);
+  assert.deepEqual(JSON.parse(store.get(prefs.key)), { hidden: ['saveAs', 'mode', 'print'] });
   // A second header (another tab or suite) reads the same choice.
-  assert.deepEqual(createToolbarPrefs(() => storage).hidden(), ['print']);
+  assert.deepEqual(createToolbarPrefs(() => storage).hidden(), ['saveAs', 'mode', 'print']);
   prefs.toggle('update');
-  assert.deepEqual(prefs.hidden(), ['print', 'update']);
+  assert.deepEqual(prefs.hidden(), ['saveAs', 'mode', 'print', 'update']);
   // Another window wrote the stored value; ids from a newer version survive this one's writes.
   store.set(prefs.key, JSON.stringify({ hidden: ['mode', 'futureModule', 7] }));
   prefs.reload();
@@ -957,9 +1006,18 @@ test('P toolbar: shown/hidden choices are shared, persist, survive refusing stor
   // Private mode, quota or a refusal: the page keeps working in memory.
   const refusing = createToolbarPrefs(() => ({ getItem: () => { throw new Error('denied'); }, setItem: () => { throw new Error('denied'); } }));
   refusing.toggle('mode');
-  assert.deepEqual(refusing.hidden(), ['print', 'update', 'mode']);
-  assert.deepEqual(createToolbarPrefs(() => ({ getItem: () => '{not json' })).hidden(), ['print', 'update']);
-  assert.deepEqual(createToolbarPrefs(() => undefined).hidden(), ['print', 'update']);
+  assert.deepEqual(refusing.hidden(), ['saveAs', 'print', 'update']);
+  assert.deepEqual(createToolbarPrefs(() => ({ getItem: () => '{not json' })).hidden(), ['saveAs', 'mode', 'print', 'update']);
+  assert.deepEqual(createToolbarPrefs(() => undefined).hidden(), ['saveAs', 'mode', 'print', 'update']);
+});
+
+test('compact toolbar migrates implicit visibility while keeping previous customization', () => {
+  const old = new Map([['officesdk:toolbar:v3.1', JSON.stringify({ hidden: ['print', 'futureModule'] })]]);
+  const storage = { getItem: key => old.get(key), setItem: (key, value) => old.set(key, value) };
+  const prefs = createToolbarPrefs(() => storage);
+  assert.deepEqual(prefs.hidden(), ['saveAs', 'mode', 'print', 'futureModule']);
+  prefs.toggle('saveAs');
+  assert.deepEqual(createToolbarPrefs(() => storage).hidden(), ['mode', 'print', 'futureModule']);
 });
 
 test('P toolbar: a popover sits under its trigger, right edges aligned, 8px inside the viewport, scrolling when short of room', () => {
@@ -1158,7 +1216,7 @@ test('undo/redo, Save and Print buttons: PPT-only history, read mode and read-on
   assert.deepEqual(editButtons({ ...kit, aiBusy: true }).redo, { disabled: true, reason: 'busy' });
   // A fallback preview or a failed tab offers none of them; a Core tab saves but neither prints nor has history.
   // A fallback preview offers only Open (to leave the file); a failed tab without a lease, nothing.
-  assert.deepEqual(editButtons({ ...kit, fallback: 'preview' }), { saveAs: undefined, folder: { disabled: false }, undo: undefined, redo: undefined, save: undefined, print: undefined });
+  assert.deepEqual(editButtons({ ...kit, fallback: 'preview' }), { slideshow: undefined, saveAs: undefined, folder: { disabled: false }, undo: undefined, redo: undefined, save: undefined, print: undefined });
   assert.deepEqual(editButtons({ ...kit, mode: 'view' }).saveAs, { disabled: false }, 'Save As copies what read mode shows too');
   assert.deepEqual(editButtons({ ...kit, saveState: 'saving' }).folder, { disabled: true, reason: 'busy' });
   const core = editButtons({ backend: 'core', capabilities: { save: true }, mode: 'edit', format: 'docx' });
@@ -1557,4 +1615,32 @@ test('project table commit defers file revision notifications until the refreshe
   assert.equal(h.calls.filter(([name])=>name==='rebind').length,0);assert.equal(h.controller.revision,1);
   h.controller.endTableCommit();await tick();await tick();
   assert.equal(h.controller.revision,3);assert.equal(h.calls.filter(([name])=>name==='rebind').length,1);assert.equal(h.controller.autosavePaused,false);h.tab.abort();
+});
+
+test('an incoming PPT revision waits for the opening frame to acknowledge its original revision', async () => {
+  const h = harness({open:args=>({id:'deck',revision:args.revision,version:'v1',backend:'kit',format:'pptx',mode:'edit',entry:'/shimo/kit/static/page/index.html?view=deck',capabilities:{},expiresInMs:900000}),
+    host:{rebind:args=>({status:'success',value:{revision:args.revision,state:'active',version:'v2'}})}});
+  await h.controller.open(1,{mode:'edit'});
+  await h.controller.adopt(2,'v2',{});
+  assert.equal(h.controller.revision,1);
+  h.fromFrame({type:'officesdk:ready',id:'deck',revision:1});
+  await tick();
+  assert.equal(h.controller.revision,2);
+  assert.equal(h.controller.state.ready,true);
+  assert.equal(h.names().filter(n=>n==='open').length,1);
+  h.tab.abort();
+});
+
+test('the first agent joins the PPT tab while the initial open RPC is outstanding',async()=>{
+  let grant;
+  const h=harness({host:{open:()=>new Promise(resolve=>{grant=resolve;})}});
+  const opening=h.controller.open(1,{mode:'edit'});
+  const joining=h.controller.ensureMode('edit',new AbortController().signal);
+  await tick();
+  assert.deepEqual(h.names(),['open']);
+  grant({status:'success',value:{id:'only',revision:1,version:'v1',backend:'kit',format:'pptx',mode:'edit',entry:'/shimo/kit/static/page/index.html?view=only',capabilities:{},expiresInMs:900000}});
+  await opening;
+  h.fromFrame({type:'officesdk:ready',id:'only',revision:1});
+  await joining;
+  h.tab.abort();
 });

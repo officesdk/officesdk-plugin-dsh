@@ -113,6 +113,8 @@ export function pageLocale(params, document) {
 export async function startKitPage({ window, document, fetch: fetchImpl = window.fetch.bind(window), loadEditor, createAgent }) {
   quietModals(window);
   const params = new URL(window.location.href).searchParams;
+  const playbackFrame = params.get('playback') === '1' ? window.frameElement : null;
+  if (params.get('playback') === '1' && !playbackFrame?.hasAttribute('data-officesdk-playback')) return;
   const viewId = params.get('view');
   const revision = Number(params.get('revision') ?? 0);
   const locale = pageLocale(params, document);
@@ -144,6 +146,15 @@ export async function startKitPage({ window, document, fetch: fetchImpl = window
     const resourcesBase = new URL('resources/', staticRoot).href;
     const catalog = editorModule.parseResourceCatalog(await (await call(fetchImpl, new URL('catalog.json', resourcesBase))).json());
     const root = document.getElementById('editor-root');
+    const preparingPresentation = meta.preparingPresentation === true && meta.suite === 'presentation' && meta.mode === 'view';
+    // Mount the same native slide sorter used during generation, while the host
+    // holds only a read lease on its blank template. Input belongs to the output
+    // document once its own file resource replaces this view.
+    const displayMode = preparingPresentation ? 'edit' : meta.mode;
+    if (preparingPresentation) {
+      root.inert = true;
+      root.setAttribute('aria-busy','true');
+    }
     const generationMode = params.get('generation');
     const initiallyBlank = ['project','meeting','proposal','template','letter'].includes(generationMode) && meta.suite === 'document' && meta.mode === 'edit';
     const initiallyBlankDeck = generationMode === 'ppt-template' && meta.suite === 'presentation' && meta.mode === 'edit';
@@ -217,21 +228,94 @@ export async function startKitPage({ window, document, fetch: fetchImpl = window
       onRebuild: error => { void rebuild(error); },
     });
 
-    async function mount() {
+    async function createEditor(container, mode, editableFile) {
       const content = await call(fetchImpl, new URL('content', base));
       const nextChangeSetRevision = Number(content.headers.get('x-next-change-set-revision'));
       const text = await content.text();
-      const { runtimeScripts, ...suiteOptions } = suiteMountOptions({ suite: meta.suite, mode: meta.mode, user: meta.user, nextChangeSetRevision,
+      const { runtimeScripts, ...suiteOptions } = suiteMountOptions({ suite: meta.suite, mode, user: meta.user, nextChangeSetRevision,
         language: locale === 'en' ? 'en-US' : 'zh-CN' });
-      const created = await editorModule.createOfflineEditor({
-        container: root, suite: meta.suite, content: text, mode: meta.mode === 'edit' ? 'edit' : 'readonly', ...suiteOptions,
+      return editorModule.createOfflineEditor({
+        container, suite: meta.suite, content: text, mode: mode === 'edit' ? 'edit' : 'readonly', ...suiteOptions,
         file: { name: meta.name }, direction: 'ltr', fontProvider,
         resources: { baseUrl: resourcesBase, catalog, ...(runtimeScripts && { runtimeScripts }), signal: lifetime.signal },
         assets: { baseUrl: mediaBase.href, resolveReadUrl: mediaUrl },
-        ...(meta.mode === 'edit' && { attachment: { store: attachmentStore } }),
+        ...(editableFile && { attachment: { store: attachmentStore } }),
       });
+    }
+
+    // Playback uses the native workbench in its own iframe. Closing the frame releases
+    // the SDK's global listeners without disturbing the reader or its scroll position.
+    if (playbackFrame) {
+      if (meta.mode !== 'view' || meta.suite !== 'presentation') throw new PageError('unsupported-operation', 'Slide show requires a presentation in read mode.');
+      root.inert = true;
+      root.style.visibility = 'hidden';
+      const player = await createEditor(root, 'edit', false);
+      await player.start();
+      // This copy has no change or save handlers and receives no attachment store.
+      const end = () => playbackFrame.dispatchEvent(new Event('officesdk-playback-end'));
+      document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement) end();
+      });
+      window.addEventListener('keydown', event => {
+        if (event.key === 'Escape') end();
+      }, true);
+      await player.api.presentation.getJsApi().PowerPoint.Presentation.start();
+      root.inert = false;
+      root.style.visibility = '';
+      window.focus();
+      playbackFrame.dispatchEvent(new Event('officesdk-playback-ready'));
+      return;
+    }
+
+    let readingShow;
+    async function playReadOnly() {
+      if (readingShow) return;
+      const player = document.createElement('iframe');
+      const url = new URL(window.location.href);
+      url.searchParams.set('playback', '1');
+      player.src = url.href;
+      player.title = locale === 'en' ? 'Slide show' : '幻灯片放映';
+      player.allowFullscreen = true;
+      player.dataset.officesdkPlayback = '';
+      player.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0;background:black;z-index:2147483647';
+      readingShow = player;
+      const events = new AbortController();
+      let settle;
+      const ready = new Promise(resolve => { settle = resolve; });
+      const close = () => {
+        if (readingShow !== player) return;
+        events.abort();
+        player.remove();
+        readingShow = undefined;
+        settle();
+      };
+      document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement) close();
+      }, { signal: events.signal });
+      player.addEventListener('officesdk-playback-end', close, { signal: events.signal });
+      player.addEventListener('officesdk-playback-ready', () => settle(), { signal: events.signal });
+      player.addEventListener('officesdk-playback-error', e => settle(e.detail), { signal: events.signal });
+      const unavailable = locale === 'en' ? 'Could not open the slide show. Try again.' : '放映未能打开，请重试。';
+      player.addEventListener('error', () => settle(unavailable), { signal: events.signal });
+      const timeout = window.setTimeout(() => settle(unavailable), 30_000);
+      document.body.append(player);
+      try {
+        await player.requestFullscreen();
+        const error = await ready;
+        if (error) throw new PageError('unavailable', error);
+      } catch (error) {
+        close();
+        throw error;
+      } finally {
+        window.clearTimeout(timeout);
+      }
+    }
+
+    async function mount() {
+      const created = await createEditor(root, displayMode, meta.mode === 'edit');
       // Whether a change is the user's is decided when the editor makes it, not when the Host accepts it.
       created.on('change', change => {
+        if (preparingPresentation) return;
         const applying = agent?.applying === true;
         if (applying) acted = true;
         const inert = !acted;
@@ -410,6 +494,15 @@ export async function startKitPage({ window, document, fetch: fetchImpl = window
         if (!['undo', 'redo'].includes(action) || typeof internals?.[action] !== 'function') return Promise.reject(new PageError('unsupported-operation', 'This editor cannot do that.'));
         return delivered(Promise.resolve().then(() => { internals[action](); return {}; }));
       },
+      async slideshow() {
+        if (meta.suite !== 'presentation' || preparingPresentation) throw new PageError('unsupported-operation', 'Open a presentation to start a slide show.');
+        const presentation = editor?.api?.presentation?.getJsApi()?.PowerPoint?.Presentation;
+        if (typeof presentation?.start !== 'function') throw new PageError('unsupported-operation', 'Slide show is unavailable in this editor.');
+        window.focus();
+        if (meta.mode === 'view') await playReadOnly();
+        else await presentation.start();
+        return {};
+      },
       // The browser's print dialog for the page, opened after replying: it blocks the page until it closes. One at a
       // time. Writer keeps a print-ready copy of every page; Sheet and PPT print only through their own (disabled)
       // print flows, so the panel offers Print for DOCX alone.
@@ -434,12 +527,18 @@ export async function startKitPage({ window, document, fetch: fetchImpl = window
       else agent.beginTemplateCreation(generationMode);
       root.style.visibility = '';
     }
+    if (preparingPresentation) await agent.beginExistingTemplate();
     if (initiallyBlankDeck) { await agent.beginExistingTemplate(JSON.parse(params.get('slideProgress') || '{}')); root.style.visibility = ''; }
     channel.notify('ready', { mode: meta.mode, ...(meta.diskChanged && { diskChanged: true }) });
     // Unloading tears the editor down with the page; destroying it during pagehide only trips the SDK's own disposal.
     window.addEventListener('pagehide', () => lifetime.abort(), { once: true });
     return { get editor() { return editor; }, queue, rebuild, channel, get dirty() { return dirtyNotified; } };
   } catch (error) {
+    // The nested player borrows the reader's view. Only its owner may abandon that view.
+    if (playbackFrame) {
+      playbackFrame.dispatchEvent(new CustomEvent('officesdk-playback-error', { detail: error?.message || 'Slide show unavailable' }));
+      return;
+    }
     // No editor for a live view (bundle, resources, meta or mount failed): close the view without autosaving so
     // the tab can fall back to a read-only preview. A gone view (rebuild) is the parent's to reopen.
     let unsaved;

@@ -18,6 +18,7 @@ export function createEditorFrame(container, { printable, title }) {
   return {
     frame,
     update(view) {
+      frame.inert = view.reconnecting === true;
       const allow = "clipboard-read 'none'; clipboard-write " + (view.mode === 'edit' ? "'self'" : "'none'");
       if (frame.allow !== allow) frame.allow = allow;
       if (view.url && frame.getAttribute('src') !== view.url) frame.src = view.url;

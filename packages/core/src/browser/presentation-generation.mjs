@@ -91,9 +91,49 @@ export function deckProgress(document, slideIds, locale, slideSize) {
   style.textContent = css;
   document.head.append(style);
   let frame, mounted, disposed = false;
+  let following = true, activeId, pendingId, resume;
+  const visibleThumb = id => [...document.querySelectorAll('[data-thumbnail-slide-id="' + CSS.escape(id) + '"]')]
+    .find(el => !el.closest('[inert]') && el.getBoundingClientRect().width > 0);
+  function reveal() {
+    if (!following || !pendingId) return;
+    const cover = pendingId === slideIds[0];
+    const thumb = visibleThumb(pendingId);
+    if (cover) {
+      // The first row may not be mounted until its scroll container is reset.
+      const mounted = thumb ?? [...document.querySelectorAll('[data-thumbnail-slide-id]')]
+        .find(el => !el.closest('[inert]') && el.getBoundingClientRect().width > 0);
+      for (let parent = mounted?.parentElement;parent;parent = parent.parentElement) {
+        if (parent.scrollHeight > parent.clientHeight && /auto|scroll/.test(view.getComputedStyle(parent).overflowY)) {
+          parent.scrollTop = 0;
+          if (thumb) pendingId = undefined;
+          return;
+        }
+      }
+    }
+    if (!thumb) return;
+    pendingId = undefined;
+    thumb.scrollIntoView({block: 'nearest', inline: 'nearest', behavior: 'instant'});
+  }
+  function track(id) {
+    if (!id || id === activeId) return;
+    activeId = pendingId = id;
+    reveal();
+  }
+  function pauseFollowing(event) {
+    if (!activeId || !event.target?.closest?.('[data-thumbnail-slide-id]') && !visibleThumb(activeId)?.parentElement?.contains(event.target)) return;
+    following = false;
+    if (resume) return;
+    resume = document.createElement('button');
+    resume.textContent = locale === 'zh' ? '回到正在生成的页' : 'Follow current slide';
+    resume.style.cssText = 'position:fixed;bottom:40px;right:16px;z-index:5;padding:5px 10px;border:1px solid #ccc;border-radius:6px;background:white;color:#222';
+    resume.onclick = () => { following = true; pendingId = activeId; reveal(); resume.remove(); resume = undefined; };
+    document.body.append(resume);
+  }
+  for (const event of ['wheel','touchmove']) document.addEventListener(event, pauseFollowing, {passive:true});
   const firstThumbnail = new Promise(resolve => { mounted = resolve; });
   function draw(slideId) {
     if (disposed) return;
+    reveal();
     const selector = slideId ? '[data-thumbnail-slide-id="' + CSS.escape(slideId) + '"]' : '[data-thumbnail-slide-id]';
     for (const thumb of document.querySelectorAll(selector)) {
       const id = thumb.getAttribute('data-thumbnail-slide-id');
@@ -159,7 +199,7 @@ export function deckProgress(document, slideIds, locale, slideSize) {
   observer.observe(document.body,{childList:true,subtree:true});
   draw();
   return {
-    pages, firstThumbnail,
+    pages, firstThumbnail, track,
     phase(ids, phase) {
       for (const id of ids) {
         const page = pages.get(id);
@@ -170,6 +210,7 @@ export function deckProgress(document, slideIds, locale, slideSize) {
     async selectModule(step, geometry, label, moving, pause) {
       const page = pages.get(step.slideId);
       if (!page || disposed) return;
+      track(step.slideId);
       // Styling a just-written object keeps the agent on that same object.
       const key = step.shapeRef ?? step.ref ?? step.shapeId;
       const previous = page.target;
@@ -190,7 +231,7 @@ export function deckProgress(document, slideIds, locale, slideSize) {
         module.querySelector('span').textContent = label;
       }
     },
-    dispose() { disposed = true; observer.disconnect(); view.cancelAnimationFrame(frame); style.remove(); document.querySelectorAll('.office-slide-generation').forEach(el => el.remove()); },
+    dispose() { disposed = true; for (const event of ['wheel','touchmove']) document.removeEventListener(event,pauseFollowing); resume?.remove(); observer.disconnect(); view.cancelAnimationFrame(frame); style.remove(); document.querySelectorAll('.office-slide-generation').forEach(el => el.remove()); },
   };
 }
 

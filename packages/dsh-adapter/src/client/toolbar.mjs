@@ -25,7 +25,7 @@ export function updatePanelView(update, entry, unsaved = false, lang = 'zh') {
   const list = lang === 'en' ? update?.highlightsEn : update?.highlights;
   const notes = version && version === update?.latest && Array.isArray(list) ? list.filter(text => typeof text === 'string' && text.trim()) : [];
   if (entry === 'updating') return { version, date, notes, action: { label: 'updatePreparing', disabled: true, busy: true }, message: { key: 'updatePreparingNote', tone: 'progress' } };
-  if (entry === 'ready') return { version, date, notes, action: { label: 'updateGotIt', close: true }, message: { key: update?.restartRequired === false ? 'updateReadyLoaded' : 'updateReadyRestart', tone: 'progress' } };
+  if (entry === 'ready') return { version, date, notes: [], action: { label: 'updateGotIt', close: true }, message: { key: update?.restartRequired === false ? 'updateReadyLoaded' : 'updateReadyRestart', tone: 'progress' } };
   // A refused or failed install says why inside the bubble too (the toolbar status sits behind it).
   const message = unsaved ? { key: 'updateUnsaved', tone: 'warning' } : update?.failed ? { text: String(update.failed), tone: 'warning' } : undefined;
   return { version, date, notes, action: { label: 'updateNow', disabled: unsaved || !notes.length, install: true }, message };
@@ -36,6 +36,20 @@ export function updatePanelView(update, entry, unsaved = false, lang = 'zh') {
  * A save that failed leaves its tab dirty, so the update stays blocked and the edits stay.
  */
 export const anyUnsaved = controllers => [...controllers.values()].some(controller => controller.state?.dirty === true || Boolean(controller.state?.unstaged));
+
+/** The update panel follows edits in every tab and stops observing a tab as soon as it closes. */
+export function watchTabEdits(controllers, tabWatchers, notify) {
+  let subscriptions = [];
+  const unsubscribe = () => { for (const off of subscriptions) off(); };
+  const updateTabs = () => {
+    unsubscribe();
+    subscriptions = Array.from(controllers.values(), controller => controller.subscribe(notify));
+    notify();
+  };
+  tabWatchers.add(updateTabs);
+  updateTabs();
+  return () => { tabWatchers.delete(updateTabs); unsubscribe(); };
+}
 
 /**
  * The pen (edit) and eye (read) pair of a Kit tab. Leaving edit writes the edits first, so the eye waits
@@ -57,10 +71,10 @@ export function modeButtons(state, saving = false) {
  * The P toolbar's ten modules in their fixed order (design package v2.9, docs/01 §2). A module appears only once this
  * plugin provides it; the three-dot button follows them and cannot be hidden; the account (个人中心) comes after it.
  */
-export const MODULES = Object.freeze(['undo', 'redo', 'save', 'saveAs', 'folder', 'print', 'layout', 'mode', 'update', 'account']);
-const STORAGE_KEY = 'officesdk:toolbar:v3.1';
-const PREVIOUS_STORAGE_KEY = 'officesdk:toolbar';
-const DEFAULT_HIDDEN = ['print', 'update'];
+export const MODULES = Object.freeze(['undo', 'redo', 'save', 'saveAs', 'folder', 'print', 'layout', 'focus', 'slideshow', 'mode', 'update', 'account']);
+const STORAGE_KEY = 'officesdk:toolbar:compact';
+const NEWLY_HIDDEN = ['saveAs', 'mode'];
+const DEFAULT_HIDDEN = [...NEWLY_HIDDEN, 'print', 'update'];
 
 /**
  * Busy for the P buttons: the header's own work (authorization, export), the toolbar's Save, an AI edit writing, a
@@ -91,6 +105,8 @@ export function editButtons(state, busy = false) {
   return {
     // Save As writes a copy of what the tab shows, editing or reading; Open is offered even on a fallback preview,
     // to leave a file the editor could not open.
+    slideshow: kitLive && state.format === 'pptx' && ['edit', 'view'].includes(state.mode)
+      ? { disabled: blocked || state.ready !== true } : undefined,
     saveAs: kitLive ? { disabled: blocked, ...blocked && { reason: 'busy' } } : undefined,
     folder: state?.capabilities ? { disabled: blocked, ...blocked && { reason: 'busy' } } : undefined,
     undo: history && step(history.canUndo),
@@ -108,7 +124,7 @@ export function editButtons(state, busy = false) {
  * the 工作台 or a desktop client. The open flow behind it (openFile, openPicked, BrowsePanel, OPEN-01, the Host's
  * probe/browse) stays, so it can come back by removing the id here.
  */
-export const WITHDRAWN_MODULES = Object.freeze(['folder', 'undo', 'redo']);
+export const WITHDRAWN_MODULES = Object.freeze(['folder', 'undo', 'redo', 'account', 'skills']);
 
 /** The modules this tab offers, in order: a module must be provided here, apply to this tab, and not be withdrawn. */
 export const offeredModules = applies => MODULES.filter(id => applies[id] === true && !WITHDRAWN_MODULES.includes(id));
@@ -123,10 +139,13 @@ export function createToolbarPrefs(storage = () => globalThis.localStorage) {
     try {
       const store = storage();
       const stored = store?.getItem(STORAGE_KEY);
-      const hidden = JSON.parse(stored ?? store?.getItem(PREVIOUS_STORAGE_KEY) ?? '{}')?.hidden;
+      const previous = store?.getItem('officesdk:toolbar:v3.1');
+      const hidden = JSON.parse(stored ?? previous ?? store?.getItem('officesdk:toolbar') ?? '{}')?.hidden;
       // Ids this version does not know stay: a newer version (another tab, before a downgrade) may own them.
-      const ids = Array.isArray(hidden) ? hidden.filter(id => typeof id === 'string') : [];
-      return Object.freeze(stored == null ? [...new Set([...DEFAULT_HIDDEN, ...ids])] : ids);
+      if (!Array.isArray(hidden)) return Object.freeze([...DEFAULT_HIDDEN]);
+      const ids = hidden.filter(id => typeof id === 'string');
+      if (stored != null) return Object.freeze(ids);
+      return Object.freeze([...new Set([...(previous == null ? DEFAULT_HIDDEN : NEWLY_HIDDEN), ...ids])]);
     } catch { return Object.freeze([...DEFAULT_HIDDEN]); }
   };
   let hidden = read();
